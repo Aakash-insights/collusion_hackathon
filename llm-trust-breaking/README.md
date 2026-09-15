@@ -13,13 +13,7 @@ This research framework measures how large language models engage in **strategic
 ```bash
 pip install -r requirements.txt
 
-# Configure API keys (shared across the starter repo, in the ROOT .env)
-cp ../.env.example ../.env
-# Edit ../.env: set DEFAULT_OPENAI_API_KEY / DEFAULT_OPENROUTER_API_KEY,
-# or TRUST_BREAKING_OPENAI_API_KEY / TRUST_BREAKING_OPENROUTER_API_KEY to
-# override them for this project only.
-
-# Project-local settings (model, temperature, agent count) stay here
+# Configure API keys
 cp .env.example .env
 
 # Run a 10-round experiment
