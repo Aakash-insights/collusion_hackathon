@@ -4,6 +4,8 @@ This research framework measures how large language models engage in **strategic
 
 ![Methodology](methodology.png)
 
+[Original Repo](https://github.com/Jerick-1380/LLM-Trust-Breaking)
+
 ---
 
 ## Quick Start
@@ -11,9 +13,14 @@ This research framework measures how large language models engage in **strategic
 ```bash
 pip install -r requirements.txt
 
-# Configure API keys
+# Configure API keys (shared across the starter repo, in the ROOT .env)
+cp ../.env.example ../.env
+# Edit ../.env: set DEFAULT_OPENAI_API_KEY / DEFAULT_OPENROUTER_API_KEY,
+# or TRUST_BREAKING_OPENAI_API_KEY / TRUST_BREAKING_OPENROUTER_API_KEY to
+# override them for this project only.
+
+# Project-local settings (model, temperature, agent count) stay here
 cp .env.example .env
-# Edit .env: add OPENAI_API_KEY and OPENROUTER_API_KEY
 
 # Run a 10-round experiment
 python experiments/run_endogenous.py \
