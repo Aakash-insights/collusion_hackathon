@@ -12,7 +12,7 @@ answer.
 | folder | paper / project | one-line summary |
 |---|---|---|
 | [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms |
-| [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges, activation steering (GPU, untouched) |
+| [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges; the paper's activation-steering scripts ship untouched as an optional extra |
 | [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors |
 | [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps |
 | [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation |
@@ -52,7 +52,8 @@ certification of AI agents making market decisions. Two or three agents play Ber
 competition under different system prompts (neutral, implicit and explicit nudges to
 collude, anti-collusion warnings), with LLM judges scoring the transcripts. The
 "steering" part trains contrastive activation vectors and injects them into open models
-served with vLLM (GPU, untouched here). Sprint projects 1.2 and 1.4: a CPU-only harness
+served with vLLM; those scripts ship untouched behind the optional `[gpu]` extra and are not
+needed for the sprint. Sprint projects 1.2 and 1.4: a CPU-only harness
 runs the same game through OpenRouter with prompt / monitoring / window / temperature
 flags, adds checkpoint branching to swap a participant mid-run, and an API-based judge. The
 paper's R1 distills are no longer on OpenRouter, so you pick the agent model: full R1 for
