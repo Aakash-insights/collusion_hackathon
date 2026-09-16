@@ -64,8 +64,8 @@ Example: --all-monitors --limit 50 → 6 × 4 × 2 × 50 = 2,400 evaluation runs
 
 | Role | Model | Purpose |
 | --- | --- | --- |
-| Untrusted | openai/gpt-4o | The AI agent performing tasks (may be compromised) |
-| Trusted | openai/gpt-4o-mini | The monitor and fallback model (assumed safe) |
+| Untrusted | openrouter/openai/gpt-4o | The AI agent performing tasks (may be compromised) |
+| Trusted | openrouter/openai/gpt-4o-mini | The monitor and fallback model (assumed safe) |
 
 ## Analysis Pipeline
 
@@ -87,7 +87,7 @@ This produces:
 
 | Error | Fix |
 | --- | --- |
-| "No API key found" | `export OPENAI_API_KEY=your_key_here` |
+| "No API key found" / 401 | put `OPENROUTER_API_KEY=...` in this project's `.env` (copy `.env.example`), then `python scripts/test_model_access.py` |
 | "No logs found" | Run evaluations first, check `ls logs/` |
 | "Docker not running" | Start Docker Desktop, verify with `docker info` |
 | "Only one class present" | Need both honest and attack mode logs for ROC curve |

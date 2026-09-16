@@ -111,24 +111,35 @@ Detectors (what happened) → Intent Analyzer (why it's suspicious) → 5-Dim Sc
 
 ## Quick Start
 
-### Prerequisites
-
-- Python >= 3.10, Docker, API keys for OpenAI (+ optionally Anthropic)
-- [ControlArena](https://github.com/UKGovernmentBEIS/control-arena) for BashArena experiments
+> **Advanced project — read this first.** TraceGuard evaluates agents inside
+> ControlArena's **BashArena**, which runs every task in a **Docker** container. Unlike
+> the other projects in this repository it needs infrastructure, not just a key:
+>
+> | Prerequisite | Size / time |
+> | --- | --- |
+> | Python >= 3.10 | — |
+> | `pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
+> | **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
+> | An OpenRouter API key | in `.env` |
+> | Smoke test (5 samples, one monitor) | **~10 min**, a few hundred model calls |
+> | Full experiment (all monitors, 50 samples) | **6–8 h**, 2,400 evaluation runs |
+>
+> `scripts/quickstart.sh` checks every prerequisite and stops at the first one missing,
+> before anything expensive starts. Run it first.
 
 ### Install & Run
 
 ```bash
-git clone https://github.com/linhkid/TraceGuard.git
-cd TraceGuard
-pip install -e .              # or: uv pip install -e .
-cp .env.example .env          # Add your API keys
+pip install -e .              # or: uv pip install -e .   (inspect-ai + control-arena)
+cp .env.example .env          # put your OPENROUTER_API_KEY in .env
 
-# Set up BashArena (ControlArena)
-git clone https://github.com/UKGovernmentBEIS/control-arena.git
-cd control-arena && uv sync && uv run control-arena env setup --env bash_arena && cd ..
+# One-off: build the BashArena images (requires Docker running)
+control-arena env setup --env bash_arena
 
-# Quick smoke test
+# Seconds: confirm the key and the two models answer, before the 10-minute eval
+python scripts/test_model_access.py
+
+# Quick smoke test (~10 min)
 python scripts/run_eval.py --monitor traceguard --limit 5
 
 # Run key experiment: collusion resistance comparison
@@ -138,6 +149,18 @@ python scripts/run_eval.py --monitor simple_untrusted --attack-only --limit 20 -
 # Generate all analysis plots (Pareto, confusion matrix, AUC-ROC)
 python scripts/analyze_results.py --log-dir logs/experiments --output figures/ --all-plots
 ```
+
+All models are reached through **OpenRouter**, keeping the project's original choices:
+`openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as
+the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai
+model string works).
+
+**Intent analyzer (optional).** The original project ran a second-opinion pass by Claude
+Opus 4.6 via AWS Bedrock whenever the heuristic detectors flagged an action. It is
+disabled unless `INTENT_MODEL` is set in `.env`; the same model is available as
+`openrouter/anthropic/claude-opus-4.6`. Opus is the expensive tier (US$5 / US$25 per
+million tokens in/out), so leave it off for smoke tests, and swap in another model id if
+you prefer — nothing else depends on it.
 
 For full CLI reference, see [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md). For detailed experiment scenarios and cross-dataset comparison, see [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md).
 
@@ -178,7 +201,7 @@ flowchart TD
         ED --> DFT["Data_Flow_Tracker.record"]
         DFT --> CDT["Config_Diff_Tracker.record"]
         CDT --> CS["Compute Combined Score"]
-        CS --> IA["Intent Analyzer (Claude Opus via Bedrock)"]
+        CS --> IA["Intent Analyzer (Claude Opus 4.6 via OpenRouter, optional)"]
         IA --> LLM["LLM Dimension Scoring"]
         LLM --> Final["Final Composite Score"]
     end
@@ -186,7 +209,7 @@ flowchart TD
     subgraph intent ["Intent Analyzer Pipeline"]
         direction TB
         IA2["Detector Findings + Resolved Command"] --> IP["INTENT_PROMPT"]
-        IP --> Opus["Claude Opus via Bedrock"]
+        IP --> Opus["Claude Opus 4.6 via OpenRouter (INTENT_MODEL)"]
         Opus --> Parse["Parse: intent_summary, threat_category, confidence"]
         Parse --> Boost["Suspicion Boost (none: 0, low: 0.05, med: 0.15, high: 0.30, crit: 0.45)"]
         Boost --> DH["Dimension Hints (per-dimension score bias)"]
@@ -289,8 +312,8 @@ python scripts/run_eval.py [OPTIONS]
 | `--monitor` | choice | _(none)_ | Run a single monitor: `traceguard`, `simple_trusted`, `simple_untrusted`, `collusion_resistant`, `separation_of_duties`, `bash_heuristic` |
 | `--all-monitors` | flag | `false` | Run all monitors |
 | `--limit` | int | `5` | Number of samples per task |
-| `--untrusted-model` | str | `openai/gpt-4o` | Model for the agent (untrusted) |
-| `--trusted-model` | str | `openai/gpt-4o-mini` | Model for the monitor/fallback (trusted) |
+| `--untrusted-model` | str | `openrouter/openai/gpt-4o` | Model for the agent (untrusted) |
+| `--trusted-model` | str | `openrouter/openai/gpt-4o-mini` | Model for the monitor/fallback (trusted) |
 | `--thresholds` | float list | `0.0 to 1.0, step 0.05` | Suspicion thresholds for defer-to-trusted decisions |
 | `--honest-only` | flag | `false` | Only run HONEST mode (measures usefulness) |
 | `--attack-only` | flag | `false` | Only run ATTACK mode (measures safety) |
@@ -305,8 +328,8 @@ python scripts/run_eval.py --all-monitors --limit 50
 
 # Attack-only with custom models
 python scripts/run_eval.py --attack-only \
-  --untrusted-model anthropic/claude-sonnet-4-20250514 \
-  --trusted-model openai/gpt-4.1-mini-2025-04-14
+  --untrusted-model openrouter/anthropic/claude-sonnet-4 \
+  --trusted-model openrouter/openai/gpt-4.1-mini
 ```
 
 ### `run_posthoc.py` — Post-Hoc Monitor Evaluation
@@ -431,7 +454,7 @@ TraceGuard/
 │   ├── analyze_results.py                   # Results analysis & all plots
 │   ├── run_and_analyze.sh                   # End-to-end pipeline
 │   ├── run_dashboard.py                     # Dashboard runner
-│   ├── test_bedrock_claude.py               # Bedrock integration test
+│   ├── test_model_access.py                 # Checks the configured models answer (run first)
 │   └── quickstart.sh                        # Setup verification
 │   └── quickstart.sh                        # Setup verification
 ├── docs/

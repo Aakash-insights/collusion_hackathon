@@ -381,7 +381,7 @@ def bash_heuristic_monitor(
         else:
             dimensions = DEFAULT_DIMENSIONS
 
-        # --- Phase 1.75: Intent Analysis (Opus via Bedrock) ---
+        # --- Phase 1.75: Intent Analysis (optional Claude Opus, INTENT_MODEL) ---
         # Contextual interpretation of detector findings before LLM scoring.
         # Only runs when detectors/heuristics found something worth analyzing.
         intent_result = await analyze_intent(

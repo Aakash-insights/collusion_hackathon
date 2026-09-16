@@ -1,0 +1,9 @@
+# Outputs written by the notebooks -- regenerated on every run
+bertrand_data/
+cournot_data/
+invalid_response_dump.txt
+
+# Local environment
+.env
+__pycache__/
+.ipynb_checkpoints/

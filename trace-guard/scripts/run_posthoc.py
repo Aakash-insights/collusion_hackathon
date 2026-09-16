@@ -21,6 +21,12 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# This project's own .env, by explicit path. inspect-ai would otherwise search upward
+# from the current directory, which is not where the key is meant to live.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
 from inspect_ai.log import read_eval_log
 from inspect_ai.agent import AgentState
 from inspect_ai.model import ChatMessage
@@ -161,7 +167,7 @@ async def rescore_sample(messages: list, monitor_name: str, model: str | None = 
     """Re-score a single sample's messages with TraceGuard dimensions.
 
     Args:
-        model: Direct model string (e.g. "openai/gpt-4o-mini") used as fallback
+        model: Direct model string (e.g. "openrouter/openai/gpt-4o-mini") used as fallback
                when running outside an inspect_ai eval context.
     """
     agent_reasoning = _extract_agent_reasoning(messages)
@@ -213,7 +219,7 @@ async def run_posthoc(
     """Re-score all samples in all log files with specified monitors.
 
     Args:
-        model: Direct model string for scoring (e.g. "openai/gpt-4o-mini").
+        model: Direct model string for scoring (e.g. "openrouter/openai/gpt-4o-mini").
                Required when running outside an inspect_ai eval context.
     """
     output_path = Path(output_dir)
@@ -285,7 +291,7 @@ def main():
         "--model",
         type=str,
         default=None,
-        help="Direct model string for scoring (e.g. 'openai/gpt-4o-mini'). "
+        help="Direct model string for scoring (e.g. 'openrouter/openai/gpt-4o-mini'). "
              "Required when running outside an inspect_ai eval context.",
     )
     args = parser.parse_args()
@@ -304,7 +310,7 @@ def main():
     )
 
     # Resolve model: CLI arg > INSPECT_EVAL_MODEL env var > default
-    model = args.model or os.environ.get("INSPECT_EVAL_MODEL", "openai/gpt-4o-mini")
+    model = args.model or os.environ.get("INSPECT_EVAL_MODEL", "openrouter/openai/gpt-4o-mini")
 
     asyncio.run(run_posthoc(log_files, monitors, args.output_dir, args.all_monitors, model=model))
 

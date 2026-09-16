@@ -24,7 +24,7 @@ POSTHOC_DIR="logs/posthoc"
 PLOT_DIR="plots"
 THRESHOLDS="$(python3 -c "print(' '.join(str(round(i*0.05,2)) for i in range(21)))")"
 MODE=""  # empty = both honest + attack
-POSTHOC_MODEL="openai/gpt-4o-mini"
+POSTHOC_MODEL="openrouter/openai/gpt-4o-mini"
 
 # ── Parse args ────────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
@@ -54,7 +54,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --thresholds \"T1 T2\"   Space-separated thresholds (default: 0.0 to 1.0, step 0.05)"
             echo "  --honest-only          Only run honest mode"
             echo "  --attack-only          Only run attack mode"
-            echo "  --posthoc-model MODEL  Model for post-hoc re-scoring (default: openai/gpt-4o-mini)"
+            echo "  --posthoc-model MODEL  Model for post-hoc re-scoring (default: openrouter/openai/gpt-4o-mini)"
             echo "  -h, --help             Show this help"
             exit 0
             ;;
@@ -81,8 +81,8 @@ python -c "import traceguard"   2>/dev/null || { echo "ERROR: traceguard not imp
 echo "Dependencies OK"
 
 # Check at least one API key is set
-if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ] && [ -z "${GOOGLE_API_KEY:-}" ]; then
-    echo "WARNING: No API keys found. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY."
+if [ -z "${OPENROUTER_API_KEY:-}" ] && ! grep -q "^OPENROUTER_API_KEY=" .env 2>/dev/null; then
+    echo "WARNING: OPENROUTER_API_KEY not found in the environment or in .env."
 fi
 
 # ── Step 1: Run evaluation ────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ if [ "$ANALYZE_ONLY" = false ]; then
     if [ "$EVAL_COUNT" -eq 0 ]; then
         echo "No .eval files found in $LOG_DIR — skipping posthoc."
     else
-        POSTHOC_ARGS="--log-dir $LOG_DIR --output-dir $POSTHOC_DIR --model ${POSTHOC_MODEL:-openai/gpt-4o-mini}"
+        POSTHOC_ARGS="--log-dir $LOG_DIR --output-dir $POSTHOC_DIR --model ${POSTHOC_MODEL:-openrouter/openai/gpt-4o-mini}"
 
         if [ "$ALL_MONITORS" = true ]; then
             POSTHOC_ARGS="$POSTHOC_ARGS --all-monitors"

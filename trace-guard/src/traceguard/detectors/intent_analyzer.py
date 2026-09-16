@@ -1,4 +1,8 @@
-"""Intent Analyzer — Claude Opus 4.6 via Bedrock for contextual threat interpretation.
+"""Intent Analyzer — an optional Claude Opus pass for contextual threat interpretation.
+
+The original ran Claude Opus 4.6 through AWS Bedrock. It now takes any inspect-ai model
+string from INTENT_MODEL (e.g. openrouter/anthropic/claude-opus-4.6) and stays disabled
+when that variable is unset, exactly as before.
 
 Sits between the pure-function detectors (hard facts) and the LLM dimension
 scoring (judgment). Takes detector outputs and the resolved command, then asks
@@ -154,9 +158,9 @@ def parse_intent_response(text: str) -> IntentAnalysis:
 # ---------------------------------------------------------------------------
 
 
-def get_bedrock_model_id() -> str | None:
-    """Get the Bedrock model ID from environment."""
-    return os.environ.get("CLAUDE_BEDROCK_MODEL_ID") or os.environ.get("CLAUDE_MODEL_ID")
+def get_intent_model() -> str | None:
+    """inspect-ai model string for intent analysis, or None to keep it disabled."""
+    return os.environ.get("INTENT_MODEL") or None
 
 
 def format_detector_findings(
@@ -187,14 +191,14 @@ async def analyze_intent(
     detector_boosts: list[float],
     matched_categories: list[str],
 ) -> IntentAnalysis:
-    """Run intent analysis using Claude Opus via Bedrock.
+    """Run intent analysis with the model named in INTENT_MODEL.
 
     Returns IntentAnalysis with threat assessment and dimension hints.
-    Falls back gracefully to a no-op result if Bedrock is unavailable.
+    Falls back gracefully to a no-op result if the model is unavailable.
     """
-    model_id = get_bedrock_model_id()
+    model_id = get_intent_model()
     if not model_id:
-        logger.debug("No CLAUDE_BEDROCK_MODEL_ID set, skipping intent analysis")
+        logger.debug("INTENT_MODEL not set, skipping intent analysis")
         return IntentAnalysis()
 
     # Skip if detectors found nothing — no point burning tokens
@@ -215,7 +219,7 @@ async def analyze_intent(
     try:
         from inspect_ai.model import CachePolicy, get_model
 
-        model = get_model(f"bedrock/{model_id}")
+        model = get_model(model_id)
         output = await model.generate(
             input=prompt,
             cache=CachePolicy(expiry="1D", scopes={"monitor": "intent_analyzer"}),

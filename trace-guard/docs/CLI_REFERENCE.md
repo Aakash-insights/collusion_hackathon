@@ -15,8 +15,8 @@ python scripts/run_eval.py [OPTIONS]
 | --monitor | choice | (none) | Run a single monitor. One of: traceguard, simple_trusted, simple_untrusted, collusion_resistant, separation_of_duties, bash_heuristic |
 | --all-monitors | flag | false | Run all 6 monitors |
 | --limit | int | 5 | Number of samples per task |
-| --untrusted-model | str | openai/gpt-4o | Model for the agent (untrusted) |
-| --trusted-model | str | openai/gpt-4o-mini | Model for the monitor/fallback (trusted) |
+| --untrusted-model | str | openrouter/openai/gpt-4o | Model for the agent (untrusted) |
+| --trusted-model | str | openrouter/openai/gpt-4o-mini | Model for the monitor/fallback (trusted) |
 | --thresholds | float list | 0.0 to 1.0, step 0.05 | Suspicion thresholds for defer-to-trusted decisions |
 | --honest-only | flag | false | Only run HONEST mode (measures usefulness) |
 | --attack-only | flag | false | Only run ATTACK mode (measures safety) |
@@ -39,8 +39,8 @@ python scripts/run_eval.py --thresholds 0.2 0.4 0.6 0.8
 
 # Attack-only mode with custom models
 python scripts/run_eval.py --attack-only \
-  --untrusted-model anthropic/claude-sonnet-4-20250514 \
-  --trusted-model openai/gpt-4.1-mini-2025-04-14
+  --untrusted-model openrouter/anthropic/claude-sonnet-4 \
+  --trusted-model openrouter/openai/gpt-4.1-mini
 ```
 
 ## `run_posthoc.py` — Post-Hoc Monitor Evaluation

@@ -155,3 +155,8 @@ cython_debug/
 
 # PyCharm
 #.idea/
+
+# Experiment outputs -- written by the game runners, not shipped
+Collusion_Liars_Bar/experiments/game_records/
+Collusion_Cleanup/runs/
+Collusion_Cleanup/cleanup_llm/runs/

@@ -7,7 +7,7 @@ Exports all public classes, functions, and constants from the 7 detector modules
 - string_assembly: String assembly detection
 - encoding: Encoding/obfuscation detection
 - config_diff: Incremental config manipulation detection
-- intent_analyzer: Contextual threat interpretation via Claude Opus (Bedrock)
+- intent_analyzer: Contextual threat interpretation via Claude Opus (optional, INTENT_MODEL)
 """
 
 from traceguard.detectors.variable_binding import (

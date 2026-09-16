@@ -8,16 +8,23 @@ Usage:
     python scripts/run_eval.py --monitor traceguard --limit 10
 
     # Run with specific models
-    python scripts/run_eval.py --untrusted-model openai/gpt-4o \
-                               --trusted-model openai/gpt-4o-mini
+    python scripts/run_eval.py --untrusted-model openrouter/openai/gpt-4o \
+                               --trusted-model openrouter/openai/gpt-4o-mini
 
     # Full experiment
     python scripts/run_eval.py --limit 50 --all-monitors
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+# This project's own .env, by explicit path. inspect-ai would otherwise search upward
+# from the current directory, which is not where the key is meant to live.
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from inspect_ai import eval
 
@@ -163,13 +170,13 @@ def main():
     parser.add_argument(
         "--untrusted-model",
         type=str,
-        default="openai/gpt-4o",
+        default="openrouter/openai/gpt-4o",
         help="Untrusted model (agent)",
     )
     parser.add_argument(
         "--trusted-model",
         type=str,
-        default="openai/gpt-4o-mini",
+        default="openrouter/openai/gpt-4o-mini",
         help="Trusted model (fallback & monitor)",
     )
     parser.add_argument(
@@ -205,6 +212,19 @@ def main():
     )
 
     args = parser.parse_args()
+
+
+    # Fail before Docker and BashArena spin up, not ten minutes into the run.
+
+    if any(m.startswith("openrouter/") for m in (args.untrusted_model, args.trusted_model)):
+
+        key = os.environ.get("OPENROUTER_API_KEY", "")
+
+        if not key or key == "your-openrouter-key-here":
+
+            sys.exit("OPENROUTER_API_KEY is not set (or is still the placeholder). "
+
+                     "Copy .env.example to .env and fill it in.")
 
     # Determine which monitors to run
     if args.all_monitors:

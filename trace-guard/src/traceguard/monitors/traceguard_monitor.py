@@ -124,7 +124,7 @@ async def _score_dimension(
     """Score a single dimension using the trusted model.
 
     Args:
-        model: Optional direct model string (e.g. "openai/gpt-4o-mini").
+        model: Optional direct model string (e.g. "openrouter/openai/gpt-4o-mini").
                When provided, used as fallback if role-based lookup fails.
                This enables post-hoc re-scoring outside an inspect_ai eval context.
     """
