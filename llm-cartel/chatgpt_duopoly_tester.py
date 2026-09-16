@@ -4,8 +4,8 @@ Uses reasoning models (o3, o4-mini, gpt-5.4, ...) with reasoning summaries expos
 
 All calls go through OpenRouter (OPENROUTER_API_KEY), which exposes the same Responses API
 endpoint. Model names are OpenRouter ids (openai/gpt-5.4); a bare OpenAI name is prefixed
-automatically. Whether OpenRouter passes `reasoning.summary` through unchanged for every
-model has not been verified end to end -- if 'thoughts' come back empty, that is why.
+automatically. Verified 2026-09-16 with openai/gpt-5.4: `reasoning.summary` comes back
+through OpenRouter and is stored as 'thoughts'.
 
 Reasoning summary options for --reasoning_summary:
   auto     - OpenAI decides length automatically (recommended)

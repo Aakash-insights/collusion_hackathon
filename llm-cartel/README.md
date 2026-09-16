@@ -216,7 +216,7 @@ python r1_triopoly_tester.py P0,P3,P0 1 14B
 
 ### chatgpt_duopoly_tester.py
 
-2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through OpenRouter (which exposes the same `/responses` endpoint). Requires `OPENROUTER_API_KEY` in `.env`, like everything else here. Model ids are OpenRouter ids; a bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. One caveat: whether OpenRouter passes `reasoning.summary` through unchanged for every model was not verified end to end — if `thoughts` come back empty, try `--reasoning_summary detailed` or another model.
+2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through OpenRouter (which exposes the same `/responses` endpoint). Requires `OPENROUTER_API_KEY` in `.env`, like everything else here. Model ids are OpenRouter ids; a bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. Verified 2026-09-16 with gpt-5.4: reasoning summaries come back through OpenRouter and land in `thoughts`.
 
 ```bash
 python chatgpt_duopoly_tester.py [options]
