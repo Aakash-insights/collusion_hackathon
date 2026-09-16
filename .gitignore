@@ -1,4 +1,12 @@
-.vscode/
+# secrets
 .env
+# editor / OS noise
+.vscode/
+.DS_Store
+# local working notes (kept out of the repo on purpose)
 notes/
 CLAUDE.md
+HACKATHON_CHANGES.md
+# environments
+.venv/
+__pycache__/
