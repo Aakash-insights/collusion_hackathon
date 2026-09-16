@@ -1,4 +1,9 @@
-"""LLM client abstractions for ColludeBench agents."""
+"""LLM client abstractions for ColludeBench agents.
+
+Hosted models are reached through OpenRouter only (`backend: openrouter`); the direct
+OpenAI, Gemini and Groq adapters were removed. `transformers` (local weights) and
+`template` (no model) remain. The key is read from this project's own `.env`.
+"""
 
 from __future__ import annotations
 
@@ -8,10 +13,21 @@ os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 import re
 from abc import ABC, abstractmethod
+from pathlib import Path
 from dataclasses import dataclass
 from threading import Lock
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 import time
+
+# This project's own .env, by explicit path so a parent directory's .env never leaks in.
+try:
+    from dotenv import load_dotenv  # type: ignore
+
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+except ImportError:  # pragma: no cover - optional convenience
+    pass
+
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 class LLMClient(ABC):
@@ -31,7 +47,7 @@ class LLMClient(ABC):
 
 
 class OpenAIChatClient(LLMClient):
-    """Wrapper around the OpenAI Chat Completions API."""
+    """OpenAI-compatible Chat Completions client, pointed at OpenRouter by default."""
 
     def __init__(
         self,
@@ -139,91 +155,6 @@ class TransformersClient(LLMClient):
         return text.strip()
 
 
-class GeminiClient(LLMClient):
-    """Wrapper around Google Gemini (Generative AI) API."""
-
-    def __init__(
-        self,
-        model: str,
-        *,
-        api_key: Optional[str] = None,
-        default_temperature: Optional[float] = None,
-        default_max_tokens: Optional[int] = None,
-    ) -> None:
-        try:
-            import google.generativeai as genai  # type: ignore
-            from google.api_core.exceptions import ResourceExhausted, InvalidArgument  # type: ignore
-        except ImportError as exc:  # pragma: no cover - optional dependency
-            raise RuntimeError(
-                "GeminiClient requires the `google-generativeai` package. "
-                "Install it with `pip install google-generativeai`."
-            ) from exc
-
-        api_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise RuntimeError("GeminiClient requires an API key via GOOGLE_API_KEY or GEMINI_API_KEY.")
-
-        genai.configure(api_key=api_key)
-        self._model_name = model
-        self._genai = genai
-        self._ResourceExhausted = ResourceExhausted
-        self._InvalidArgument = InvalidArgument
-        self.default_temperature = default_temperature
-        self.default_max_tokens = default_max_tokens
-
-    def generate(
-        self,
-        prompt: str,
-        *,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        stop: Optional[Sequence[str]] = None,
-        extra: Optional[Mapping[str, Any]] = None,
-    ) -> str:
-        generation_config: Dict[str, Any] = {}
-        if temperature is not None or self.default_temperature is not None:
-            generation_config["temperature"] = temperature if temperature is not None else self.default_temperature
-        if max_tokens is not None or self.default_max_tokens is not None:
-            generation_config["max_output_tokens"] = max_tokens if max_tokens is not None else self.default_max_tokens
-        if stop:
-            generation_config["stop_sequences"] = list(stop)
-
-        model = self._genai.GenerativeModel(self._model_name, generation_config=generation_config or None)
-        try:
-            response = model.generate_content(prompt)
-        except (self._ResourceExhausted, self._InvalidArgument) as exc:
-            print(f"[GeminiClient] Gemini API request failed: {exc}")
-            return ""
-        except Exception as exc:  # pragma: no cover - surface unexpected failures
-            print(f"[GeminiClient] Unexpected Gemini error: {exc}")
-            raise
-
-        text: str = ""
-        try:
-            if hasattr(response, "text") and response.text:
-                text = response.text.strip()
-        except ValueError as exc:
-            print(f"[GeminiClient] Failed to parse Gemini response text: {exc}")
-
-        if not text:
-            parts: list[str] = []
-            for candidate in getattr(response, "candidates", []) or []:
-                finish_reason = getattr(candidate, "finish_reason", None)
-                if finish_reason and str(finish_reason).lower() != "finish_reason.stop":
-                    print(f"[GeminiClient] Skipping candidate due to finish reason: {finish_reason}")
-                    continue
-                for part in getattr(candidate, "content", {}).get("parts", []):
-                    if hasattr(part, "text") and part.text:
-                        parts.append(part.text)
-            text = "\n".join(parts).strip()
-
-        if text:
-            print(f"[GeminiClient] Response text: {text}")
-        else:
-            print(f"[GeminiClient] Gemini response contained no text: {response}")
-        return text
-
-
 class TemplateClient(LLMClient):
     """Deterministic template-based client for offline tests."""
 
@@ -286,32 +217,30 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         raise ValueError("LLM configuration must include a 'backend' field.")
 
     backend = backend.lower()
-    if backend in {"openai", "openai_chat"}:
-        return OpenAIChatClient(
-            model=config["model"],
-            api_key=config.get("api_key"),
-            base_url=config.get("base_url"),
-            default_temperature=config.get("temperature"),
-            default_max_tokens=config.get("max_tokens"),
-        )
-    if backend in {"groq"}:
-        api_key = config.get("api_key")
-        if not api_key:
-            api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise RuntimeError("Groq backend requires an API key via `api_key` or GROQ_API_KEY.")
-        base_url = config.get("base_url", "https://api.groq.com/openai/v1")
-        min_interval = float(config.get("min_request_interval", os.getenv("GROQ_MIN_REQUEST_INTERVAL", 2.1)))
+    if backend == "openrouter":
+        api_key = config.get("api_key") or os.getenv("OPENROUTER_API_KEY")
+        if not api_key or api_key == "your-openrouter-key-here":
+            raise RuntimeError(
+                "backend 'openrouter' requires OPENROUTER_API_KEY in this project's .env "
+                "(see .env.example) or an `api_key` field in the config."
+            )
         client = OpenAIChatClient(
             model=config["model"],
             api_key=api_key,
-            base_url=base_url,
+            base_url=config.get("base_url", OPENROUTER_BASE_URL),
             default_temperature=config.get("temperature"),
             default_max_tokens=config.get("max_tokens"),
         )
+        min_interval = float(config.get("min_request_interval", 0) or 0)
         if min_interval > 0:
             return RateLimitedClient(client, min_interval)
         return client
+    if backend in {"openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
+        raise ValueError(
+            f"LLM backend '{backend}' was removed: hosted models now run through OpenRouter. "
+            "Use `backend: openrouter` with an OpenRouter model id (e.g. openai/gpt-4o-mini, "
+            "google/gemini-2.5-flash, meta-llama/llama-3.1-8b-instruct)."
+        )
     if backend in {"hf", "transformers", "huggingface"}:
         return TransformersClient(
             model=config["model"],
@@ -319,13 +248,6 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
             max_new_tokens=config.get("max_tokens", 128),
             default_temperature=config.get("temperature"),
             pipeline_kwargs=config.get("pipeline_kwargs"),
-        )
-    if backend in {"gemini", "google", "google_ai"}:
-        return GeminiClient(
-            model=config["model"],
-            api_key=config.get("api_key"),
-            default_temperature=config.get("temperature"),
-            default_max_tokens=config.get("max_tokens"),
         )
     if backend in {"template", "static"}:
         template = config.get("template")

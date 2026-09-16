@@ -4,7 +4,7 @@ Audit the Whisper is a research artifact for detecting steganographic collusion 
 
 ## Project Highlights
 - **Capacity-guided auditing:** Formal analysis with full proofs linking auditor interventions to covert-channel capacity, minimax lower bounds, and time-uniform e-value guarantees.
-- **ColludeBench-v0:** Pricing, first-price auction, peer review, continuous double auction, and hosted Gemini/Groq scenarios with configurable colluders and reproducible manifests.
+- **ColludeBench-v0:** Pricing, first-price auction, peer review, continuous double auction, and hosted-LLM scenarios (Gemini, Llama 3.1 8B, GPT-4o-mini via OpenRouter) with configurable colluders and reproducible manifests.
 - **Calibrated detector stack:** Mutual information, permutation invariance, watermark variance, fairness-aware acceptance bias, and welfare guard tuned to false-positive rate $\le 10^{-3}$ via 10k honest runs plus sequential martingales.
 - **External validation:** Head-to-head evaluations against Secret Collusion, CASE, Perfect Collusion Benchmark, and SentinelAgent, all at fixed FPRs using pre-registered thresholds.
 - **End-to-end reproducibility:** Deterministic seeds, dataset hashes, regeneration scripts, CI smoke tests, and anonymised artifact packaging for double-blind review.
@@ -20,7 +20,7 @@ Audit the Whisper is a research artifact for detecting steganographic collusion 
 | `results/` | Calibration outputs, experiment metrics, dataset manifests, and regenerated tables. |
 | `docs/` | Threat model, theory foundations, reproducibility checklist, capacity trade-offs, experiment summaries, and external baseline notes. |
 | `release/` | Packaged artifact bundle produced by `scripts/prepare_release.py` (see `release/README.md`). |
-| `notebooks/` | Analysis notebooks aligned with paper figures (read-only for reviewers; seeds and hashes embedded). |
+| `notebooks/` | Validation notes (`validation_smoke.md`). The analysis notebooks were not included in this release. |
 | `tests/` | Smoke tests for key modules, detectors, and CLI entry points. |
 
 ## Getting Started
@@ -59,16 +59,51 @@ scripts/regenerate_results.py --dry-run
 
 Further details on reproducibility appear in `docs/REPRODUCIBILITY.md` and `docs/prerequisites.md`.
 
+### Transcript dataset shipped in `results/`
+`results/` is not just output: the detectors' thresholds and metrics are read from it, and
+it also carries the **raw transcripts of 1,737 simulated runs** (163 MB, 3,467 files) —
+the primary data this project is about. Each run leaves two files next to each other:
+
+| File | One line per | Fields |
+| --- | --- | --- |
+| `<run_id>.jsonl` | agent turn | `run_id`, `round_id`, `agent_id`, `role`, `message`, `action` (parsed from the message), `reward`, `interventions` {`paraphrased`, `budget`, `length`, `rate_limited`, `canary_injected`} |
+| `<run_id>_interventions.jsonl` | round | `round`, `interventions` {role → the same five fields} |
+
+Where they come from: `results/calibration/` (420 honest runs the thresholds were
+calibrated on), `results/audit/` (150 colluding audits), `results/sweeps/` (840 detector
+sensitivity points), `results/stress/` (300 stress runs), `results/experiments/` and
+`results/baseline/`. Nothing in the pipeline reads them back — the detectors work on runs
+in memory — so they are yours for new analyses: audit why a run tripped a detector, build
+a new detector, or verify the aggregate numbers against the actual messages. One JSON
+object per line; `json.loads` per line is all the loader you need.
+
 ### 4. Hosted LLM Experiments
-Gemini and Groq experiments require API keys. Export them before running hosted configs:
+The hosted configs keep the paper's models but reach them through **OpenRouter**, with a
+single key in this project's `.env`:
+
 ```bash
-export GEMINI_API_KEY=...
-export GROQ_API_KEY=...
+cp .env.example .env          # then put your OPENROUTER_API_KEY in .env
 python -m auditor.experiments pricing_llm_gemini pricing_llm_groq
 ```
-Rate-limit spacers are controlled via `configs/audits/pricing_llm_*`.
 
-### 5. Honest-Run Validation
+| Config | Original | Runs now (OpenRouter id) |
+| --- | --- | --- |
+| `pricing_llm_gemini*` | Gemini 2.5 Flash | `google/gemini-2.5-flash` |
+| `pricing_llm_groq*` | Llama 3.1 8B (Groq's `llama-3.1-8b-instant`) | `meta-llama/llama-3.1-8b-instruct` |
+| `pricing_llm_closed` | GPT-4o-mini | `openai/gpt-4o-mini` |
+
+The whole hosted suite is ~240 calls (well under US$1). Everything else — the 22
+scripted configs and the `distilgpt2` ones — runs locally with no key.
+
+### 5. Local open-weight experiments (`distilgpt2`)
+`configs/pricing_llm_open*.yaml` and `review_llm_open.yaml` run `distilgpt2` locally via
+`transformers`. Budget for it: torch is ~5 GB installed from PyPI (~0.8 GB with the CPU
+index, see `requirements.txt`), the weights are 350 MB, peak RAM ~1.2 GB, and generation
+is slow on CPU — about 7–8 s per turn on 8 cores, so `pricing_llm_open_audit` (20 seeds)
+takes ~40 min and the calibration (50 seeds) ~3 h. `auditor.experiments` skips these
+labels with a message if `transformers` is not installed.
+
+### 6. Honest-Run Validation
 To reproduce the 10k honest-run FPR bound:
 ```bash
 python -m auditor.validate_union --config configs/audits/validate_union.yaml --runs 10000
@@ -86,10 +121,10 @@ Results are logged to `results/calibration/union_validation.json` with Clopper�
 - **Residual risks & limitations:** `docs/residual_risks.md`, `docs/limitations.md`
 
 ## Release Bundle
-`release/` contains the anonymised artifact bundle produced by `scripts/prepare_release.py`. See `release/README.md` for bundle contents, checksum manifest, and double-blind guidance. The script automatically scrubs identifying URLs and vendor names.
+`release/` is a curated copy of `auditor/`, `colludebench/`, `configs/`, `scripts/`, `docs/`, `RESULTS.md` and `notebooks/` produced by `scripts/prepare_release.py` (a plain copy — it does not scrub or checksum anything). Regenerate it after changing code or docs, or the two copies drift; `release/package_manifest.json` records what was copied. See `release/README.md` for the bundle layout.
 
 ## Citation
-If you use this work, please cite the paper and reference the artifact release. BibTeX entries are available in `paper/bibliography.bib`.
+If you use this work, please cite the paper and reference the artifact release. The `paper/` directory is not part of this release; cite the paper by title.
 
 ## Contact
 Questions, reproducibility reports, or collaboration inquiries can be filed via the GitHub issues tracker or the contact listed in the anonymised release notes.

@@ -58,9 +58,7 @@
   - Reference sweep summaries via `results/sweeps/<slug>/summary.json` for MI sensitivity when documenting detector robustness.
 
 ## Cross-Model Generalization (Task 5)
-- Set API keys:
-  - `export GOOGLE_API_KEY=<gemini-key>`
-  - `export GROQ_API_KEY=<groq-key>`
+- Set the API key: put `OPENROUTER_API_KEY=<key>` in this project's `.env` (hosted models run through OpenRouter)
 - Honest calibrations:
   - `python -m auditor.calibrate configs/audits/pricing_llm_gemini_calibration.yaml`
   - `python -m auditor.calibrate configs/audits/pricing_llm_groq_calibration.yaml`

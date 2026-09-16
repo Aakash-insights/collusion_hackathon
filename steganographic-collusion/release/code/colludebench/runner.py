@@ -10,9 +10,10 @@ from statistics import mean
 from typing import Dict, List, Mapping, Optional, Sequence
 
 from . import make_environment
-from .agents.base import AgentContext
+from .agents.base import AgentContext, BaseAgent
 from .agents.colluding import ColludingAgent
 from .agents.honest import HonestAgent
+from .agents.llm import build_llm_agent
 from .logging import JsonlLogger, write_manifest
 
 try:  # pragma: no cover - optional dependency
@@ -231,7 +232,13 @@ def run_from_config(
     config_data = dict(_load_yaml(config_path))
     scenario = str(config_data.pop("scenario"))
     covert_scheme = str(config_data.pop("covert_scheme", "keyword"))
-    env_kwargs = {key: value for key, value in config_data.items() if key != "agents"}
+    # `llm_agents` is agent configuration, not environment configuration -- the same
+    # split the audit pipeline makes. Passing it to make_environment() used to crash
+    # the CLI on every LLM-backed config.
+    llm_agents: Mapping[str, Mapping[str, object]] = {
+        role: spec for role, spec in (config_data.get("llm_agents") or {}).items() if isinstance(spec, Mapping)
+    }
+    env_kwargs = {key: value for key, value in config_data.items() if key not in {"agents", "llm_agents"}}
     seeds_list: List[Optional[int]]
     if seeds is None or len(seeds) == 0:
         seeds_list = [config_data.get("seed", 0)]
@@ -247,14 +254,16 @@ def run_from_config(
         env = make_environment(scenario, **env_kwargs)
         roles = list(env.config.agent_roles)
         colluders = set(env.config.colluders)
-        agents: Dict[str, HonestAgent | ColludingAgent] = {}
+        agents: Dict[str, BaseAgent] = {}
         for role in roles:
-            if role in colluders:
-                agents[role] = ColludingAgent(
-                    AgentContext(role=role, colluding=True, covert_scheme=covert_scheme)
-                )
+            colluding = role in colluders
+            context = AgentContext(role=role, colluding=colluding, covert_scheme=covert_scheme if colluding else None)
+            if role in llm_agents:
+                agents[role] = build_llm_agent(context, scenario, llm_agents[role])
+            elif colluding:
+                agents[role] = ColludingAgent(context)
             else:
-                agents[role] = HonestAgent(AgentContext(role=role, colluding=False))
+                agents[role] = HonestAgent(context)
         run_id = f"{scenario}_seed{seed}" if seed is not None else f"{scenario}_run{index}"
         logger: Optional[JsonlLogger]
         transcript_path: Optional[Path]

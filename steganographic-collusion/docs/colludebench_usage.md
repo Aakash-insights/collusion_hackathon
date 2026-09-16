@@ -54,35 +54,31 @@ llm_agents:
       suggested_price: colludebench.workflows.pricing_tools.recommended_price
 ```
 
-- `backend` supports `openai_chat`, `gemini`, `groq`, `transformers`, or `template` (deterministic offline fallback).
+- `backend` supports `openrouter` (any hosted model, by OpenRouter id), `transformers` (local Hugging Face weights), or `template` (deterministic offline fallback). The former `openai_chat`, `gemini` and `groq` backends were folded into `openrouter`.
 - `response_regex` / `response_template` ensure outputs remain parseable by the environments.
 - `tools` reference Python callables that receive a context dict (`role`, `scenario`, `observation`, and persistent `state`). Use them to emulate workflow integrations such as pricing dashboards or review assistants.
 
 Ready-to-run examples are available in:
 
 - `configs/pricing_llm_open.yaml` (open-weight Hugging Face model)
-- `configs/pricing_llm_gemini.yaml` (Gemini 1.5 Flash with free tier API)
-- `configs/pricing_llm_groq.yaml` (Groq-hosted Llama 3 via OpenAI-compatible API)
+- `configs/pricing_llm_gemini.yaml` (Gemini 2.5 Flash via OpenRouter)
+- `configs/pricing_llm_groq.yaml` (Llama 3.1 8B Instruct via OpenRouter)
 - `configs/pricing_llm_gemini_honest.yaml` / `configs/pricing_llm_groq_honest.yaml` (honest anchors for cross-model calibration)
-- `configs/pricing_llm_closed.yaml` (OpenAI endpoint – kept for completeness; requires paid quota)
+- `configs/pricing_llm_closed.yaml` (GPT-4o-mini via OpenRouter)
 - `configs/review_llm_open.yaml` (LLM-backed peer review with workflow hints)
 - `configs/audits/pricing_llm_open_audit.yaml` (colluding evaluation harness for the open-weight agents)
 - `configs/audits/pricing_llm_gemini_audit.yaml` / `configs/audits/pricing_llm_groq_audit.yaml` (hosted-API audit suites)
 
 Environment setup:
 
-- For OpenAI: `pip install openai` and export `OPENAI_API_KEY` (usage incurs cost – skip if unavailable).
-- For Gemini: `pip install google-generativeai` and export `GOOGLE_API_KEY` (free tier currently available).
-- For Groq: `pip install openai` (the API is OpenAI-compatible) and export `GROQ_API_KEY`; free tier rate limits are documented at [https://console.groq.com/docs/rate-limits](https://console.groq.com/docs/rate-limits). Optionally set `GROQ_MIN_REQUEST_INTERVAL` (seconds, default 2.1) if you need a stricter throttle.
-- For Hugging Face transformers: `pip install transformers accelerate` and ensure weights are cached locally.
+- Hosted models (`backend: openrouter`): `pip install openai python-dotenv` and put `OPENROUTER_API_KEY` in this project's `.env` (copy `.env.example`). Optional `min_request_interval` (seconds) in a config throttles requests.
+- Local models (`backend: transformers`): `pip install transformers accelerate torch` (use the CPU index for torch on a laptop) and ensure weights are cached locally.
 
-### Hosted Cross-Model Workflow (Gemini ↔ Groq)
+### Hosted Cross-Model Workflow (Gemini ↔ Llama 3.1 8B, both via OpenRouter)
 
 1. Export API credentials:
    ```bash
-   export GOOGLE_API_KEY=...
-   export GROQ_API_KEY=...
-   export GROQ_MIN_REQUEST_INTERVAL=2.1  # keeps Groq within the 30 rpm free-tier cap
+   # OPENROUTER_API_KEY in this project's .env (copy .env.example)
    ```
 2. Honest calibrations:
    ```bash

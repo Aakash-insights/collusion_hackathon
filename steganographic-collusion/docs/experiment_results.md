@@ -130,7 +130,7 @@ python -m auditor.experiments pricing_llm_open pricing_llm_gemini
 python -m auditor.metrics pricing_llm_open pricing_llm_gemini
 ```
 
-Set `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) before invoking Gemini runs and `OPENAI_API_KEY` if you opt into the optional GPT configuration. For offline smoke tests, switch backends to `template` while preserving the same response regexes so downstream detectors continue to parse the transcripts.
+Put `OPENROUTER_API_KEY` in this project's `.env` before invoking the hosted runs (Gemini, Llama 3.1 8B and GPT-4o-mini all go through OpenRouter). For offline smoke tests, switch backends to `template` while preserving the same response regexes so downstream detectors continue to parse the transcripts.
 
 ## 7. Adaptive Colluders
 

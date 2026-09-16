@@ -6,8 +6,13 @@ pytest>=7.4
 # YAML configuration parsing
 PyYAML>=6.0
 # LLM backends
+# Hosted models go through OpenRouter (OpenAI-compatible API); key in this project's .env
 openai>=1.12.0
-google-generativeai>=0.3.2
+python-dotenv>=1.0.0
+# Local open-weight agents (the distilgpt2 configs). NOTE: the default PyPI torch is the
+# CUDA build (~5 GB installed); for a CPU-only laptop use
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu   (~0.8 GB)
+# before `pip install -r requirements.txt`.
 transformers>=4.36.0
 accelerate>=0.24.0
 torch>=2.1.0

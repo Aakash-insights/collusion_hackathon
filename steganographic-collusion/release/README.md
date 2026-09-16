@@ -11,7 +11,7 @@ This archive contains everything needed to reproduce the results from *Audit the
 | `configs/` | YAML specs for benchmark tasks, colluder blueprints, detector settings, and intervention sweeps. |
 | `notebooks/` | Read-only notebooks used to regenerate figures and sanity checks in the paper. |
 | `results/` | Calibrated thresholds, experiment metrics, dataset manifests, and pre-rendered tables referenced in `RESULTS.md`. |
-| `package_manifest.json` | Checksummed manifest emitted by `scripts/prepare_release.py`, mapping repository paths to bundle-relative locations. |
+| `package_manifest.json` | Manifest emitted by `scripts/prepare_release.py` listing what was copied (no checksums), mapping repository paths to bundle-relative locations. |
 
 All files are UTF-8 encoded, deterministic, and generated from the accompanying commit hash recorded in the manifest metadata.
 
@@ -45,7 +45,7 @@ Key outputs:
 
 - `results/calibration/detector_thresholds.json` — per-detector thresholds at FPR $10^{-2}$ and $10^{-3}$.
 - `results/experiments/metrics.md` — aggregate detector statistics.
-- `results/dataset_manifest.json` — checksum-protected list of transcripts, interventions, and seeds.
+- `results/dataset_manifest.json` — dataset manifest (regenerate with `scripts/create_dataset_manifest.py`; the shipped file is empty).
 - `RESULTS.md` & `docs/experiment_results.md` — tables and ROC/PR summaries cited in the paper.
 
 Running the script multiple times with the same configuration reproduces byte-identical artifacts thanks to deterministic seeding (see `docs/REPRODUCIBILITY.md` for details).
@@ -68,7 +68,7 @@ Each command respects configuration overrides set via environment variables or C
 
 ## 5. Verifying Integrity
 
-- **Checksums:** Every transcript, intervention log, and result file is recorded in `results/dataset_manifest.json` with SHA-256 hashes. Run the manifest script to recheck integrity after regeneration.
+- **Checksums:** `results/dataset_manifest.json` can record transcripts with SHA-256 hashes via `scripts/create_dataset_manifest.py`; the shipped copy is empty, so verify against the upstream artifact if you need integrity guarantees. Run the manifest script to recheck integrity after regeneration.
 - **Release Manifest:** `package_manifest.json` reproduces the exact file mapping used to build this bundle. Compare against your repository tree before publishing updates.
 - **Seed Metadata:** Run-level seeds (base, replicate, intervention RNG) are embedded in JSON outputs under `results/` to enable forensic audits.
 

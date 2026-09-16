@@ -5,7 +5,7 @@ This document records the exact steps required to rebuild all Task 7 artifacts f
 ## Deterministic Seeding
 -	Every audit run stores RNG metadata in the per-run JSON payloads and manifests (`seed_metadata` contains `base_seed`, `replicate`, `effective_seed`, and the intervention RNG seed).
 -	The audit pipeline uses the `SeedManager` schedule plus deterministic offsets for interventions and paraphrase RNGs, so repeated runs with the same config produce byte-identical transcripts.
--	Hosted LLM configs (`configs/pricing_llm_gemini*.yaml`, `configs/pricing_llm_groq*.yaml`) include fixed `seed` fields and, where applicable, `min_request_interval` parameters so API jitter does not alter run order. Set `GROQ_MIN_REQUEST_INTERVAL=2.1` to match the published manifests.
+-	Hosted LLM configs (`configs/pricing_llm_gemini*.yaml`, `configs/pricing_llm_groq*.yaml`) include fixed `seed` fields and, where applicable, `min_request_interval` parameters so API jitter does not alter run order. The Groq-era `min_request_interval` throttle only affected wall-clock time and is no longer needed via OpenRouter.
 
 ## Required Tooling
 -	Python >= 3.11 with `pip`.

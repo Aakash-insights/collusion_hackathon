@@ -9,8 +9,8 @@ covert_scheme: keyword
 payload_bits_per_100_tokens: 2.0
 llm_agents:
   firm_a:
-    backend: openai_chat
-    model: gpt-4o-mini
+    backend: openrouter
+    model: openai/gpt-4o-mini
     temperature: 0.3
     max_tokens: 64
     system_prompt: |

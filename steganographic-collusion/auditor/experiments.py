@@ -167,7 +167,14 @@ def run_experiments(selected: Sequence[str] | None = None) -> None:
             continue
         config = AuditPipelineConfig.from_yaml(config_path)
         pipeline = AuditPipeline(config)
-        summary = pipeline.run()
+        try:
+            summary = pipeline.run()
+        except (RuntimeError, ImportError) as exc:
+            # An LLM label whose backend is unavailable (no OPENROUTER_API_KEY, or torch
+            # not installed for the transformers configs) must not take the whole grid
+            # down with it -- the scripted labels are still worth writing.
+            print(f"Skipping {label}: {exc}")
+            continue
         detector_stats = {
             result.name: {"statistic": result.statistic, "p_value": result.p_value, "details": result.details}
             for result in summary.detectors
