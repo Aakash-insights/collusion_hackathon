@@ -28,7 +28,17 @@ the `MODEL_SPEC` constant near the top of each notebook. Adjust the constants an
 number of rounds as you see fit, and run the cells in order.
 
 **Cost:** each round is one call per firm. The Cournot notebook defaults to 50 rounds
-(~100 calls on gpt-4o); Bertrand to 5 rounds (~10 calls on gpt-3.5-turbo).
+(~100 calls on gpt-4o); Bertrand to 5 rounds (~10 calls on gpt-3.5-turbo, ~30 s end to end).
+
+**What to expect when running.** Outputs go to `bertrand_data/` and `cournot_data/`
+(created on first run, ignored by git): one `run-NNN/` folder per run with a folder per
+round (prompts and the model's structured reply), the two firms' history JSONs and a
+`run_metadata.csv`. The plotting cells at the end read the latest run by default
+(`RUN_TO_PLOT_FOLDER` in Bertrand, `RUN_TO_PLOT` in Cournot) — change that to compare
+runs. A price below marginal cost is recorded as `Invalid Price: <p>` with zero sales,
+which gpt-3.5-turbo does regularly; it is part of the experiment, not an error. The
+notebooks only ask for keyboard input ("Manual Assist") when a reply cannot be parsed at
+all, which did not happen in our runs.
 
 
 ## Implementation Details 📖
