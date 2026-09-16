@@ -102,10 +102,9 @@ def main():
     agent_names.sort()  # Sort for consistency in output, but they're still non-sequential
     print(f"Using randomized agent names: {agent_names}")
 
-    # Initialize LLM clients (automatically routes to OpenAI or OpenRouter based on model)
-    llm_client, parallel_client, used_openai = create_llm_clients(
+    # Initialize LLM clients (all traffic goes through OpenRouter)
+    llm_client, parallel_client = create_llm_clients(
         model=model,
-        openai_api_key=settings.OPENAI_API_KEY,
         openrouter_api_key=settings.OPENROUTER_API_KEY,
         temperature=args.temperature,
         max_workers=20

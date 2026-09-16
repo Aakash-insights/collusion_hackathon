@@ -13,8 +13,12 @@ This research framework measures how large language models engage in **strategic
 ```bash
 pip install -r requirements.txt
 
-# Configure API keys
+# Configure the API key
 cp .env.example .env
+# Edit .env: add your OPENROUTER_API_KEY
+
+# Models: OpenAI family only (openai/*), reached through OpenRouter.
+# Other providers are rejected at startup -- see .env.example for why.
 
 # Run a 10-round experiment
 python experiments/run_endogenous.py \
@@ -159,10 +163,12 @@ LLM-Strategic-Deception/
 │   │   └── analysis/
 │   │       └── endogenous_analyzer.py # Deception typology classifier
 │   ├── llm/
-│   │   ├── client_factory.py         # Model routing (OpenAI/OpenRouter)
+│   │   ├── capabilities.py           # Per-model capability table (single source)
+│   │   ├── client_factory.py         # Client construction + model guard
 │   │   └── providers/
-│   │       ├── queued_openai.py      # Async batching for OpenAI
-│   │       └── queued_openrouter.py  # Async batching for OpenRouter
+│   │       ├── openrouter_client.py  # Synchronous client
+│   │       ├── queued_openrouter.py  # Async batching (producer-consumer)
+│   │       └── parallel_openrouter_async.py  # Async batching (wave)
 │   ├── visualization/
 │   │   └── transcripts.py            # Human-readable trial transcripts
 │   └── scenario_enumeration/         # Alternative protocol (exhaustive)

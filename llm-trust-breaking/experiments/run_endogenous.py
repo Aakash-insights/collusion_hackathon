@@ -227,12 +227,11 @@ def main():
     print(f"Agent model assignments: {agent_models}")
 
     # ------------------------------------------------------------------
-    # LLM clients (routes to OpenAI for GPT, OpenRouter for others)
+    # LLM clients (all traffic goes through OpenRouter)
     # ------------------------------------------------------------------
     llm_client, parallel_client = create_llm_clients(
         model=model,
         openrouter_api_key=settings.OPENROUTER_API_KEY,
-        openai_api_key=settings.OPENAI_API_KEY,
         temperature=args.temperature,
         max_workers=20,
     )
@@ -257,43 +256,22 @@ def main():
     # ------------------------------------------------------------------
     if args.use_queue:
         from src.llm.providers.queued_openrouter import QueuedOpenRouterClient
-        from src.llm.providers.queued_openai import QueuedOpenAIClient
-        from src.llm.client_factory import is_openai_model
 
-        # Determine which providers we need based on agent models
-        has_openai = any(is_openai_model(m) for m in agent_models.values())
-        has_openrouter = any(not is_openai_model(m) for m in agent_models.values())
-
-        # Create queued clients for needed providers
-        queued_openai_client = None
-        queued_openrouter_client = None
-
-        if has_openai:
-            queued_openai_client = QueuedOpenAIClient(
-                api_key=settings.OPENAI_API_KEY,
-                max_workers=25,
-                timeout=120,
-                max_retries=5,
-            )
-            print("Created OpenAI queued client (max_workers=25)")
-
-        if has_openrouter:
-            queued_openrouter_client = QueuedOpenRouterClient(
-                api_key=settings.OPENROUTER_API_KEY,
-                max_workers=25,
-                timeout=120,
-                max_retries=5,
-            )
-            print("Created OpenRouter queued client (max_workers=25)")
+        # One queue for every agent model: each request carries its own "model".
+        queued_client = QueuedOpenRouterClient(
+            api_key=settings.OPENROUTER_API_KEY,
+            max_workers=25,
+            timeout=120,
+            max_retries=5,
+        )
+        print("Created OpenRouter queued client (max_workers=25)")
 
         rounds = run_all_trials_queued(
             game_type=args.game,
             agent_names=agent_names,
             game_params=game_params,
             llm_client=llm_client,
-            queued_client=queued_openrouter_client,  # Legacy parameter (kept for compatibility)
-            queued_openai_client=queued_openai_client,
-            queued_openrouter_client=queued_openrouter_client,
+            queued_client=queued_client,
             n_trials=args.trials,
             n_rounds=n_rounds,
             self_reference=self_reference,

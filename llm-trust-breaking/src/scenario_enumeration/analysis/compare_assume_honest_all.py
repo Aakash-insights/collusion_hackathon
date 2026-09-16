@@ -4,6 +4,7 @@ Comprehensive comparison across 3, 4, and 5 agents.
 
 import json
 import os
+import glob
 
 MODELS = [
     "claude-sonnet-4.5",
@@ -25,6 +26,28 @@ GAMES = [
 ]
 
 AGENT_COUNTS = [3, 4, 5]
+
+
+def discover_models(agents=None):
+    """
+    Find the models that actually have results on disk.
+
+    With no agent count, look across every agent count.
+
+    The hardcoded MODELS list above only matches the original research runs. Anyone
+    running this project with a different model would get an empty comparison, so the
+    filesystem is the source of truth and MODELS is the fallback ordering.
+    """
+    found = set()
+    pattern = f"outputs/experiments/*/{agents}agents/*_r1.json" if agents is not None \
+        else "outputs/experiments/*/*agents/*_r1.json"
+    for path in glob.glob(pattern):
+        name = os.path.basename(path)[: -len("_r1.json")]
+        found.add(name)
+    if not found:
+        return MODELS
+    ordered = [m for m in MODELS if m in found]
+    return ordered + sorted(found - set(ordered))
 
 
 def load_results(game, model, agents, assume_honest):
@@ -58,7 +81,7 @@ def main():
     for agents in AGENT_COUNTS:
         all_diffs = []
 
-        for model in MODELS:
+        for model in discover_models(agents):
             for game in GAMES:
                 original = load_results(game, model, agents, False)
                 assume_honest = load_results(game, model, agents, True)
@@ -84,7 +107,7 @@ def main():
     print(f"{'Model':<30} {'3 Agents':<15} {'4 Agents':<15} {'5 Agents':<15} {'Overall Avg':<15}")
     print("-"*120)
 
-    for model in MODELS:
+    for model in discover_models():
         model_avgs = []
 
         for agents in AGENT_COUNTS:
@@ -135,7 +158,7 @@ def main():
 
         for agents in AGENT_COUNTS:
             diffs = []
-            for model in MODELS:
+            for model in discover_models(agents):
                 original = load_results(game, model, agents, False)
                 assume_honest = load_results(game, model, agents, True)
 
@@ -176,7 +199,7 @@ def main():
 
     all_diffs_total = []
     for agents in AGENT_COUNTS:
-        for model in MODELS:
+        for model in discover_models(agents):
             for game in GAMES:
                 original = load_results(game, model, agents, False)
                 assume_honest = load_results(game, model, agents, True)

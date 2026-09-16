@@ -4,6 +4,7 @@ Compare lying rates between original and assume_honest experiments for 4 agents.
 
 import json
 import os
+import glob
 from typing import Dict, Any, List
 
 # Models and games to analyze
@@ -27,6 +28,28 @@ GAMES = [
 ]
 
 AGENTS = 4
+
+
+def discover_models(agents=None):
+    """
+    Find the models that actually have results on disk.
+
+    With no agent count, look across every agent count.
+
+    The hardcoded MODELS list above only matches the original research runs. Anyone
+    running this project with a different model would get an empty comparison, so the
+    filesystem is the source of truth and MODELS is the fallback ordering.
+    """
+    found = set()
+    pattern = f"outputs/experiments/*/{agents}agents/*_r1.json" if agents is not None \
+        else "outputs/experiments/*/*agents/*_r1.json"
+    for path in glob.glob(pattern):
+        name = os.path.basename(path)[: -len("_r1.json")]
+        found.add(name)
+    if not found:
+        return MODELS
+    ordered = [m for m in MODELS if m in found]
+    return ordered + sorted(found - set(ordered))
 
 
 def load_results(game: str, model: str, assume_honest: bool) -> Dict[str, Any]:
@@ -70,7 +93,7 @@ def calculate_differences():
 
         game_differences = []
 
-        for model in MODELS:
+        for model in discover_models(AGENTS):
             # Load both versions
             original = load_results(game, model, assume_honest=False)
             assume_honest = load_results(game, model, assume_honest=True)
@@ -156,7 +179,7 @@ def create_latex_table():
     latex += "\\hline\n"
 
     # Collect data for each model
-    for model in MODELS:
+    for model in discover_models(AGENTS):
         model_short = model.split('-')[0]  # Shorten model name
         row = [model_short]
         model_diffs = []

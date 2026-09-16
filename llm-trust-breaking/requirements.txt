@@ -1,6 +1,3 @@
-# Core LLM APIs
-openai>=1.0.0
-
 # Configuration
 python-dotenv>=1.0.0
 

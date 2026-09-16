@@ -26,7 +26,7 @@ import re
 import time
 from tqdm import tqdm
 
-from src.llm.client_factory import is_openai_model
+from src.llm.capabilities import is_reasoning_model, supports_structured_output
 from src.endogenous.core.prompt_builders import (
     build_stage1_prompt, build_stage1_schema,
     build_stage2_prompt, build_stage2_schema,
@@ -41,44 +41,18 @@ from src.endogenous.core.prompt_builders import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _is_reasoning_model(model: str) -> bool:
-    return (
-        "/o1" in model or "/o3" in model or "/gpt-5" in model
-        or "qwen" in model.lower()
-        or model.startswith("o1") or model.startswith("o3") or model.startswith("gpt-5")
-    )
-
-
-def _supports_structured_output(llm_client: Any) -> bool:
-    if hasattr(llm_client, "supports_structured_output"):
-        return llm_client.supports_structured_output
-    model = llm_client.model
-    return not _is_reasoning_model(model)
-
-
 def _model_supports_structured_output(model: str) -> bool:
     """
-    Check if a specific model supports OpenAI structured output format.
+    Check whether a model accepts the response_format JSON schema.
 
-    Only OpenAI models (gpt-*, o1*, o3*) support the response_format JSON schema.
-    Claude/Anthropic models do not, even when routed through OpenRouter.
+    The capability table lives in src/llm/capabilities.py and is shared with the API
+    clients, so a model is judged the same here and at dispatch time.
+
+    Reasoning models are not excluded. Being a reasoning model decides which sampling
+    parameters a request may carry (see _is_reasoning_model), not whether the model
+    accepts a JSON schema.
     """
-    # Reasoning models don't support structured output
-    if _is_reasoning_model(model):
-        return False
-
-    # Claude/Anthropic models don't support OpenAI structured output
-    if "anthropic/" in model or "claude" in model.lower():
-        return False
-
-    # OpenAI models (with or without openai/ prefix)
-    if model.startswith("gpt-") or model.startswith("o1") or model.startswith("o3"):
-        return True
-    if model.startswith("openai/"):
-        return True
-
-    # Default: assume no structured output support
-    return False
+    return supports_structured_output(model)
 
 
 def _build_request(
@@ -92,7 +66,7 @@ def _build_request(
     llm_client: Any
 ) -> Dict[str, Any]:
     """Assemble an API request dict compatible with the parallel clients."""
-    is_reasoning = _is_reasoning_model(model)
+    is_reasoning = is_reasoning_model(model)
 
     request: Dict[str, Any] = {
         "custom_id": custom_id,
@@ -119,55 +93,30 @@ def _build_request(
     return request
 
 
-def _execute_requests_split_by_provider(
+def _execute_requests(
     requests: List[Dict[str, Any]],
-    queued_openai_client: Any,
-    queued_openrouter_client: Any,
-    progress_desc: str = "Processing"
+    queued_client: Any,
+    stage_name: str = "",
 ) -> Dict[str, Any]:
     """
-    Execute requests by routing to appropriate provider based on model.
+    Execute a batch of requests on the queued OpenRouter client.
 
-    Splits requests into OpenAI (gpt-*, o1*, o3*) and OpenRouter (everything else),
-    executes them in parallel on separate queues, and merges results.
+    Each request carries its own "model", so a run with different models per agent
+    works without splitting the batch — the queue is per endpoint, not per model.
 
     Args:
-        requests: List of request dicts with 'model' and 'custom_id' fields
-        queued_openai_client: QueuedOpenAIClient instance (or None)
-        queued_openrouter_client: QueuedOpenRouterClient instance (or None)
-        progress_desc: Description for progress bar
+        requests:      Request dicts, each with its own "model" and "custom_id"
+        queued_client: QueuedOpenRouterClient instance (or None)
+        stage_name:    Label for progress output
 
     Returns:
         Dictionary mapping custom_id to response
     """
-    if not requests:
+    if not requests or queued_client is None:
         return {}
 
-    # Split requests by provider
-    openai_requests = []
-    openrouter_requests = []
-
-    for req in requests:
-        model = req.get("model", "")
-        if is_openai_model(model):
-            openai_requests.append(req)
-        else:
-            openrouter_requests.append(req)
-
-    # Execute on appropriate clients (in parallel if both providers needed)
-    results = {}
-
-    if openai_requests and queued_openai_client:
-        print(f"  → OpenAI: {len(openai_requests)} requests")
-        openai_results = queued_openai_client.execute_all(openai_requests)
-        results.update(openai_results)
-
-    if openrouter_requests and queued_openrouter_client:
-        print(f"  → OpenRouter: {len(openrouter_requests)} requests")
-        openrouter_results = queued_openrouter_client.execute_all(openrouter_requests)
-        results.update(openrouter_results)
-
-    return results
+    print(f"  → OpenRouter: {len(requests)} requests")
+    return queued_client.execute_all(requests)
 
 
 def _parse_response(response: Any, action_fields: List[str]) -> Dict[str, Any]:
@@ -233,11 +182,30 @@ def _parse_response(response: Any, action_fields: List[str]) -> Dict[str, Any]:
     return extracted
 
 
+# Valid choices for the games whose action is a word rather than a number. Keep in
+# sync with the "enum" in each game's decision_json_schema (src/games/).
+_BINARY_ACTIONS = {
+    "diners":    {"EXPENSIVE", "CHEAP"},
+    "volunteer": {"YES", "NO"},
+    "elfarol":   {"GO", "STAY"},
+}
+
+
 def _normalize_action(action: Any, game_type: str) -> Any:
-    """Normalize an action to canonical form (int for numeric games, str for binary)."""
-    binary_str_games = {"volunteer", "elfarol", "diners"}
-    if game_type in binary_str_games:
-        return str(action).strip().upper() if action is not None else None
+    """
+    Normalize an action to canonical form (int for numeric games, str for binary).
+
+    Returns None when the model did not produce a usable choice. That None is what
+    marks the stage as a parse error upstream (_parse_ok), so anything off-enum —
+    an empty string included — must come back as None rather than be passed along
+    as if it were a decision.
+    """
+    valid = _BINARY_ACTIONS.get(game_type)
+    if valid is not None:
+        if action is None:
+            return None
+        normalized = str(action).strip().upper()
+        return normalized if normalized in valid else None
     else:
         if action is None:
             return None
@@ -800,7 +768,7 @@ def run_trial(
       trial_id, round_id, agents (per-agent stage outputs + deception measures + typology
       + judge classification), outcomes, announcement_order, _parse_errors
     """
-    supports_structured = _supports_structured_output(llm_client)
+    supports_structured = _model_supports_structured_output(llm_client.model)
     order = announcement_order if announcement_order is not None else list(agent_names)
 
     # Stage 1: private planning (with optional takeaways from prior rounds)
@@ -1130,15 +1098,13 @@ def run_all_trials_queued(
     agent_names: List[str],
     game_params: Dict[str, Any],
     llm_client: Any,
-    queued_client: Any = None,  # Legacy parameter (kept for compatibility)
+    queued_client: Any = None,
     n_trials: int = 50,
     n_rounds: int = 1,
     self_reference: bool = True,
     round_robin: bool = False,
     show_progress: bool = True,
     agent_models: Optional[Dict[str, str]] = None,
-    queued_openai_client: Any = None,
-    queued_openrouter_client: Any = None,
 ) -> List[Dict[str, Any]]:
     """
     Run all trials using the queue-based async client for maximum throughput.
@@ -1171,13 +1137,9 @@ def run_all_trials_queued(
     Returns:
         List of round dicts: [{"round_id": int, "trials": [trial_result, ...]}, ...]
     """
-    # Legacy fallback: if queued_client is provided but not the split clients, use it for OpenRouter
-    if queued_client is not None and queued_openrouter_client is None:
-        queued_openrouter_client = queued_client
-
     n_agents = len(agent_names)
     trial_ids = list(range(n_trials))
-    supports_structured = _supports_structured_output(llm_client)
+    supports_structured = _model_supports_structured_output(llm_client.model)
     stage2_mode = "round-robin" if round_robin else "simultaneous"
     announcement_order = list(agent_names)
 
@@ -1246,9 +1208,7 @@ def run_all_trials_queued(
                 s1_requests.append(req)
 
         print(f"\n  Stage 1: {len(s1_requests)} requests")
-        s1_raw = _execute_requests_split_by_provider(
-            s1_requests, queued_openai_client, queued_openrouter_client, "Stage 1"
-        )
+        s1_raw = _execute_requests(s1_requests, queued_client, "Stage 1")
 
         stage1_parsed: Dict[str, Dict[str, Any]] = {}
         for trial_id in trial_ids:
@@ -1297,9 +1257,7 @@ def run_all_trials_queued(
                     s2_requests.append(req)
 
             print(f"\n  Stage 2 (simultaneous): {len(s2_requests)} requests")
-            s2_raw = _execute_requests_split_by_provider(
-                s2_requests, queued_openai_client, queued_openrouter_client, "Stage 2"
-            )
+            s2_raw = _execute_requests(s2_requests, queued_client, "Stage 2")
 
             for trial_id in trial_ids:
                 for pos, agent_name in enumerate(announcement_order):
@@ -1353,9 +1311,7 @@ def run_all_trials_queued(
                     position_requests.append(req)
 
                 print(f"\n  Stage 2 (round-robin) pos {pos} ({agent_name}): {len(position_requests)} requests")
-                pos_raw = _execute_requests_split_by_provider(
-                    position_requests, queued_openai_client, queued_openrouter_client, f"Stage 2 pos {pos}"
-                )
+                pos_raw = _execute_requests(position_requests, queued_client, f"Stage 2 pos {pos}")
 
                 for trial_id in trial_ids:
                     cid = f"r{round_idx}_t{trial_id}_s2_{agent_name}"
@@ -1405,9 +1361,7 @@ def run_all_trials_queued(
                 s3_requests.append(req)
 
         print(f"\n  Stage 3: {len(s3_requests)} requests")
-        s3_raw = _execute_requests_split_by_provider(
-            s3_requests, queued_openai_client, queued_openrouter_client, "Stage 3"
-        )
+        s3_raw = _execute_requests(s3_requests, queued_client, "Stage 3")
 
         stage3_parsed: Dict[str, Dict[str, Any]] = {}
         for trial_id in trial_ids:
@@ -1443,9 +1397,7 @@ def run_all_trials_queued(
                 judge_requests.append(req)
 
         print(f"\n  Judge: {len(judge_requests)} requests")
-        judge_raw = _execute_requests_split_by_provider(
-            judge_requests, queued_openai_client, queued_openrouter_client, "Judge"
-        )
+        judge_raw = _execute_requests(judge_requests, queued_client, "Judge")
 
         judge_parsed: Dict[str, Dict[str, Any]] = {}
         for trial_id in trial_ids:
@@ -1520,9 +1472,7 @@ def run_all_trials_queued(
                         request_metadata.append((trial_id, agent_name, target_agent))
 
             print(f"\n  Reflection: {len(refl_requests)} requests")
-            refl_raw = _execute_requests_split_by_provider(
-                refl_requests, queued_openai_client, queued_openrouter_client, "Reflection"
-            )
+            refl_raw = _execute_requests(refl_requests, queued_client, "Reflection")
 
             # Parse granular reflections and aggregate by (trial_id, agent_name)
             # Initialize storage for each (trial_id, agent_name)

@@ -5,6 +5,7 @@ import asyncio
 import aiohttp
 import json
 import time
+from src.llm.capabilities import is_reasoning_model, supports_structured_output
 
 
 class AsyncOpenRouterParallelClient:
@@ -15,14 +16,8 @@ class AsyncOpenRouterParallelClient:
     with minimal memory overhead.
     """
 
-    # Models that support structured outputs via response_format parameter
-    STRUCTURED_OUTPUT_MODELS = {
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "openai/gpt-4-turbo",
-        "openai/gpt-4",
-        "openai/gpt-3.5-turbo",
-    }
+    # Reasoning models spend much longer before the first token.
+    REASONING_TIMEOUT = 300
 
     def __init__(self, api_key: str, max_concurrent: int = 50, timeout: int = 120, max_retries: int = 3):
         """
@@ -39,11 +34,6 @@ class AsyncOpenRouterParallelClient:
         self.max_concurrent = max_concurrent
         self.timeout = timeout
         self.max_retries = max_retries
-
-    @property
-    def supports_structured_output(self) -> bool:
-        """Conservative default - use prompt-based JSON forcing."""
-        return False
 
     def execute_parallel(self, requests_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -83,7 +73,8 @@ class AsyncOpenRouterParallelClient:
         )
 
         # Create aiohttp session with connection pooling
-        timeout_obj = aiohttp.ClientTimeout(total=self.timeout)
+        # Session timeout is the ceiling; each request overrides it for its own model.
+        timeout_obj = aiohttp.ClientTimeout(total=max(self.timeout, self.REASONING_TIMEOUT))
         async with aiohttp.ClientSession(timeout=timeout_obj, connector=connector) as session:
             # Create tasks for all requests
             tasks = [
@@ -153,11 +144,17 @@ class AsyncOpenRouterParallelClient:
 
                     # Add response format if supported
                     model = request['model']
-                    if 'response_format' in request and model in self.STRUCTURED_OUTPUT_MODELS:
+                    if 'response_format' in request and supports_structured_output(model):
                         data['response_format'] = request['response_format']
 
                     # Make async HTTP request
-                    async with session.post(self.base_url, headers=headers, json=data) as response:
+                    # Per-request timeout: a reasoning model in a heterogeneous run must not
+                    # inherit the default model's budget.
+                    req_timeout = aiohttp.ClientTimeout(
+                        total=self.REASONING_TIMEOUT if is_reasoning_model(model) else self.timeout
+                    )
+                    async with session.post(self.base_url, headers=headers, json=data,
+                                            timeout=req_timeout) as response:
                         response.raise_for_status()
                         response_data = await response.json()
 

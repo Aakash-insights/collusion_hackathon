@@ -6,6 +6,7 @@ import aiohttp
 import json
 import time
 from tqdm import tqdm
+from src.llm.capabilities import is_reasoning_model, supports_structured_output
 
 
 class QueuedOpenRouterClient:
@@ -16,20 +17,8 @@ class QueuedOpenRouterClient:
     Much more efficient than batch execution when requests have variable latency.
     """
 
-    # Models that support structured outputs via response_format parameter
-    STRUCTURED_OUTPUT_MODELS = {
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "openai/gpt-4-turbo",
-        "openai/gpt-4",
-        "openai/gpt-3.5-turbo",
-        "openai/gpt-5",
-        "openai/gpt-5-mini",
-        "openai/gpt-5-nano",
-        "openai/gpt-5-pro",
-        "openai/gpt-oss-safeguard-120b",
-        "openai/gpt-oss-safeguard-20b",
-    }
+    # Reasoning models spend much longer before the first token.
+    REASONING_TIMEOUT = 300
 
     def __init__(
         self,
@@ -106,7 +95,8 @@ class QueuedOpenRouterClient:
             enable_cleanup_closed=True
         )
 
-        timeout_obj = aiohttp.ClientTimeout(total=self.timeout)
+        # Session timeout is the ceiling; each request overrides it for its own model.
+        timeout_obj = aiohttp.ClientTimeout(total=max(self.timeout, self.REASONING_TIMEOUT))
 
         async with aiohttp.ClientSession(timeout=timeout_obj, connector=connector) as session:
             # Producer: Add all requests to queue upfront
@@ -221,11 +211,17 @@ class QueuedOpenRouterClient:
 
                 # Add response format if supported
                 model = request['model']
-                if 'response_format' in request and model in self.STRUCTURED_OUTPUT_MODELS:
+                if 'response_format' in request and supports_structured_output(model):
                     data['response_format'] = request['response_format']
 
                 # Make async HTTP request
-                async with session.post(self.base_url, headers=headers, json=data) as response:
+                # Per-request timeout: a reasoning model in a heterogeneous run must not
+                # inherit the default model's budget.
+                req_timeout = aiohttp.ClientTimeout(
+                    total=self.REASONING_TIMEOUT if is_reasoning_model(model) else self.timeout
+                )
+                async with session.post(self.base_url, headers=headers, json=data,
+                                        timeout=req_timeout) as response:
                     response.raise_for_status()
                     response_data = await response.json()
                     content = response_data["choices"][0]["message"]["content"]

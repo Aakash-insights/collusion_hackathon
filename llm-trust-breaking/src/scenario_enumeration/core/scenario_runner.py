@@ -12,7 +12,8 @@ from collections import defaultdict
 
 from src.scenario_enumeration.core.scenario_generator import generate_scenarios, count_scenarios
 from src.scenario_enumeration.analysis.aggregation_utils import majority_vote, compute_consensus_stats
-from src.llm.providers.parallel_openai import ParallelLLMClient
+from src.llm.providers.parallel_openrouter_async import AsyncOpenRouterParallelClient
+from src.llm.capabilities import is_reasoning_model, supports_structured_output
 from src.llm.providers.queued_openrouter import QueuedOpenRouterClient
 
 
@@ -90,14 +91,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
 
@@ -124,9 +118,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"fishing_scenario{scenario_id}_announced{announced}_others{others_total}",
@@ -145,8 +137,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -172,14 +163,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
 
@@ -202,9 +186,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"volunteer_scenario{scenario_id}_announced{announced}_others{others_volunteer_count}",
@@ -223,8 +205,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -250,14 +231,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
 
@@ -280,9 +254,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"elfarol_scenario{scenario_id}_announced{announced}_othersgo{others_go_count}",
@@ -301,8 +273,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -328,14 +299,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
 
@@ -358,9 +322,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"diners_scenario{scenario_id}_announced{announced}_othersexp{others_expensive_count}",
@@ -379,8 +341,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -406,14 +367,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured, 'n_other_agents': n_agents - 1}
 
@@ -440,9 +394,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"publicgoods_scenario{scenario_id}_announced{announced}_others{others_total}",
@@ -461,8 +413,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -488,14 +439,7 @@ def generate_all_prompts(
 
         # Determine if client supports structured output
         supports_structured = False
-        if hasattr(llm_client, 'supports_structured_output'):
-            supports_structured = llm_client.supports_structured_output
-        else:
-            model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
-            supports_structured = not is_reasoning
+        supports_structured = supports_structured_output(llm_client.model)
 
         game_params_with_support = {**game_params, 'supports_structured_output': supports_structured, 'n_other_agents': n_agents - 1}
 
@@ -520,9 +464,7 @@ def generate_all_prompts(
             )
 
             model = llm_client.model
-            # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-            is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                          model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+            is_reasoning = is_reasoning_model(model)
 
             request = {
                 'custom_id': f"weakestlink_scenario{scenario_id}_announced{announced}_othersmin{others_minimum}",
@@ -541,8 +483,7 @@ def generate_all_prompts(
                 from src.config import settings
                 request['reasoning_effort'] = settings.REASONING_EFFORT
 
-            is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-            if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+            if supports_structured_output(model):
                 request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
             all_prompts.append({
@@ -564,12 +505,7 @@ def generate_all_prompts(
 
     # Determine if client supports structured output
     supports_structured = False
-    if hasattr(llm_client, 'supports_structured_output'):
-        supports_structured = llm_client.supports_structured_output
-    else:
-        model = llm_client.model
-        is_reasoning = model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5') or 'qwen' in model.lower()  # gpt-5 supports structured output
-        supports_structured = not is_reasoning
+    supports_structured = supports_structured_output(llm_client.model)
 
     game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
 
@@ -603,9 +539,7 @@ def generate_all_prompts(
                 )
 
                 model = llm_client.model
-                # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-                is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                              model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+                is_reasoning = is_reasoning_model(model)
 
                 request = {
                     'custom_id': f"{game_type}_scenario{scenario_id}_agent{agent_name}_sample{sample_idx}",
@@ -624,8 +558,7 @@ def generate_all_prompts(
                     from src.config import settings
                     request['reasoning_effort'] = settings.REASONING_EFFORT
 
-                is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-                if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+                if supports_structured_output(model):
                     request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
                 all_prompts.append({
@@ -1342,7 +1275,7 @@ def run_all_scenarios(
     game_type: str,
     agent_names: List[str],
     llm_client: Any,
-    parallel_client: ParallelLLMClient,
+    parallel_client: AsyncOpenRouterParallelClient,
     game_params: Dict[str, Any],
     batch_size: int = 1000,
     progress: bool = True,
@@ -1393,13 +1326,7 @@ def run_all_scenarios(
 
     # Determine if client supports structured output (do this once outside loop)
     supports_structured = False
-    if hasattr(llm_client, 'supports_structured_output'):
-        supports_structured = llm_client.supports_structured_output
-    else:
-        # OpenAI client - check if not a reasoning model
-        model = llm_client.model
-        is_reasoning = model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5') or 'qwen' in model.lower()  # gpt-5 supports structured output
-        supports_structured = not is_reasoning
+    supports_structured = supports_structured_output(llm_client.model)
 
     # Add to game_params for prompt building
     game_params_with_support = {**game_params, 'supports_structured_output': supports_structured}
@@ -1432,9 +1359,7 @@ def run_all_scenarios(
 
                 # Create request for parallel execution
                 model = llm_client.model
-                # Check for reasoning models (handle OpenRouter format like 'openai/o1-preview')
-                is_reasoning = '/o1' in model or '/o3' in model or '/gpt-5' in model or 'qwen' in model.lower() or \
-                              model.startswith('o1') or model.startswith('o3') or model.startswith('gpt-5')
+                is_reasoning = is_reasoning_model(model)
 
                 request = {
                     'custom_id': f"scenario{scenario_id}_agent{agent_name}_sample{sample_idx}",
@@ -1456,8 +1381,7 @@ def run_all_scenarios(
                     request['reasoning_effort'] = settings.REASONING_EFFORT
 
                 # Only add response_format for models that support structured output
-                is_openai_model = model.startswith('gpt-') or model.startswith('o1') or model.startswith('o3')
-                if is_openai_model or (hasattr(llm_client, 'supports_structured_output') and llm_client.supports_structured_output):
+                if supports_structured_output(model):
                     request['response_format'] = {"type": "json_schema", "json_schema": json_schema}
 
                 current_batch.append({
@@ -1503,7 +1427,7 @@ def run_all_scenarios(
 
 def _execute_batch(
     batch: List[Dict[str, Any]],
-    parallel_client: ParallelLLMClient,
+    parallel_client: AsyncOpenRouterParallelClient,
     game_type: str,
     agent_names: List[str],
     max_retries: int = 3

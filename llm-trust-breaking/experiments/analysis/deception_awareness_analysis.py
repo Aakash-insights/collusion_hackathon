@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import settings
-from src.llm.providers.openai_client import OpenAIClient
+from src.llm.providers.openrouter_client import OpenRouterClient
 
 
 def load_result_file(filepath: str) -> Dict[str, Any]:
@@ -138,7 +138,7 @@ Return ONLY the score as a single digit (1, 2, 3, 4, or 5). No explanation."""
     return requests, custom_id_mapping
 
 
-def judge_single_request(client: OpenAIClient, custom_id: str, prompt: str) -> tuple:
+def judge_single_request(client: OpenRouterClient, custom_id: str, prompt: str) -> tuple:
     """Execute a single judge request."""
     try:
         response = client.call_simple(
@@ -166,11 +166,11 @@ def analyze_all_files() -> Dict[str, List[int]]:
         print("No requests to judge!")
         return {}
 
-    # Initialize OpenAI client for GPT-5.1 judge
+    # Judge runs on OpenRouter like everything else
     print(f"\nExecuting {len(requests)} judge requests in parallel...")
-    client = OpenAIClient(
-        api_key=settings.OPENAI_API_KEY,
-        model='gpt-5.1'
+    client = OpenRouterClient(
+        api_key=settings.OPENROUTER_API_KEY,
+        model='openai/gpt-5.1'
     )
 
     # Execute all requests in parallel using ThreadPoolExecutor

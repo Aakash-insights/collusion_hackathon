@@ -5,25 +5,11 @@ import requests
 import time
 from typing import Dict, Any
 from src.llm.base import BaseLLMClient
+from src.llm.capabilities import supports_structured_output
 
 
 class OpenRouterClient(BaseLLMClient):
     """OpenRouter API client with structured output support."""
-
-    # Models that support structured outputs (OpenAI models via OpenRouter)
-    STRUCTURED_OUTPUT_MODELS = {
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "openai/gpt-4-turbo",
-        "openai/gpt-4",
-        "openai/gpt-3.5-turbo",
-        "openai/gpt-5",
-        "openai/gpt-5-mini",
-        "openai/gpt-5-nano",
-        "openai/gpt-5-pro",
-        "openai/gpt-oss-safeguard-120b",
-        "openai/gpt-oss-safeguard-20b",
-    }
 
     def __init__(self, api_key: str, model: str = "openai/gpt-4o-mini", temperature: float = 0.7,
                  timeout: int = 120, max_retries: int = 3):
@@ -44,7 +30,7 @@ class OpenRouterClient(BaseLLMClient):
         self.max_retries = max_retries
 
         # Check if model supports structured outputs
-        self.supports_structured_output = model in self.STRUCTURED_OUTPUT_MODELS
+        self.supports_structured_output = supports_structured_output(model)
 
     def _make_request(
         self,
@@ -183,11 +169,11 @@ class OpenRouterClient(BaseLLMClient):
                 return json.loads(raw)
 
         except Exception as e:
-            # Fallback: return a valid but minimal response
+            # Report the failure instead of fabricating the schema's fields with empty
+            # values -- an empty field is indistinguishable from a real decision once
+            # it reaches the game logic. Callers treat "_error" as a parse failure.
             print(f"Warning: OpenRouter call failed with error: {e}")
-            # Extract required fields from schema and provide defaults
-            required = json_schema.get("schema", {}).get("required", [])
-            return {field: "" for field in required}
+            return {"_error": str(e)}
 
     def call_simple(
         self,

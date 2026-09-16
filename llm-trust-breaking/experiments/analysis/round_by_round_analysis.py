@@ -9,6 +9,13 @@ from pathlib import Path
 from collections import defaultdict
 import statistics
 
+# Which result files the imposter comparison reads. These name the two conditions of
+# the original study (a Llama minority vs a GPT minority); point them at your own runs
+# if you reproduced the experiment with different models.
+MAJORITY_MODEL = "gpt-5.2"
+MINORITY_MODEL = "meta-llama_llama-4-maverick"
+
+
 def load_imposter_data():
     """Load both imposter conditions."""
     games = ['diners', 'fishing']
@@ -18,13 +25,13 @@ def load_imposter_data():
         data[game] = {}
 
         # Original: J=Llama minority
-        orig_path = f'outputs/experiments/{game}/5agents/gpt-5.2_endogenous_imposter.json'
+        orig_path = f'outputs/experiments/{game}/5agents/{MAJORITY_MODEL}_endogenous_imposter.json'
         if Path(orig_path).exists():
             with open(orig_path) as f:
                 data[game]['llama_minority'] = json.load(f)
 
         # Symmetric: J=GPT minority
-        sym_path = f'outputs/experiments/{game}/5agents/meta-llama_llama-4-maverick_endogenous_imposter.json'
+        sym_path = f'outputs/experiments/{game}/5agents/{MINORITY_MODEL}_endogenous_imposter.json'
         if Path(sym_path).exists():
             with open(sym_path) as f:
                 data[game]['gpt_minority'] = json.load(f)

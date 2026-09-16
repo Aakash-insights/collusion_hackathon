@@ -88,7 +88,11 @@ def main():
 
     # Generate ALL prompts (we need the mapping)
     from src.llm.client_factory import create_llm_clients
-    llm_client = create_llm_clients(model=model, temperature=1.0)[0]
+    llm_client = create_llm_clients(
+        model=model,
+        openrouter_api_key=settings.OPENROUTER_API_KEY,
+        temperature=1.0,
+    )[0]
 
     game_params_for_gen = {**game_params, 'include_reasoning': True, 'assume_honest': False}
 
