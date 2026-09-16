@@ -183,7 +183,7 @@ Every step is one call per agent, so tournaments add up; both games have a small
 ```bash
 cd llm-agent-collusion-2 && pip install -r requirements.txt && cp .env.example .env   # add OPENROUTER_API_KEY
 cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small   # 20 calls
-cd ../Collusion_Liars_Bar && python src/game/game.py                                    # one game, ~50-100 calls
+cd ../Collusion_Liars_Bar && python src/game/game.py                                    # one full game: ~260 calls, ~11 min
 ```
 
 ### 9. [`steganographic-collusion/`](steganographic-collusion/)

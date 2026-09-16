@@ -81,8 +81,10 @@ parameters and output caps are the ones the local client used; see each game's
 ### Smoke test first
 
 Each Cleanup step and each Liar's Bar turn is one model call per agent, so the full
-runs below make thousands of calls. Confirm the key and the models work with a small
-run first (a few dozen calls, well under a minute):
+runs below make thousands of calls. Confirm the key and the models work with the Cleanup
+smoke test first (20 calls, ~20 s). A single Liar's Bar game runs until one player is
+left — measured: 20 rounds, **~260 calls, ~11 minutes** on the four default models (still
+cents; they are small) — so treat it as the second step, not the first:
 
 ```bash
 # Cleanup: one game, five steps

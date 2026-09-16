@@ -415,6 +415,13 @@
 #     game.start_game()
 
 
+import os
+import sys
+
+# Make `src.*` importable when this file is run as a script (python src/game/game.py),
+# the same way the other game scripts do.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import random
 from typing import List, Optional, Dict
 from src.agents.player import Player

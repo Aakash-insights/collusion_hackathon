@@ -4,6 +4,13 @@ Game Series Management for Cross-Game Memory
 Enables players to remember communications and interactions across multiple games
 """
 
+import os
+import sys
+
+# Make `src.*` importable when this file is run as a script (python src/game/game.py),
+# the same way the other game scripts do.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 import json
 import os
 import sys
