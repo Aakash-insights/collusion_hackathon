@@ -1,10 +1,28 @@
 # Hackathon NY starter repo
 
-Six research codebases on LLM agents, collusion and multi-agent coordination, bundled
-so a team can clone once and start hacking. Each project has been adapted to run on a
-laptop with **no GPU**, through OpenRouter with a single API key.
+Ten research codebases on LLM agents, collusion and multi-agent coordination, bundled so a
+team can clone once and start hacking. Every project runs on a normal laptop with **no GPU**,
+calling models **through OpenRouter with a single API key**. Each folder has its own README
+with a quick start; the projects are independent, so start with the question that interests
+you. The starter gives you a working harness, not results: the sprint questions are yours to
+answer.
 
-## The projects
+## At a glance
+
+| folder | paper / project | one-line summary |
+|---|---|---|
+| [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms |
+| [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges, activation steering (GPU, untouched) |
+| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors |
+| [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps |
+| [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation |
+| [`llm-trust-breaking/`](llm-trust-breaking/) | Shi et al., LLM Trust Breaking | Promise-breaking and trust dynamics over 10 rounds of strategic games with private plans and public commitments |
+| [`collusive-llm-agents/`](collusive-llm-agents/) | Lin et al., *Strategic Collusion of LLM Agents* | Bertrand and Cournot notebooks: do pricing agents divide a multi-commodity market between them? |
+| [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | Voluntary Collusion framework | Liar's Bar and Cleanup games with secret alliance channels: when do agents willingly collude against others? |
+| [`steganographic-collusion/`](steganographic-collusion/) | *Audit the Whisper*, ColludeBench-v0 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments |
+| [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector |
+
+## The projects in more detail
 
 ### 1. [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/)
 
@@ -38,11 +56,11 @@ served with vLLM (GPU, untouched here). Sprint projects 1.2 and 1.4: a CPU-only 
 runs the same game through OpenRouter with prompt / monitoring / window / temperature
 flags, adds checkpoint branching to swap a participant mid-run, and an API-based judge. The
 paper's R1 distills are no longer on OpenRouter, so you pick the agent model: full R1 for
-fidelity (slow, ~2-3 min per call) or `qwen/qwen3-14b` for fast iteration.
+fidelity (~2-3 min per call), `qwen/qwen3-14b` (thinks, ~1 min per call) or `openai/gpt-4.1-mini` for fast iteration.
 
 ```bash
 cd llm-cartel && uv sync && cp .env.example .env     # add OPENROUTER_API_KEY
-uv run python run_game.py --models qwen/qwen3-14b --rounds 30   # ~60 calls
+uv run python run_game.py --models openai/gpt-4.1-mini --rounds 30   # ~60 calls, ~1 min
 ```
 
 ### 3. [`focal-points/`](focal-points/)
@@ -119,22 +137,59 @@ classified. Used in sprint projects 2.3 (does combining what agents say with wha
 improve detection?) and 3.2 (can agents tell when a peer has been replaced?). Runs through
 OpenRouter; see its README for the quick start.
 
-## Ground rules baked into every adapted project
+### 7. [`collusive-llm-agents/`](collusive-llm-agents/)
 
-Following the *Collusion Research Sprint: How to get started* brief:
+**Question:** can LLM pricing agents carve up a multi-commodity market between themselves
+instead of competing on every product?
 
-- Runs on a normal 16 GB laptop, no GPU. Heavy dependencies (torch and friends) live in
-  optional extras.
-- **One provider, one key.** Every project calls models through OpenRouter with the
-  hackathon's `OPENROUTER_API_KEY`. Where a paper's original model exists on OpenRouter it
-  is the default; any other OpenRouter model id can be substituted with a flag. Each repo was
-  smoke-tested live once with a small run.
-- **No local GPU inference.** Code that loaded model weights (vLLM, transformers) is
-  routed through the API instead. Original datasets are included when small.
-- Defaults are the brief's cheap starting point: one prompt, one parameter value, one
-  seed. Scripts print how many model calls a command will make before spending.
-- The brief's weekend project for each repo is reproducible from command-line flags.
-- Original results data is kept where it exists, so analysis notebooks still work.
+Paper: *Strategic Collusion of LLM Agents: Market Division in Multi-Commodity Competitions*
+(Lin et al., 2024). Two Jupyter notebooks, one for Bertrand (price) and one for Cournot
+(quantity) competition, where firms observe market history and output structured JSON
+decisions. The sprint uses it as the lighter fallback for project 1.3: prices or quantity
+vectors are the observable actions, so visibility of those actions can be ablated without
+a tool-using environment. Calls go through OpenRouter with the paper's models set in a
+constant at the top of each notebook.
 
-Each folder has its own README with a quick start. The projects are independent; start
-with the question that interests you.
+```bash
+cd collusive-llm-agents && pip install -r requirements.txt && cp .env.example .env   # add OPENROUTER_API_KEY
+jupyter notebook            # open bertrand.ipynb (~10 calls) or cournot.ipynb (~100 calls)
+```
+
+### 8. [`llm-agent-collusion-2/`](llm-agent-collusion-2/)
+
+**Question:** when agents are handed a secret channel or a secret advantage, do they
+voluntarily collude against the other players, and how does that evolve?
+
+The Voluntary Collusion framework. Two games: **Liar's Bar**, a four-player bluffing card
+game with hidden information, and **Cleanup**, a grid-world social dilemma balancing apple
+collection against pollution. Each has a baseline, a secret-communication condition between
+alliance partners, and a secret-hint condition. Sprint project 3.1 replaces the
+experimenter-chosen partner with a scripted or monitor-controlled player that offers the same
+pact to everyone and measures who accepts. Originally built for local Llama / Mistral / Qwen
+models; see its README for the API route.
+
+### 9. [`steganographic-collusion/`](steganographic-collusion/)
+
+**Question:** can colluding agents hide coordination inside innocent-looking messages, and
+what evidence is enough to catch them?
+
+*Audit the Whisper* couples channel-capacity theory with **ColludeBench-v0**: pricing,
+first-price auction, peer review and continuous-double-auction environments with
+configurable colluders and covert channels, plus a calibrated detector stack (mutual
+information, permutation invariance, watermark variance, acceptance-bias and welfare
+guards) tuned to low false-positive rates. Sprint project 2.4 uses its environments,
+detector code and stored result manifests, with the brief's caveat to preflight them rather
+than treat them as a turnkey bag of trajectories. Heavy on results and docs; start from its
+README's smoke test.
+
+### 10. [`trace-guard/`](trace-guard/)
+
+**Question:** does scoring an agent's reasoning and actions on several structured
+dimensions catch what a single "is this suspicious?" check misses?
+
+TraceGuard, built at the Apart x Redwood AI Control hackathon (March 2026). It scores each
+agent action on five dimensions in parallel (goal alignment, constraint adherence, reasoning
+coherence, safety awareness, action-trace consistency) with tiered deeper analysis and
+heuristic detectors. It is a **single-agent** monitor, not a collusion detector; sprint
+project 2.3 reuses its action-trace consistency rubric as one of the monitor views compared
+on the trust-breaking logs.

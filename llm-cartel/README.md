@@ -23,8 +23,8 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 > | `--models` | what | speed / cost |
 > |---|---|---|
 > | `deepseek/deepseek-r1-0528` | closest to the paper: full R1 reasoning model | 110-190 s, 3-4k thinking tokens, ~$0.01 per call; a 300-round duopoly takes many hours |
-> | `qwen/qwen3-14b` | fast hybrid reasoning model | seconds per call, $0.12/$0.24 per M tokens; the practical choice for iterating |
-> | `openai/gpt-4.1-mini` | fast non-reasoning model | add `--think` to get inspectable thoughts |
+> | `qwen/qwen3-14b` | hybrid reasoning model (thinks by default) | 30-70 s and 2-4k thinking tokens per call, $0.12/$0.24 per M tokens; a 300-round duopoly takes several hours |
+> | `openai/gpt-4.1-mini` | non-reasoning model | 1-2 s per call; a 300-round duopoly in ~15 min; add `--think` to get inspectable thoughts |
 >
 > The judge defaults to `qwen/qwen3-14b` (the paper's Qwen judge).
 > The GPU scripts are untouched and documented below; you do not need them.
