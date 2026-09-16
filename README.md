@@ -38,11 +38,11 @@ served with vLLM (GPU, untouched here). Sprint projects 1.2 and 1.4: a CPU-only 
 runs the same game through OpenRouter with prompt / monitoring / window / temperature
 flags, adds checkpoint branching to swap a participant mid-run, and an API-based judge. The
 paper's R1 distills are no longer on OpenRouter, so you pick the agent model: full R1 for
-fidelity (slow, ~2-3 min per call) or `qwen/qwen3-14b` for fast iteration.
+fidelity (~2-3 min per call), `qwen/qwen3-14b` (thinks, ~1 min per call) or `openai/gpt-4.1-mini` for fast iteration.
 
 ```bash
 cd llm-cartel && uv sync && cp .env.example .env     # add OPENROUTER_API_KEY
-uv run python run_game.py --models qwen/qwen3-14b --rounds 30   # ~60 calls
+uv run python run_game.py --models openai/gpt-4.1-mini --rounds 30   # ~60 calls, ~1 min
 ```
 
 ### 3. [`focal-points/`](focal-points/)

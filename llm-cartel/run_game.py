@@ -45,9 +45,10 @@ OpenRouter. Measured on 2026-09-15 through OpenRouter (3-round duopoly, per call
   --models deepseek/deepseek-r1-0528     closest to the paper: full R1 reasoning model.
                                          110-190 s per call, 3-4k thinking tokens, ~$0.01/call
                                          -> a 300-round duopoly takes many hours (~$6).
-  --models qwen/qwen3-14b                fast hybrid reasoning model, ~$0.12/$0.24 per M tokens
-                                         -> the practical choice for iterating; also the judge model.
-  --models openai/gpt-4.1-mini           fast non-reasoning model (thoughts only with --think).
+  --models qwen/qwen3-14b                hybrid reasoning model (thinks by default): 30-70 s and
+                                         2-4k thinking tokens per call, cheap tokens; also the judge model.
+  --models openai/gpt-4.1-mini           non-reasoning: 1-2 s per call, a 300-round duopoly in ~15 min
+                                         (thoughts only with --think). Best for iterating.
 
 Any other OpenRouter id works too: https://openrouter.ai/models
 """
