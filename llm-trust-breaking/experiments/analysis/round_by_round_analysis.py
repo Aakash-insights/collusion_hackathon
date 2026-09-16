@@ -5,6 +5,7 @@ Tracks how deception, payoffs, and trust evolve over time.
 """
 
 import json
+import sys
 from pathlib import Path
 from collections import defaultdict
 import statistics
@@ -342,4 +343,12 @@ def main():
         print("\n" + "=" * 100 + "\n")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (FileNotFoundError, KeyError) as e:
+        sys.exit(
+            "\nThis script analyses result files from the original study, and the ones it\n"
+            f"expects were not found under outputs/ ({e!r}).\n"
+            "Run the matching experiment first, or point the paths at the top of this\n"
+            "file at your own results."
+        )

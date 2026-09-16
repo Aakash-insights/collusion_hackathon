@@ -12,6 +12,7 @@ This is the metric that revealed the out-group trust phenomenon:
 """
 
 import json
+import sys
 from pathlib import Path
 from collections import defaultdict
 import numpy as np
@@ -163,5 +164,13 @@ def main():
     print("\nThis asymmetry creates the payoff imbalance we observe.")
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    try:
+        main()
+    except (FileNotFoundError, KeyError) as e:
+        sys.exit(
+            "\nThis script analyses result files from the original study, and the ones it\n"
+            f"expects were not found under outputs/ ({e!r}).\n"
+            "Run the matching experiment first, or point the paths at the top of this\n"
+            "file at your own results."
+        )

@@ -93,6 +93,40 @@ def _build_request(
     return request
 
 
+def _report_batch_failures(raw: Dict[str, Any], stage_name: str = "") -> None:
+    """
+    Surface API failures instead of letting them dissolve into a parse-error count.
+
+    Both clients return {"status": "error", "error": "..."} for a failed request.
+    Upstream code turns that into a missing action and moves on, so a bad API key
+    used to produce a "successful" run with every decision empty. Print the distinct
+    messages, and if the whole batch failed there is nothing for the later stages to
+    work with -- abort now rather than spend four more stages on empty decisions.
+    """
+    errors = [r.get("error", "") for r in raw.values()
+              if isinstance(r, dict) and r.get("status") == "error"]
+    if not errors:
+        return
+    distinct = sorted({str(e)[:200] for e in errors})
+    label = f" in {stage_name}" if stage_name else ""
+    print(f"  ! {len(errors)}/{len(raw)} requests failed{label}:")
+    for msg in distinct[:5]:
+        print(f"      - {msg}")
+    if len(errors) == len(raw):
+        raise RuntimeError(
+            f"Every request{label} failed ({distinct[0]}). "
+            "Check your OPENROUTER_API_KEY and model name before re-running."
+        )
+
+
+def _execute_parallel(parallel_client: Any, requests: List[Dict[str, Any]],
+                      stage_name: str = "") -> Dict[str, Any]:
+    """execute_parallel() plus failure reporting -- see _report_batch_failures."""
+    raw = _execute_parallel(parallel_client, requests)
+    _report_batch_failures(raw, stage_name)
+    return raw
+
+
 def _execute_requests(
     requests: List[Dict[str, Any]],
     queued_client: Any,
@@ -116,7 +150,9 @@ def _execute_requests(
         return {}
 
     print(f"  → OpenRouter: {len(requests)} requests")
-    return queued_client.execute_all(requests)
+    raw = queued_client.execute_all(requests)
+    _report_batch_failures(raw, stage_name)
+    return raw
 
 
 def _parse_response(response: Any, action_fields: List[str]) -> Dict[str, Any]:
@@ -348,7 +384,7 @@ def _run_stage1(
         )
         requests.append((agent_name, req))
 
-    raw_responses = parallel_client.execute_parallel([r for _, r in requests])
+    raw_responses = _execute_parallel(parallel_client, [r for _, r in requests])
 
     results = {}
     for agent_name, req in requests:
@@ -422,7 +458,7 @@ def _run_stage2(
             )
             requests.append((agent_name, req))
 
-        raw = parallel_client.execute_parallel([r for _, r in requests])
+        raw = _execute_parallel(parallel_client, [r for _, r in requests])
 
         results = {}
         for pos, (agent_name, req) in enumerate(requests):
@@ -473,7 +509,7 @@ def _run_stage2(
                 llm_client=llm_client,
             )
             # Fire one request synchronously via the parallel client
-            raw = parallel_client.execute_parallel([req])
+            raw = _execute_parallel(parallel_client, [req])
             parsed = _parse_response(raw.get(req["custom_id"], {}), ["stated_action"])
             action = _normalize_action(parsed.get("stated_action"), game_type)
             results[agent_name] = {
@@ -534,7 +570,7 @@ def _run_stage3(
         )
         requests.append((agent_name, req))
 
-    raw_responses = parallel_client.execute_parallel([r for _, r in requests])
+    raw_responses = _execute_parallel(parallel_client, [r for _, r in requests])
 
     results = {}
     for agent_name, req in requests:
@@ -618,7 +654,7 @@ def _run_reflection(
             requests.append((agent_name, target_agent, req))
 
     # Execute all requests in parallel
-    raw = parallel_client.execute_parallel([r for _, _, r in requests])
+    raw = _execute_parallel(parallel_client, [r for _, _, r in requests])
 
     # Aggregate results by focal agent
     results = {agent: {"takeaways": {}, "_parse_ok": True, "outcomes": outcomes} for agent in agent_names}
@@ -715,7 +751,7 @@ def _run_judge(
         )
         requests.append((agent_name, req))
 
-    raw = parallel_client.execute_parallel([r for _, r in requests])
+    raw = _execute_parallel(parallel_client, [r for _, r in requests])
 
     results = {}
     for agent_name, req in requests:

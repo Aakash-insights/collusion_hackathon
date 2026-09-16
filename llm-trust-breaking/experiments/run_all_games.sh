@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #==============================================================================
-# Batch experiment runner for single-agent games
+# Batch runner for the scenario-enumeration protocol (run_scenario_enumeration.py).
+# For the main 3-stage protocol use experiments/run_endogenous.py directly.
 #
 # Runs experiments across all games with specified model and agent count.
 # Supports both queue mode (continuous pipeline) and batch mode (wave processing).
@@ -9,21 +10,16 @@
 
 # Configuration variables
 
-# MODELS - List of models to run (will run each sequentially)
+# MODELS - List of models to run (will run each sequentially).
+# OpenAI family only, via OpenRouter -- anything else is rejected at startup.
 MODELS=(
-    "qwen/qwen3-30b-a3b-instruct-2507"
-    "qwen/qwen3-235b-a22b-2507"
-    "meta-llama/llama-3.3-70b-instruct"
-    "deepseek/deepseek-v3.2"
-    "google/gemini-3-flash-preview"
-    "anthropic/claude-sonnet-4.5"
-   "gpt-5-nano"
-  "gpt-5-mini"
-  "gpt-5"
+    "openai/gpt-4o-mini"
+    "openai/gpt-4o"
+    "openai/gpt-5-mini"
 )
 
 # Number of agents to test (3, 4, or 5)
-NUM_AGENTS=6
+NUM_AGENTS=5
 
 # Execution mode
 USE_QUEUE=1  # Set to 1 for queue mode (recommended), 0 for batch mode
@@ -55,7 +51,7 @@ experiment_exists() {
 }
 
 echo "======================================================================"
-echo "SINGLE-AGENT EXPERIMENT RUNNER"
+echo "SCENARIO-ENUMERATION EXPERIMENT RUNNER"
 echo "======================================================================"
 echo "Configuration:"
 echo "  Models to run: ${#MODELS[@]}"

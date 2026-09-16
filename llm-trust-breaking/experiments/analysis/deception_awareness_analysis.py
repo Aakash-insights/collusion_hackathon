@@ -19,7 +19,7 @@ from typing import Dict, Any, List
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))  # project root
 
 from src.config import settings
 from src.llm.providers.openrouter_client import OpenRouterClient

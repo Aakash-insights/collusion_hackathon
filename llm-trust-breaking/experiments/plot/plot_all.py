@@ -7,8 +7,8 @@ Creates:
   3. Summary comparison plots (aggregate statistics across games/models)
 
 Usage:
-    python experiments/plot_all.py
-    python experiments/plot_all.py --skip-individual  # only create summary plots
+    python experiments/plot/plot_all.py
+    python experiments/plot/plot_all.py --skip-individual  # only create summary plots
 """
 
 import argparse
@@ -341,7 +341,7 @@ def main():
             # Judge plots
             print("  Generating judge label plots...")
             subprocess.run([
-                sys.executable, "experiments/plot_judge.py", exp_file
+                sys.executable, str(Path(__file__).parent / "plot_judge.py"), exp_file
             ], check=True)
 
             # Trust plots (only for multi-round experiments)
@@ -350,7 +350,7 @@ def main():
             if n_rounds > 1:
                 print("  Generating trust score plots...")
                 subprocess.run([
-                    sys.executable, "experiments/plot_trust.py", exp_file
+                    sys.executable, str(Path(__file__).parent / "plot_trust.py"), exp_file
                 ], check=True)
             else:
                 print("  Skipping trust plots (single-round experiment)")

@@ -14,7 +14,7 @@ from typing import Dict, List, Tuple
 import sys
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))  # project root
 
 from src.theory.lying_categories import analyze_decision
 
@@ -432,4 +432,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (FileNotFoundError, KeyError) as e:
+        sys.exit(
+            "\nThis script analyses result files from the original study, and the ones it\n"
+            f"expects were not found under outputs/ ({e!r}).\n"
+            "Run the matching experiment first, or point the paths at the top of this\n"
+            "file at your own results."
+        )

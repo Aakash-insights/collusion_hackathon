@@ -7,6 +7,7 @@ This script analyzes how often the 5 samples agree.
 """
 
 import json
+import sys
 from pathlib import Path
 from collections import defaultdict, Counter
 from typing import Dict, Any, List
@@ -220,15 +221,23 @@ def generate_report(consensus_data, by_model, by_game):
 
 
 if __name__ == "__main__":
-    consensus_data, by_model, by_game = analyze_consensus_stats()
+    try:
+        consensus_data, by_model, by_game = analyze_consensus_stats()
 
-    report = generate_report(consensus_data, by_model, by_game)
+        report = generate_report(consensus_data, by_model, by_game)
 
-    # Save to file
-    output_path = Path(__file__).parent.parent / "outputs" / "CONSENSUS_RATES.txt"
-    with open(output_path, 'w') as f:
-        f.write(report)
+        # Save to file
+        output_path = Path(__file__).parent.parent / "outputs" / "CONSENSUS_RATES.txt"
+        with open(output_path, 'w') as f:
+            f.write(report)
 
-    print(report)
-    print()
-    print(f"Report saved to: {output_path}")
+        print(report)
+        print()
+        print(f"Report saved to: {output_path}")
+    except (FileNotFoundError, KeyError) as e:
+        sys.exit(
+            "\nThis script analyses result files from the original study, and the ones it\n"
+            f"expects were not found under outputs/ ({e!r}).\n"
+            "Run the matching experiment first, or point the paths at the top of this\n"
+            "file at your own results."
+        )

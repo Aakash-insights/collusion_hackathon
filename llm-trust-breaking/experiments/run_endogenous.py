@@ -318,4 +318,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        # Raised when an entire batch of API requests fails -- see _report_batch_failures.
+        sys.exit(f"\nABORTED: {e}")

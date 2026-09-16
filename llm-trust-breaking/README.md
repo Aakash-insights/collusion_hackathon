@@ -10,17 +10,25 @@ This research framework measures how large language models engage in **strategic
 
 ## Quick Start
 
+Requires Python 3.9+ (verified on 3.12) and an [OpenRouter](https://openrouter.ai) API key.
+
 ```bash
 pip install -r requirements.txt
 
 # Configure the API key
 cp .env.example .env
-# Edit .env: add your OPENROUTER_API_KEY
+# Edit .env: replace the placeholder with your OPENROUTER_API_KEY
+# (the placeholder value is rejected at startup, so you will know if you forgot)
 
 # Models: OpenAI family only (openai/*), reached through OpenRouter.
 # Other providers are rejected at startup -- see .env.example for why.
 
-# Run a 10-round experiment
+# 1. Smoke test -- ~10 API calls, under a minute. Confirms the key and the model work.
+python experiments/run_endogenous.py \
+  --game diners --agents 2 --trials 1 --rounds 1 \
+  --model openai/gpt-4o-mini --use-queue
+
+# 2. Full 10-round experiment -- ~8,000 API calls, see "Cost" below.
 python experiments/run_endogenous.py \
   --game diners \
   --agents 5 \
@@ -31,7 +39,18 @@ python experiments/run_endogenous.py \
   --round-robin
 ```
 
-**Output:** JSON with all stages + deception classifications → `outputs/experiments/{game}/5agents/`
+**Output:** JSON with all stages + deception classifications →
+`outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{model}` is the
+model name with `/` replaced by `_` (e.g. `openai_gpt-5.2_endogenous.json`).
+
+### Cost
+
+Each trial-round makes 4 calls per agent (three stages + judge) plus a pairwise
+reflection step that grows as N×(N−1). With 5 agents that is 40 calls per trial-round,
+so the full example above is 20 × 10 × 40 ≈ **8,000 calls**, each allowed up to 2,000
+output tokens. Run the smoke test first, note what one call costs for your model, and
+scale `--trials` and `--rounds` from there. If the API key or model is wrong, the run
+aborts at the first stage instead of burning the whole budget.
 
 ---
 
@@ -143,7 +162,6 @@ Six symmetric social dilemmas with varying strategic structures:
 ```
 LLM-Strategic-Deception/
 ├── README.md                    # This file
-├── CLAUDE.md                    # Developer guide for AI assistants
 ├── methodology.png              # Visual protocol diagram
 ├── requirements.txt
 ├── .env.example
@@ -214,10 +232,13 @@ python experiments/run_endogenous.py \
 
 ### Heterogeneous Groups (Mixed Models)
 
+Agents can run different models. All of them must be OpenAI-family (`openai/*`); the
+agent names are deterministic, so for `--agents 5` they are always `J M Q T Z`.
+
 Create `my_models.json`:
 ```json
 {
-  "J": "meta-llama/llama-4-maverick",
+  "J": "openai/gpt-4o-mini",
   "M": "openai/gpt-5.2",
   "Q": "openai/gpt-5.2",
   "T": "openai/gpt-5.2",
@@ -235,7 +256,7 @@ python experiments/run_endogenous.py \
   --agent-models-file my_models.json \
   --use-queue \
   --round-robin \
-  --run-suffix imposter_llama_pos1
+  --run-suffix imposter_4o_mini_pos1
 ```
 
 ### Key Flags
@@ -250,7 +271,7 @@ python experiments/run_endogenous.py \
 | `--agent-models-file` | JSON mapping agent names to models (for heterogeneous) |
 | `--use-queue` | **Use async batching** (10–50× faster) |
 | `--round-robin` | Agents see prior announcements before speaking |
-| `--run-suffix` | Append to output filename (e.g., `_imposter_llama`) |
+| `--run-suffix` | Append to output filename (e.g., `imposter_4o_mini_pos1`) |
 
 **Tip:** Always use `--use-queue` for experiments with >10 trials.
 
@@ -262,7 +283,7 @@ python experiments/run_endogenous.py \
 
 ```bash
 python experiments/plot/plot_trust.py \
-  outputs/experiments/diners/5agents/gpt-5.2_endogenous.json
+  outputs/experiments/diners/5agents/openai_gpt-5.2_endogenous.json
 ```
 
 Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial showing trust scores over 10 rounds)
@@ -270,21 +291,20 @@ Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial sh
 ### Comprehensive Analysis
 
 ```bash
-# Cross-experiment summary statistics
+# Cross-experiment summary over everything under outputs/experiments/
 python experiments/analysis/endogenous_comprehensive_analysis.py
-
-# Announcement compliance rates (behavioral trust)
-python experiments/analysis/announcement_compliance_analysis.py
-
-# Round-by-round deception trends
-python experiments/analysis/round_by_round_analysis.py
 ```
+
+The other scripts in `experiments/analysis/` were written against the result files of
+the original study (specific model names and imposter configurations). They exit with
+a message if those files are not present; edit the paths at the top of each one to point
+them at your own runs.
 
 ### Generate Human-Readable Transcripts
 
 ```bash
 python -m src.visualization.transcripts \
-  outputs/experiments/diners/5agents/gpt-5.2_endogenous.json \
+  outputs/experiments/diners/5agents/openai_gpt-5.2_endogenous.json \
   --output-dir outputs/transcripts/diners/gpt-5.2/
 ```
 
@@ -302,7 +322,7 @@ Each experiment generates a JSON file with this structure:
     "n_agents": 5,
     "n_trials": 20,
     "n_rounds": 10,
-    "protocol": "endogenous"
+    "protocol": "endogenous_multi_round"
   },
   "per_round": [
     {

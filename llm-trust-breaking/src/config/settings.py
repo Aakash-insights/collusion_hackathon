@@ -21,6 +21,7 @@ TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
 # OpenRouter Configuration (every model call goes through OpenRouter)
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
+_PLACEHOLDER_KEY = 'your-openrouter-key-here'  # the value shipped in .env.example
 
 # Reasoning Model Configuration (for o1/o3/gpt-5 models)
 # Valid values: "low", "medium", "high"
@@ -37,8 +38,8 @@ NUM_AGENTS = int(os.getenv('NUM_AGENTS', '5'))
 # VALIDATION
 # ============================================================================
 
-if not OPENROUTER_API_KEY:
+if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == _PLACEHOLDER_KEY:
     raise ValueError(
-        "OPENROUTER_API_KEY is not set. "
-        "Please create a .env file with your OpenRouter key (see .env.example)"
+        "OPENROUTER_API_KEY is not set, or is still the placeholder from .env.example. "
+        "Put your real OpenRouter key in this project's .env file."
     )

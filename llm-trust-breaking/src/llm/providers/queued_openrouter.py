@@ -240,17 +240,8 @@ class QueuedOpenRouterClient:
                             "content": content
                         }
 
-            except (asyncio.TimeoutError, aiohttp.ClientError) as e:
-                # Retryable errors
-                if attempt < self.max_retries - 1:
-                    wait_time = (2 ** attempt) + (time.time() % 1)
-                    await asyncio.sleep(wait_time)
-                else:
-                    return custom_id, {
-                        "status": "error",
-                        "error": f"Max retries exceeded: {str(e)}"
-                    }
-
+            # ClientResponseError is a subclass of ClientError, so it must be caught first:
+            # otherwise every HTTP error -- 401 included -- lands in the retry branch below.
             except aiohttp.ClientResponseError as e:
                 # HTTP errors (rate limiting, server errors)
                 if e.status in [429, 500, 502, 503, 504] and attempt < self.max_retries - 1:
@@ -260,6 +251,17 @@ class QueuedOpenRouterClient:
                     return custom_id, {
                         "status": "error",
                         "error": str(e)
+                    }
+
+            except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+                # Retryable errors
+                if attempt < self.max_retries - 1:
+                    wait_time = (2 ** attempt) + (time.time() % 1)
+                    await asyncio.sleep(wait_time)
+                else:
+                    return custom_id, {
+                        "status": "error",
+                        "error": f"Max retries exceeded: {str(e)}"
                     }
 
             except Exception as e:
