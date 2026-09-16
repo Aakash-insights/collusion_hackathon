@@ -193,24 +193,3 @@ coherence, safety awareness, action-trace consistency) with tiered deeper analys
 heuristic detectors. It is a **single-agent** monitor, not a collusion detector; sprint
 project 2.3 reuses its action-trace consistency rubric as one of the monitor views compared
 on the trust-breaking logs.
-
-## Ground rules
-
-Following the *Collusion Research Sprint: How to get started* brief:
-
-- Runs on a normal 16 GB laptop, no GPU. Heavy dependencies (torch and friends) live in
-  optional extras.
-- **One provider, one key.** Every project calls models through OpenRouter with the
-  hackathon's `OPENROUTER_API_KEY`. Where a paper's original model exists on OpenRouter it
-  is the default; any other OpenRouter model id can be substituted with a flag. Each repo was
-  smoke-tested live once with a small run.
-- **No local GPU inference.** Code that loaded model weights (vLLM, transformers) is
-  routed through the API instead. Original datasets are included when small.
-- Defaults are the brief's cheap starting point: one prompt, one parameter value, one
-  seed. Scripts print how many model calls a command will make before spending.
-- The brief's weekend project for each repo is reproducible from command-line flags.
-- Original results data is kept where it exists, so analysis notebooks still work.
-
-The projects are independent; start with the question that interests you. Nothing here
-answers a sprint question for you: the runs, comparisons, detectors and conclusions are the
-teams' work.
