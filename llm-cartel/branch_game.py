@@ -10,8 +10,8 @@ continue the game under a modified condition:
     python branch_game.py results/jsonl/<run>.jsonl --rounds 50
 
     # replace agent 1 with another model in the same family / another provider
-    python branch_game.py results/jsonl/<run>.jsonl --rounds 50 --replace 1=openai:gpt-4.1
-    python branch_game.py results/jsonl/<run>.jsonl --rounds 50 --replace 1=google:gemini-2.5-flash
+    python branch_game.py results/jsonl/<run>.jsonl --rounds 50 --replace 1=openai/gpt-4.1
+    python branch_game.py results/jsonl/<run>.jsonl --rounds 50 --replace 1=google/gemini-2.5-flash
 
     # the replacement does not get to see the history that formed the convention
     python branch_game.py results/jsonl/<run>.jsonl --rounds 50 --replace 1=gpt-4.1-mini --replacement_window 0

@@ -79,9 +79,10 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 >
 > Reasoning models (R1 distills, Qwen3) return their chain of thought; it is stored in
 > `thoughts` automatically, so `--think` is only needed for non-reasoning models. Model ids
-> are OpenRouter ids; prefixes `openai:`, `google:`, `mistral:`, `ollama:` (free local) and
-> `custom:` reach other endpoints directly if ever needed. `chatgpt_duopoly_tester.py`
-> (OpenAI reasoning models via the Responses API) still works as before with an OpenAI key.
+> are OpenRouter ids (`openai/gpt-4.1`, `google/gemini-2.5-flash`, ...). Two opt-in prefixes
+> exist for running without OpenRouter: `ollama:` (free local model) and `custom:` (any
+> OpenAI-compatible endpoint via `LLM_BASE_URL`). `chatgpt_duopoly_tester.py` (OpenAI
+> reasoning models via the Responses API) also goes through OpenRouter with the same key.
 
 ---
 
@@ -215,7 +216,7 @@ python r1_triopoly_tester.py P0,P3,P0 1 14B
 
 ### chatgpt_duopoly_tester.py
 
-2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API. Requires `OPENAI_API_KEY` in environment or `.env` file.
+2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through OpenRouter (which exposes the same `/responses` endpoint). Requires `OPENROUTER_API_KEY` in `.env`, like everything else here. Model ids are OpenRouter ids; a bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. One caveat: whether OpenRouter passes `reasoning.summary` through unchanged for every model was not verified end to end — if `thoughts` come back empty, try `--reasoning_summary detailed` or another model.
 
 ```bash
 python chatgpt_duopoly_tester.py [options]
@@ -225,7 +226,7 @@ python chatgpt_duopoly_tester.py [options]
 |--------|---------|-------------|
 | `--prefix` | `P0` | Prompt variant (see [Prompt Variants](#prompt-variants)) |
 | `--prior_steps` | `1` | Number of synthetic history steps around the Nash equilibria (always 1 in our paper) |
-| `--model` | `gpt-5.4` | OpenAI model name |
+| `--model` | `openai/gpt-5.4` | OpenRouter id of an OpenAI reasoning model |
 | `--reasoning_summary` | `auto` | Reasoning verbosity: `auto`, `concise`, `detailed` |
 | `--reasoning_effort` | `medium` | Compute budget: `low`, `medium`, `high` |
 | `--temperature` | `1.0` | Sampling temperature |
@@ -237,13 +238,13 @@ python chatgpt_duopoly_tester.py [options]
 **Examples:**
 ```bash
 # Run with o3 model at high reasoning effort
-python chatgpt_duopoly_tester.py --model o3 --reasoning_effort high
+python chatgpt_duopoly_tester.py --model openai/o3 --reasoning_effort high
 
 # Run a single episode (seed 0) with o4-mini and collusion prompt
-python chatgpt_duopoly_tester.py --model o4-mini --prefix PC --seed 0
+python chatgpt_duopoly_tester.py --model openai/o4-mini --prefix PC --seed 0
 
 # Run with detailed reasoning summaries for 100 rounds
-python chatgpt_duopoly_tester.py --model gpt-5.4 --reasoning_summary detailed --rounds 100
+python chatgpt_duopoly_tester.py --model openai/gpt-5.4 --reasoning_summary detailed --rounds 100
 ```
 
 ## steering/

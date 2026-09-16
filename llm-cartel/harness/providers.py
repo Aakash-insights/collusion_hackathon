@@ -11,8 +11,11 @@ is the full reasoning model ``deepseek/deepseek-r1-0528``. Any OpenRouter model 
 Reasoning models return their chain of thought either inside ``<think>`` tags or
 in OpenRouter's ``reasoning`` field; both are captured as the agent's "thoughts".
 
-Other OpenAI-compatible endpoints (``openai:``, ``google:``, ``mistral:``,
-``ollama:`` for a free local model, ``custom:``) remain as opt-in prefixes.
+Two opt-in prefixes remain for running without OpenRouter: ``ollama:`` (a free local
+model) and ``custom:`` (any OpenAI-compatible endpoint via ``LLM_BASE_URL``). The former
+``openai:``, ``google:`` and ``mistral:`` presets -- direct provider endpoints with their
+own keys -- were removed; use the OpenRouter id (``openai/gpt-4.1``,
+``google/gemini-2.5-flash``, ``mistralai/...``) instead.
 """
 
 from __future__ import annotations
@@ -50,23 +53,31 @@ PRESETS: Dict[str, Preset] = {
     "openrouter": Preset(
         "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", PAPER_MODEL_OPENROUTER, supports_seed=True
     ),
-    # Alternatives (not needed for the hackathon)
-    "openai": Preset("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4.1-mini", supports_seed=True),
-    "google": Preset(
-        "https://generativelanguage.googleapis.com/v1beta/openai/", "GOOGLE_API_KEY", "gemini-2.5-flash"
-    ),
-    "mistral": Preset("https://api.mistral.ai/v1", "MISTRAL_API_KEY", "mistral-small-latest"),
+    # Local / offline escape hatch (no key)
     "ollama": Preset("http://localhost:11434/v1", "OLLAMA_API_KEY", "llama3.2:3b", needs_key=False),
     # Generic: LLM_BASE_URL + LLM_API_KEY
     "custom": Preset("", "LLM_API_KEY", "", needs_key=False),
 }
 
 
+_REMOVED_PREFIXES = {
+    "openai": "openai/<model>",
+    "google": "google/<model>",
+    "mistral": "mistralai/<model>",
+}
+
+
 def parse_model_spec(spec: str) -> Tuple[str, str]:
-    """'openai:gpt-4.1-mini' -> ('openai', 'gpt-4.1-mini'); bare name -> (LLM_PROVIDER, name)."""
-    if ":" in spec and spec.split(":", 1)[0] in PRESETS:
-        provider, model = spec.split(":", 1)
-        return provider, model
+    """'ollama:llama3.2:3b' -> ('ollama', 'llama3.2:3b'); bare name -> (LLM_PROVIDER, name)."""
+    if ":" in spec:
+        prefix, rest = spec.split(":", 1)
+        if prefix in PRESETS:
+            return prefix, rest
+        if prefix in _REMOVED_PREFIXES:
+            raise ValueError(
+                f"The '{prefix}:' prefix was removed: every hosted model goes through OpenRouter. "
+                f"Use the OpenRouter id instead, e.g. {_REMOVED_PREFIXES[prefix].replace('<model>', rest)}."
+            )
     return os.getenv("LLM_PROVIDER", "openrouter"), spec
 
 

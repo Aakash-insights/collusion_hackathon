@@ -12,7 +12,7 @@ runs for project 1.4 (replacement robustness, see branch_game.py) start here.
     python run_game.py --temperature 0.3
     python run_game.py --think                              # ask for reasoning before the price
     python run_game.py --agents 3 --prefix P0,AC,P0         # triopoly, per-agent prompts
-    python run_game.py --models gpt-4.1-mini,google:gemini-2.5-flash   # cross-provider duopoly
+    python run_game.py --models openai/gpt-4.1-mini,google/gemini-2.5-flash   # cross-provider duopoly (both via OpenRouter)
     python run_game.py --seeds 0 1 2                        # expand seeds after the control passes
 
 Output: results/jsonl/<run_name>.jsonl (one record per round, same schema as the
