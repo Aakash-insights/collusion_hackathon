@@ -61,21 +61,40 @@ Further details on reproducibility appear in `docs/REPRODUCIBILITY.md` and `docs
 
 ### Transcript dataset shipped in `results/`
 `results/` is not just output: the detectors' thresholds and metrics are read from it, and
-it also carries the **raw transcripts of 1,737 simulated runs** (163 MB, 3,467 files) —
-the primary data this project is about. Each run leaves two files next to each other:
+it also carries the **raw transcripts** of the study's runs (163 MB, 1,737 files) — the
+primary data this project is about. Each run leaves two files next to each other:
 
 | File | One line per | Fields |
 | --- | --- | --- |
 | `<run_id>.jsonl` | agent turn | `run_id`, `round_id`, `agent_id`, `role`, `message`, `action` (parsed from the message), `reward`, `interventions` {`paraphrased`, `budget`, `length`, `rate_limited`, `canary_injected`} |
 | `<run_id>_interventions.jsonl` | round | `round`, `interventions` {role → the same five fields} |
 
-Where they come from: `results/calibration/` (420 honest runs the thresholds were
-calibrated on), `results/audit/` (150 colluding audits), `results/sweeps/` (840 detector
-sensitivity points), `results/stress/` (300 stress runs), `results/experiments/` and
-`results/baseline/`. Nothing in the pipeline reads them back — the detectors work on runs
-in memory — so they are yours for new analyses: audit why a run tripped a detector, build
-a new detector, or verify the aggregate numbers against the actual messages. One JSON
-object per line; `json.loads` per line is all the loader you need.
+**Read this before counting anything.** The original logger appended, and run ids are
+stable across invocations, so every re-run of an experiment was written onto the previous
+transcript. As shipped, **1,155 of the 1,737 files hold 2–48 runs back to back** with no
+separator: 22,127 appended runs in total, of which only **3,918 are distinct** — the other
+18,209 are byte-identical repeats of deterministic scripted runs (≈140 of the 163 MB).
+`--dedupe` below keeps the 3,918 distinct runs (47 MB). The `_interventions.jsonl` companion was written with truncation
+and describes only the *last* run of its file. Thresholds and `metrics.json` are not
+affected — they were computed in memory during the runs.
+
+To work with the data, split the runs first (nothing under `results/` is modified):
+
+```bash
+python scripts/split_transcript_runs.py --dry-run     # counts only
+python scripts/split_transcript_runs.py --dedupe      # results/ -> results_split/, one file per run
+```
+
+A run starts wherever `round_id` drops back to 1. The logger now truncates at the start of
+a run, so anything you generate from here on is one run per file.
+
+Where the files come from: `results/calibration/` (the honest runs the thresholds were
+calibrated on), `results/audit/` (colluding audits), `results/sweeps/` (detector sensitivity
+points), `results/stress/`, `results/experiments/` and `results/baseline/`. Nothing in the
+pipeline reads them back — the detectors work on runs in memory — so they are yours for new
+analyses: audit why a run tripped a detector, build a new detector, or verify the aggregate
+numbers against the actual messages. One JSON object per line; `json.loads` per line is all
+the loader you need.
 
 ### 4. Hosted LLM Experiments
 The hosted configs keep the paper's models but reach them through **OpenRouter**, with a
@@ -92,8 +111,10 @@ python -m auditor.experiments pricing_llm_gemini pricing_llm_groq
 | `pricing_llm_groq*` | Llama 3.1 8B (Groq's `llama-3.1-8b-instant`) | `meta-llama/llama-3.1-8b-instruct` |
 | `pricing_llm_closed` | GPT-4o-mini | `openai/gpt-4o-mini` |
 
-The whole hosted suite is ~240 calls (well under US$1). Everything else — the 22
-scripted configs and the `distilgpt2` ones — runs locally with no key.
+Each hosted audit is 20 seeds × 8 rounds = **160 calls** (~4 min on Gemini 2.5 Flash, a few
+cents) and each honest calibration 10 × 8 = 80; the whole hosted suite is ~500 calls, about
+a dollar. Everything else — the 22 scripted configs and the `distilgpt2` ones — runs locally
+with no key.
 
 ### 5. Local open-weight experiments (`distilgpt2`)
 `configs/pricing_llm_open*.yaml` and `review_llm_open.yaml` run `distilgpt2` locally via

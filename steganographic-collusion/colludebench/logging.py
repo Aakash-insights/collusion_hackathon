@@ -21,12 +21,20 @@ class TranscriptRecord:
 
 
 class JsonlLogger:
-    """Append-only JSONLines logger."""
+    """JSONLines transcript logger: one run per file.
+
+    The file is truncated when the logger is created (one logger per run) and appended
+    to on each flush(). The original was append-only with no truncation, and run ids are
+    stable across invocations, so every re-run of an experiment was appended to the
+    previous transcript -- the shipped dataset carries up to 48 runs per file. See
+    scripts/split_transcript_runs.py for pulling those apart.
+    """
 
     def __init__(self, path: Path) -> None:
         self.path = path
         self._buffer: list[TranscriptRecord] = []
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text("", encoding="utf-8")
 
     def log_turn(self, *, run_id: str, round_id: int, agent_id: str, role: str, message: str, action: str, reward: float, interventions: Mapping[str, float]) -> None:
         self._buffer.append(

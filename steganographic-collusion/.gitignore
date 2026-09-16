@@ -22,3 +22,6 @@ __pycache__/
 
 # Ignore local profiling/temp directories.
 results/profile/
+
+# Output of scripts/split_transcript_runs.py
+results_split/

@@ -13,7 +13,7 @@ answer.
 |---|---|---|
 | [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms |
 | [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges; the paper's activation-steering scripts ship untouched as an optional extra |
-| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors |
+| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors. **Requires Docker** |
 | [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps |
 | [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation |
 | [`llm-trust-breaking/`](llm-trust-breaking/) | Shi et al., LLM Trust Breaking | Promise-breaking and trust dynamics over 10 rounds of strategic games with private plans and public commitments |
@@ -208,7 +208,7 @@ local `distilgpt2` configs; its README shows the CPU-only install.
 cd steganographic-collusion && pip install -r requirements.txt
 bash scripts/ci_check.sh                                  # no key: compiles + 11 detector tests, ~25 s
 python -m auditor.experiments auction_adaptive            # no key: one scripted experiment, ~25 s
-cp .env.example .env && python -m auditor.experiments pricing_llm_gemini   # add OPENROUTER_API_KEY; 16 calls
+cp .env.example .env && python -m auditor.experiments pricing_llm_gemini   # add OPENROUTER_API_KEY; 20 seeds x 8 rounds = 160 calls, ~4 min, cents
 ```
 
 ### 10. [`trace-guard/`](trace-guard/)
