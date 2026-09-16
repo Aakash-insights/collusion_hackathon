@@ -2,7 +2,7 @@
 
 Ten research codebases on LLM agents, collusion and multi-agent coordination, bundled so a
 team can clone once and start hacking. Every project runs on a normal laptop with **no GPU**,
-calling models **through OpenRouter with a single API key**. Each folder has its own README
+calling models **through OpenRouter with a single API key**. Some have other local requirements, see below. Each folder has its own README
 with a quick start; the projects are independent, so start with the question that interests
 you. The starter gives you a working harness, not results: the sprint questions are yours to
 answer.
@@ -20,7 +20,7 @@ answer.
 | [`collusive-llm-agents/`](collusive-llm-agents/) | Lin et al., *Strategic Collusion of LLM Agents* | Bertrand and Cournot notebooks: do pricing agents divide a multi-commodity market between them? |
 | [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | Voluntary Collusion framework | Liar's Bar and Cleanup games with secret alliance channels: when do agents willingly collude against others? |
 | [`steganographic-collusion/`](steganographic-collusion/) | *Audit the Whisper*, ColludeBench-v0 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments |
-| [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector |
+| [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector. **Requires Docker**; smoke test ~10 min |
 
 ## The projects in more detail
 
@@ -135,7 +135,16 @@ Several agents play 10 rounds of strategic games (e.g. the diners' dilemma) with
 planning stage, public commitments and final actions, and every commitment break is
 classified. Used in sprint projects 2.3 (does combining what agents say with what they do
 improve detection?) and 3.2 (can agents tell when a peer has been replaced?). Runs through
-OpenRouter; see its README for the quick start.
+OpenRouter with the paper's OpenAI models (`openai/gpt-5.2` in the examples; OpenAI-family
+only, see its `.env.example`). Each trial-round is 4 calls per agent plus pairwise
+reflection, so the documented full run (5 agents, 20 trials, 10 rounds) is ~8,000 calls —
+start with the smoke test.
+
+```bash
+cd llm-trust-breaking && pip install -r requirements.txt && cp .env.example .env   # add OPENROUTER_API_KEY
+python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1 \
+  --model openai/gpt-4o-mini --use-queue                                            # ~10 calls, under a minute
+```
 
 ### 7. [`collusive-llm-agents/`](collusive-llm-agents/)
 
@@ -166,7 +175,15 @@ collection against pollution. Each has a baseline, a secret-communication condit
 alliance partners, and a secret-hint condition. Sprint project 3.1 replaces the
 experimenter-chosen partner with a scripted or monitor-controlled player that offers the same
 pact to everyone and measures who accepts. Originally built for local Llama / Mistral / Qwen
-models; see its README for the API route.
+checkpoints on H100s; it now runs the same four-model table through OpenRouter (two of the
+original models are no longer served and were substituted — the mapping is in its README).
+Every step is one call per agent, so tournaments add up; both games have a small run.
+
+```bash
+cd llm-agent-collusion-2 && pip install -r requirements.txt && cp .env.example .env   # add OPENROUTER_API_KEY
+cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small   # 20 calls
+cd ../Collusion_Liars_Bar && python src/game/game.py                                    # one game, ~50-100 calls
+```
 
 ### 9. [`steganographic-collusion/`](steganographic-collusion/)
 
@@ -179,8 +196,19 @@ configurable colluders and covert channels, plus a calibrated detector stack (mu
 information, permutation invariance, watermark variance, acceptance-bias and welfare
 guards) tuned to low false-positive rates. Sprint project 2.4 uses its environments,
 detector code and stored result manifests, with the brief's caveat to preflight them rather
-than treat them as a turnkey bag of trajectories. Heavy on results and docs; start from its
-README's smoke test.
+than treat them as a turnkey bag of trajectories. Heavy on results and docs (213 MB, most
+of it the raw transcripts of 1,737 runs, kept on purpose as a dataset). The default path —
+22 scripted configs, the detector tests, the threshold calibration — needs **no key at
+all**; only the three hosted configs (Gemini 2.5 Flash, Llama 3.1 8B, GPT-4o-mini via
+OpenRouter) do. Note that `requirements.txt` pulls torch (~5 GB from PyPI) for the three
+local `distilgpt2` configs; its README shows the CPU-only install.
+
+```bash
+cd steganographic-collusion && pip install -r requirements.txt
+bash scripts/ci_check.sh                                  # no key: compiles + 11 detector tests, ~25 s
+python -m auditor.experiments auction_adaptive            # no key: one scripted experiment, ~25 s
+cp .env.example .env && python -m auditor.experiments pricing_llm_gemini   # add OPENROUTER_API_KEY; 16 calls
+```
 
 ### 10. [`trace-guard/`](trace-guard/)
 
@@ -193,3 +221,16 @@ coherence, safety awareness, action-trace consistency) with tiered deeper analys
 heuristic detectors. It is a **single-agent** monitor, not a collusion detector; sprint
 project 2.3 reuses its action-trace consistency rubric as one of the monitor views compared
 on the trust-breaking logs.
+
+**Prerequisite: Docker.** The agent runs inside ControlArena's BashArena, which executes
+every task in a container and builds several images on first setup (a few GB, some
+minutes). This is the only project in the repo that needs more than Python and a key.
+Budget for it: the 5-sample smoke test takes ~10 minutes; the full experiment 6–8 hours.
+`scripts/quickstart.sh` checks every prerequisite (Docker, images, key, model access)
+and stops at the first one missing, before anything expensive starts.
+
+```bash
+cd trace-guard && pip install -e . && cp .env.example .env   # add OPENROUTER_API_KEY
+control-arena env setup --env bash_arena                       # one-off, needs Docker running
+bash scripts/quickstart.sh                                     # gate + 5-sample smoke test (~10 min)
+```
