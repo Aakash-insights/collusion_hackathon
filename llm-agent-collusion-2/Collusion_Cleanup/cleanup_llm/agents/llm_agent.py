@@ -4,14 +4,14 @@ import logging
 from typing import Dict, List, Any, Optional
 from .base import BaseAgent
 from .prompts import CLEANUP_SYSTEM_PROMPT, format_cleanup_prompt
-from .local_llm_client import LocalLLMClient
+from .llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
 class LLMAgent(BaseAgent):
     """Agent that uses local LLM for decision making."""
 
-    def __init__(self, agent_id: int, model_name: str, llm_client: LocalLLMClient,
+    def __init__(self, agent_id: int, model_name: str, llm_client: LLMClient,
                  temperature: float = 0.7, max_tokens: int = 80):
         """
         Initialize LLM agent.

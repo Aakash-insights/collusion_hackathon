@@ -41,10 +41,10 @@ def create_agents(roster: str, llm_client=None) -> Dict[int, Any]:
             3: ScriptedCleaner(3, clean_probability=0.6, seed=45)
         }
     elif roster == "small" and llm_client:
-        models = ["llama-3-8b", "llama-3.1-8b", "mistral-7b", "qwen2.5-7b"]
+        models = ["llama-3.2-3b", "llama-3.1-8b", "ministral-8b", "qwen2.5-7b"]
         return {i: LLMAgent(i, models[i], llm_client) for i in range(4)}
     elif roster == "large" and llm_client:
-        models = ["llama-3-70b", "llama-3.1-70b", "mixtral-8x7b", "qwen2.5-32b"]
+        models = ["llama-3.3-70b", "llama-3.1-70b", "mistral-small-24b", "qwen2.5-72b"]
         return {i: LLMAgent(i, models[i], llm_client) for i in range(4)}
     else:
         raise ValueError(f"Unknown roster: {roster}")
@@ -64,8 +64,8 @@ def run_episode(steps: int, seed: int, csv_path: str = None, roster: str = "rand
     # Create agents
     llm_client = None
     if roster in ["small", "large"]:
-        from agents.local_llm_client import LocalLLMClient
-        llm_client = LocalLLMClient()
+        from agents.llm_client import LLMClient
+        llm_client = LLMClient()
 
     agents = create_agents(roster, llm_client)
 

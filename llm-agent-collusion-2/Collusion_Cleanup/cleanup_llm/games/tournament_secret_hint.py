@@ -42,9 +42,9 @@ class SecretHintTournament:
 
         # Agent configurations (small LLM roster)
         self.agent_configs = [
-            {"type": "llm", "model": "llama-3-8b", "name": "Luke"},
+            {"type": "llm", "model": "llama-3.2-3b", "name": "Luke"},
             {"type": "llm", "model": "llama-3.1-8b", "name": "Lily"},
-            {"type": "llm", "model": "mistral-7b", "name": "Mike"},
+            {"type": "llm", "model": "ministral-8b", "name": "Mike"},
             {"type": "llm", "model": "qwen2.5-7b", "name": "Quinn"}
         ]
 
@@ -360,8 +360,8 @@ class SecretHintTournament:
 def main():
     """Main function for running secret hint tournaments"""
     parser = argparse.ArgumentParser(description="Run Cleanup Tournament with Secret Strategic Hint System")
-    parser.add_argument("--games", type=int, default=30, help="Number of games to run")
-    parser.add_argument("--steps", type=int, default=50, help="Steps per game")
+    parser.add_argument("--games", type=int, default=20, help="Number of games to run")
+    parser.add_argument("--steps", type=int, default=30, help="Steps per game")
     parser.add_argument("--out", type=str, default="runs/secret_hint", help="Output directory")
     parser.add_argument("--trigger-step", type=int, default=1, help="Step within game to offer secret tool")
     parser.add_argument("--trigger-game", type=int, help="Game number to offer secret tool (overrides step-based)")

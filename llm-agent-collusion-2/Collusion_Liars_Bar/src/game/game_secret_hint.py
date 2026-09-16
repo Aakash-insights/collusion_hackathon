@@ -60,7 +60,7 @@ class GameSecretChannel:
                 }
         """
         # Creating Player Objects with Configuration
-        self.players = [Player(config["name"], config["model"], use_local_llm=True) for config in player_configs]
+        self.players = [Player(config["name"], config["model"]) for config in player_configs]
         
         # Initialize each player's impression of the other players
         for player in self.players:
@@ -935,8 +935,8 @@ def main():
     # Configure players
     player_configs = [
         {"name": "Lily", "model": "llama-3.1-8b"},
-        {"name": "Luke", "model": "llama-3-8b"},
-        {"name": "Mike", "model": "mistral-7b"},
+        {"name": "Luke", "model": "llama-3.2-3b"},
+        {"name": "Mike", "model": "ministral-8b"},
         {"name": "Quinn", "model": "qwen2.5-7b"}
     ]
     # Configure secret hint

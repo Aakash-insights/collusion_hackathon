@@ -18,19 +18,19 @@ from collections import defaultdict
 # Add src directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-from llm.local_llm_client import LocalLLMClient
+from llm.llm_client import LLMClient
 
 class SecretToolAcceptanceTest:
     """Test secret tool offer acceptance rates for different models"""
     
     def __init__(self):
-        self.client = LocalLLMClient()
+        self.client = LLMClient()
         
         # Model mappings for the four players
         self.models = {
             'Lily': 'llama-3.1-8b',
-            'Luke': 'llama-3-8b',
-            'Mike': 'mistral-7b',
+            'Luke': 'llama-3.2-3b',
+            'Mike': 'ministral-8b',
             'Quinn': 'qwen2.5-7b'
         }
 
@@ -503,7 +503,7 @@ class SecretToolAcceptanceTest:
         """Print the statistics needed for the LaTeX table with mean ± std format"""
 
         # Model order and mapping
-        model_order = ['mistral-7b', 'llama-3-8b', 'llama-3.1-8b', 'qwen2.5-7b']
+        model_order = ['ministral-8b', 'llama-3.2-3b', 'llama-3.1-8b', 'qwen2.5-7b']
         player_to_model = {player: model for player, model in self.models.items()}
         model_to_player = {model: player for player, model in self.models.items()}
 

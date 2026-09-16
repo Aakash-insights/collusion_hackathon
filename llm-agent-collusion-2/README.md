@@ -47,22 +47,50 @@ A sequential social dilemma where agents balance individual rewards with collect
 
 ## Installation
 
-### Prerequisites
+Requires Python 3.9+ and an [OpenRouter](https://openrouter.ai) API key.
+
 ```bash
-git clone https://github.com/your-org/LLM-Agent-collusion.git
-cd LLM-Agent-collusion
 pip install -r requirements.txt
+cp .env.example .env      # then put your OPENROUTER_API_KEY in .env
 ```
 
-### Models we tested ((All models are claimed as safety-aligned))
-- LLaMA-3-8b-Instruct
-- LlaMa-3.1-8b-Instruct
-- Mistral-7b-Instruct-v0.3
-- Qwen2.5-7B-Instruct
+All inference goes through OpenRouter; no GPU or local model weights are needed.
 
-**Hardware Requirements:** Originally designed for H100 GPUs but adaptable to various configurations.
+### Models
+
+The study ran four different safety-aligned instruct models, one per agent, as local
+checkpoints on H100s. Two of them are no longer served on OpenRouter, so this version
+substitutes them with the closest model from the authors' own extended model table:
+
+| Seat | Original checkpoint | Runs now (OpenRouter) | Short name in code |
+|---|---|---|---|
+| Lily / agent 1 | Llama-3.1-8B-Instruct | `meta-llama/llama-3.1-8b-instruct` | `llama-3.1-8b` |
+| Quinn / agent 3 | Qwen2.5-7B-Instruct | `qwen/qwen-2.5-7b-instruct` | `qwen2.5-7b` |
+| Luke / agent 0 | Llama-3-8B-Instruct | `meta-llama/llama-3.2-3b-instruct` *(substitute)* | `llama-3.2-3b` |
+| Mike / agent 2 | Mistral-7B-Instruct-v0.3 | `mistralai/ministral-8b-2512` *(substitute)* | `ministral-8b` |
+
+Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept;
+`llama-3.3-70b`, `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling
+parameters and output caps are the ones the local client used; see each game's
+`llm_client.py`.
+
+**Hardware:** any laptop. The original H100 requirement is gone with the local weights.
 
 ## Quick Start
+
+### Smoke test first
+
+Each Cleanup step and each Liar's Bar turn is one model call per agent, so the full
+runs below make thousands of calls. Confirm the key and the models work with a small
+run first (a few dozen calls, well under a minute):
+
+```bash
+# Cleanup: one game, five steps
+cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small
+
+# Liar's Bar: a single baseline game
+cd Collusion_Liars_Bar && python src/game/game.py
+```
 
 ### Liar's Bar Experiments
 
@@ -84,8 +112,11 @@ python src/game/game_series_secret_hint.py --games 50 --trigger-game 20 --trigge
 
 ### Cleanup Experiments
 
+Run these from `Collusion_Cleanup/` (not from inside `cleanup_llm/`, or the package
+will not resolve):
+
 ```bash
-cd Collusion_Cleanup/cleanup_llm
+cd Collusion_Cleanup
 
 # Baseline tournament
 python -m cleanup_llm.games.tournament --games 20 --steps 30 --out runs/base_20 --roster small
@@ -118,7 +149,7 @@ python src/test/test_secret_tool_acceptance.py -n 500 -b 5
 
 ### Cleanup Analysis
 ```bash
-cd Collusion_Cleanup/cleanup_llm
+cd Collusion_Cleanup
 
 # Behavioral evolution over time
 python -m cleanup_llm.analysis.behavioral_evolution
@@ -144,6 +175,9 @@ python -m cleanup_llm.analysis.create_final_score_evolution
 
 ## Data and Reproducibility
 
+The original result files are not included in this repository. Running the
+experiments recreates the same layout:
+
 ### Liar's Bar Records
 - `experiments/game_records/Lily-Luke-Mike-Quinn/` - Baseline records
 - `experiments/game_records/Lily-Luke-Mike-Quinn_secret_comm/` - Secret communication
@@ -153,7 +187,7 @@ python -m cleanup_llm.analysis.create_final_score_evolution
 - `runs/` directory contains experiment results in CSV and JSON formats
 - `episodes.csv`: Per-episode results for all agents
 - `cumulative_scores.csv`: Running totals across games
-- `summary.csv`: Aggregate metrics and behavioral rates
+- `summary.csv`: Aggregate metrics — per-agent score totals/means and action counts. *(The original `metrics` module was not published; this file is produced by a documented reconstruction in `cleanup_llm/metrics/tracker.py`. No analysis script depends on it.)*
 
 ## Project Structure
 

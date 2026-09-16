@@ -373,8 +373,8 @@ def main():
     # Configure players
     player_configs = [
         {"name": "Lily", "model": "llama-3.1-8b"},
-        {"name": "Luke", "model": "llama-3-8b"},
-        {"name": "Mike", "model": "mistral-7b"},
+        {"name": "Luke", "model": "llama-3.2-3b"},
+        {"name": "Mike", "model": "ministral-8b"},
         {"name": "Quinn", "model": "qwen2.5-7b"}
     ]
     # Configure series

@@ -18,29 +18,29 @@ class CleanupFinalScoreEvolutionPlotter:
         # Model to player name mapping
         self.model_to_player = {
             'llama-3.1-8b': 'Lily',
-            'llama-3-8b': 'Luke',
-            'mistral-7b': 'Mike',
+            'llama-3.2-3b': 'Luke',
+            'ministral-8b': 'Mike',
             'qwen2.5-7b': 'Quinn'
         }
 
         # Color scheme - Lily: red, Luke: purple, Mike: orange, Quinn: green
         self.base_colors = {
             'llama-3.1-8b': '#e41a1c',    # red (Lily)
-            'llama-3-8b': '#984ea3',      # purple (Luke)
-            'mistral-7b': '#ff7f00',      # orange (Mike)
+            'llama-3.2-3b': '#984ea3',      # purple (Luke)
+            'ministral-8b': '#ff7f00',      # orange (Mike)
             'qwen2.5-7b': '#4daf4a'       # green (Quinn)
         }
 
         # Different line styles and markers - Lily: circles, Luke: triangles, Mike: squares, Quinn: stars
         self.line_styles = {
             'llama-3.1-8b': {'marker': 'o', 'linestyle': '-', 'markersize': 17},     # circles (Lily)
-            'llama-3-8b': {'marker': '^', 'linestyle': '--', 'markersize': 25},      # triangles (Luke)
-            'mistral-7b': {'marker': 's', 'linestyle': '-.', 'markersize': 17},      # squares (Mike)
+            'llama-3.2-3b': {'marker': '^', 'linestyle': '--', 'markersize': 25},      # triangles (Luke)
+            'ministral-8b': {'marker': 's', 'linestyle': '-.', 'markersize': 17},      # squares (Mike)
             'qwen2.5-7b': {'marker': '*', 'linestyle': ':', 'markersize': 25}        # stars (Quinn)
         }
 
         # Order for legend: Lily, Luke, Mike, Quinn
-        self.models = ['llama-3.1-8b', 'llama-3-8b', 'mistral-7b', 'qwen2.5-7b']
+        self.models = ['llama-3.1-8b', 'llama-3.2-3b', 'ministral-8b', 'qwen2.5-7b']
 
     def smooth_data(self, x, y, window_size=2, sigma=1.5):
         """Apply smoothing to data using Gaussian filter"""

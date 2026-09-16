@@ -24,8 +24,8 @@ class SurvivalRoundsEvolutionPlotter:
         # Model mapping for labels
         self.name_to_model = {
             'Lily': 'llama-3.1-8b',
-            'Mike': 'mistral-7b', 
-            'Luke': 'llama-3-8b',
+            'Mike': 'ministral-8b', 
+            'Luke': 'llama-3.2-3b',
             'Quinn': 'qwen2.5-7b'
         }
         

@@ -4,7 +4,6 @@ import json
 import re
 from typing import List, Dict, Any
 from src.llm.llm_client import LLMClient
-from src.llm.local_llm_client import LocalLLMClient
 
 RULE_BASE_PATH = "prompts/rule_vanilla.txt"
 PLAY_CARD_PROMPT_TEMPLATE_PATH = "prompts/play_card_prompt_template.txt"
@@ -12,7 +11,7 @@ CHALLENGE_PROMPT_TEMPLATE_PATH = "prompts/challenge_prompt_template.txt"
 REFLECT_PROMPT_TEMPLATE_PATH = "prompts/reflect_prompt_template.txt"
 
 class Player:
-    def __init__(self, name: str, model_name: str, use_local_llm: bool = True):
+    def __init__(self, name: str, model_name: str):
         """Initialize players
         
         Args:
@@ -38,11 +37,8 @@ class Player:
             'alliance_established_game': None
         }
         
-        # LLM initialization
-        if use_local_llm:
-            self.llm_client = LocalLLMClient()
-        else:
-            self.llm_client = LLMClient()
+        # LLM initialization (all inference goes through OpenRouter)
+        self.llm_client = LLMClient()
         self.model_name = model_name
 
     def _read_file(self, filepath: str) -> str:

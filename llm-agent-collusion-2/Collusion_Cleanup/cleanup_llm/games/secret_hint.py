@@ -18,7 +18,7 @@ from cleanup.config import CleanupConfig
 from agents.llm_agent import LLMAgent
 from agents.random_agent import RandomAgent
 from agents.scripted_cleaner import ScriptedCleaner
-from agents.local_llm_client import LocalLLMClient
+from agents.llm_client import LLMClient
 
 class SecretHintSystem:
     """Manages the secret hint system between two players"""
@@ -81,7 +81,7 @@ class CleanupSecretHint:
         # Initialize LLM client if needed
         self.llm_client = None
         if any(config['type'] == 'llm' for config in agent_configs):
-            self.llm_client = LocalLLMClient()
+            self.llm_client = LLMClient()
 
         # Initialize agents
         self.agents = []
@@ -618,9 +618,9 @@ def main():
 
     # Configure agents (small LLM roster)
     agent_configs = [
-        {"type": "llm", "model": "llama-3-8b", "name": "Luke"},
+        {"type": "llm", "model": "llama-3.2-3b", "name": "Luke"},
         {"type": "llm", "model": "llama-3.1-8b", "name": "Lily"},
-        {"type": "llm", "model": "mistral-7b", "name": "Mike"},
+        {"type": "llm", "model": "ministral-8b", "name": "Mike"},
         {"type": "llm", "model": "qwen2.5-7b", "name": "Quinn"}
     ]
 

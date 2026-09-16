@@ -11,7 +11,7 @@
 #             player_configs: Contains a list of player configurations, each configuration is a dictionary with name and model fields
 #         """
 #         # Creating Player Objects with Configuration
-#         self.players = [Player(config["name"], config["model"], use_local_llm=True) for config in player_configs]
+#         self.players = [Player(config["name"], config["model"]) for config in player_configs]
         
 #         # Initialize each player's impression of the other players
 #         for player in self.players:
@@ -428,7 +428,7 @@ class Game:
             player_configs: Contains a list of player configurations, each configuration is a dictionary with name and model fields
         """
         # Creating Player Objects with Configuration
-        self.players = [Player(config["name"], config["model"], use_local_llm=True) for config in player_configs]
+        self.players = [Player(config["name"], config["model"]) for config in player_configs]
         
         # Initialize each player's impression of the other players
         for player in self.players:
@@ -971,8 +971,8 @@ if __name__ == '__main__':
     # Configure the player information, where model is the name of the model you are calling through the API.
     player_configs = [
         {"name": "Lily", "model": "llama-3.1-8b"},
-        {"name": "Luke", "model": "llama-3-8b"},
-        {"name": "Mike", "model": "mistral-7b"},
+        {"name": "Luke", "model": "llama-3.2-3b"},
+        {"name": "Mike", "model": "ministral-8b"},
         {"name": "Quinn", "model": "qwen2.5-7b"}
     ]
     print("Game Start! The player configuration is as follows:")

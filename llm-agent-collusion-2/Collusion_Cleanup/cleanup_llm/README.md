@@ -40,6 +40,8 @@ pip install -r requirements.txt
 
 Choose ONE experiment to run (uncomment the line you want):
 
+Run these from `Collusion_Cleanup/` (the parent of `cleanup_llm/`), not from inside `cleanup_llm/`.
+
 ```bash
 # Test secret communication channel (2 games, offer tool to Mike at game 2)
 python -m cleanup_llm.games.tournament_secret_channel --games 2 --steps 10 --out runs/test_secret_comm --trigger-game 2 --chosen-agent 2
@@ -79,7 +81,7 @@ cleanup_llm/
 │  ├─ scripted_cleaner.py # Cleaning strategy baseline
 │  ├─ llm_agent.py   # LLM wrapper
 │  ├─ prompts.py     # LLM prompts and formatting
-│  └─ local_llm_client.py # Local LLM interface
+│  └─ llm_client.py       # OpenRouter LLM client
 ├─ games/           # Game runners and experiments
 │  ├─ run_episode.py # Single episode runner
 │  ├─ tournament.py  # Multi-game tournament
@@ -120,7 +122,7 @@ The system tracks several key metrics:
 Tournament results are saved as:
 - `episodes.csv`: Per-episode results for all agents
 - `cumulative_scores.csv`: Running totals across games
-- `summary.csv`: Aggregate metrics and rates
+- `summary.csv`: Aggregate metrics — per-agent score totals/means and action counts (reconstructed `metrics/tracker.py`; see its docstring)
 
 ## Configuration
 
