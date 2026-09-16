@@ -1,0 +1,15 @@
+# LLM access (OpenAI-compatible client, pointed at OpenRouter in the notebooks)
+openai>=1.0.0
+python-dotenv>=1.0.0
+
+# Analysis and plots
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+pytz
+arch            # cournot.ipynb: CircularBlockBootstrap
+
+# Running the notebooks
+jupyter
