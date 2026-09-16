@@ -9,21 +9,18 @@ answer.
 
 ## At a glance
 
-| folder | paper / project | one-line summary | sprint projects |
-|---|---|---|---|
-| [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms | 1.2 |
-| [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges, activation steering (GPU, untouched) | 1.2, 1.4 |
-| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors | 1.4, 2.1, 3.2 |
-| [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps | 2.1, 2.2, 3.3, 3.4 |
-| [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation | 1.1, 2.4, 1.3 |
-| [`llm-trust-breaking/`](llm-trust-breaking/) | Shi et al., LLM Trust Breaking | Promise-breaking and trust dynamics over 10 rounds of strategic games with private plans and public commitments | 2.3, 3.2 |
-| [`collusive-llm-agents/`](collusive-llm-agents/) | Lin et al., *Strategic Collusion of LLM Agents* | Bertrand and Cournot notebooks: do pricing agents divide a multi-commodity market between them? | 1.3 (fallback) |
-| [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | Voluntary Collusion framework | Liar's Bar and Cleanup games with secret alliance channels: when do agents willingly collude against others? | 3.1 |
-| [`steganographic-collusion/`](steganographic-collusion/) | *Audit the Whisper*, ColludeBench-v0 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments | 2.4 |
-| [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector | 2.3 |
-
-Project numbers refer to the *Collusion Research Sprint - How to get started* brief:
-track 1 Markets and Antitrust, track 2 Workflows and Audit, track 3 Carriers and Countermeasures.
+| folder | paper / project | one-line summary |
+|---|---|---|
+| [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms |
+| [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges, activation steering (GPU, untouched) |
+| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors |
+| [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps |
+| [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation |
+| [`llm-trust-breaking/`](llm-trust-breaking/) | Shi et al., LLM Trust Breaking | Promise-breaking and trust dynamics over 10 rounds of strategic games with private plans and public commitments |
+| [`collusive-llm-agents/`](collusive-llm-agents/) | Lin et al., *Strategic Collusion of LLM Agents* | Bertrand and Cournot notebooks: do pricing agents divide a multi-commodity market between them? |
+| [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | Voluntary Collusion framework | Liar's Bar and Cleanup games with secret alliance channels: when do agents willingly collude against others? |
+| [`steganographic-collusion/`](steganographic-collusion/) | *Audit the Whisper*, ColludeBench-v0 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments |
+| [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector |
 
 ## The projects in more detail
 
