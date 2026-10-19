@@ -402,7 +402,15 @@ class OpenAIAPILLM(APIBaseLLM):
         )
         from openai import OpenAI
 
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        _openai_key = os.getenv("OPENAI_API_KEY")
+        if not _openai_key:
+            raise RuntimeError(
+                "OpenAIAPILLM talks to OpenAI directly (GPT reasoning models via the Responses API), "
+                "which needs OPENAI_API_KEY. This path is OpenAI-only; the hackathon default is Nebius "
+                "(see COMPUTE.md). Either set OPENAI_API_KEY, or use an open model through the shared "
+                "llm_config client instead of this class."
+            )
+        self.client = OpenAI(api_key=_openai_key)
 
         print(f"[INFO] Initialized OpenAIAPILLM with model_id: {self.model_id}")
         print(f"[INFO] GPT reasoning level: {self.reasoning_display}")

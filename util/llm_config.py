@@ -88,9 +88,14 @@ def base_url():
 
 def api_key():
     _load()
-    return (os.environ.get("LLM_API_KEY")
-            or os.environ.get("NEBIUS_API_KEY")
-            or "")
+    key = os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "No inference API key set. Put NEBIUS_API_KEY in compute.env "
+            "(copy compute.env.example -> compute.env). "
+            "(For a Modal-hosted model, util/hosted_model.py sets LLM_API_KEY for you.)"
+        )
+    return key
 
 
 def resolve_model(requested):
@@ -118,7 +123,10 @@ def _nebius_catalog():
             req.add_header("Authorization", f"Bearer {key}")
         with urllib.request.urlopen(req, timeout=15) as r:
             return {m.get("id") for m in json.load(r).get("data", [])}
-    except Exception:
+    except Exception as e:
+        # surface the reason (bad key, network, Nebius down) instead of hiding it; caller decides.
+        print(f"[llm_config] WARNING: couldn't fetch the Nebius model catalog "
+              f"({type(e).__name__}: {e}) — can't verify model availability.", flush=True)
         return None
 
 
@@ -130,8 +138,10 @@ def nebius_serves(model):
 
 
 def config():
+    _load()  # diagnostic view — checks the key without raising, unlike api_key()
+    has_key = bool(os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY"))
     return {"endpoint": endpoint_kind(), "base_url": base_url(),
-            "has_key": bool(api_key()), "forced_model": os.environ.get("LLM_MODEL")}
+            "has_key": has_key, "forced_model": os.environ.get("LLM_MODEL")}
 
 
 def make_client(async_=False, **kwargs):

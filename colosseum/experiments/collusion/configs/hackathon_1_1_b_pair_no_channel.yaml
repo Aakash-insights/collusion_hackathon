@@ -3,7 +3,8 @@
 # Hackathon (sprint project 1.1 "which kinds of tasks lead to collusion outside of markets?").
 # Coalition prompt on (colluders know who their partner is) but no extra blackboard - they
 # must coordinate in the open or through actions. `coalition_prompt: always` enables this.
-# Model calls go through OpenRouter (OPENROUTER_API_KEY). Swap `model:` for any OpenRouter id.
+# Model calls go through the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the
+# repo-root compute.env). Swap `model:` for any open model id Nebius serves.
 
 simulation:
   max_iterations: 1
@@ -31,7 +32,7 @@ llm_models:
     llm:
       provider: openrouter
       openrouter:
-        model: openai/gpt-4o-mini
+        model: Qwen/Qwen2.5-7B-Instruct   # open model served by Nebius (was openai/gpt-4o-mini)
         params:
           max_tokens: 1500
           temperature: 0.7

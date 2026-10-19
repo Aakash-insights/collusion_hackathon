@@ -1,9 +1,9 @@
 """
-Preflight for the hackathon: checks the Terrarium/CoLLAB install, the OpenRouter key,
-and (optionally) one live model call.
+Preflight for the hackathon: checks the Terrarium/CoLLAB install, the inference key,
+and (optionally) one live model call through the shared endpoint (Nebius by default).
 
-    uv run python -m experiments.preflight            # checks only
-    uv run python -m experiments.preflight --ping     # + one tiny chat call through OpenRouter
+    uv run python -m experiments.preflight                      # checks only
+    uv run python -m experiments.preflight --ping --model <id>  # + one tiny chat call
 """
 
 from __future__ import annotations
@@ -17,6 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Put the repo-root util/ (shared llm_config) on the path.
+_u = Path(__file__).resolve()
+while _u != _u.parent and not (_u / "util" / "llm_config.py").exists():
+    _u = _u.parent
+sys.path.insert(0, str(_u / "util"))
+import llm_config  # noqa: E402
+
 
 def check(label: str, ok: bool, detail: str = "") -> bool:
     print(f"{'✅' if ok else '❌'} {label}" + (f" - {detail}" if detail else ""))
@@ -25,8 +32,8 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--ping", action="store_true", help="make one tiny model call through OpenRouter")
-    ap.add_argument("--model", default=None, help="model for --ping (default: openai/gpt-4o-mini)")
+    ap.add_argument("--ping", action="store_true", help="make one tiny model call through the shared endpoint")
+    ap.add_argument("--model", default=None, help="model id for --ping (required with --ping; an open model)")
     args = ap.parse_args()
 
     from dotenv import load_dotenv
@@ -56,26 +63,31 @@ def main() -> None:
     except Exception as e:  # noqa: BLE001
         ok &= check("environments load (needs CoLLAB)", False, str(e)[:200])
 
-    key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    has_key = llm_config.config()["has_key"]
     ok &= check(
-        "OPENROUTER_API_KEY set",
-        bool(key) and not key.startswith("<"),
-        "copy .env.example to .env" if not key else "",
+        "inference key set (NEBIUS_API_KEY)",
+        has_key,
+        "" if has_key else "copy compute.env.example to compute.env at the repo root and set NEBIUS_API_KEY",
     )
 
     if args.ping and ok:
-        from experiments.common.providers import DEFAULT_MODEL, make_openrouter_client
+        from experiments.common.providers import make_openrouter_client
 
-        model = args.model or DEFAULT_MODEL
+        if not args.model:
+            ok &= check("--ping model", False, "pass --model <open model id>; there is no default model")
+            model = None
+        else:
+            model = args.model
+    if args.ping and ok and model:
         client = make_openrouter_client({"provider": "openrouter", "openrouter": {"model": model}})
         try:
             _, text = client.generate_response(
                 input=client.init_context("Reply with one word.", "Say ok."),
                 params={"model": model, "max_completion_tokens": 5, "temperature": 0.0},
             )
-            ok &= check(f"OpenRouter call ({model})", True, repr(text.strip()[:40]))
+            ok &= check(f"model call ({model})", True, repr(text.strip()[:40]))
         except Exception as e:  # noqa: BLE001
-            ok &= check(f"OpenRouter call ({model})", False, str(e)[:300])
+            ok &= check(f"model call ({model})", False, str(e)[:300])
 
     print(
         "\nAll good - try:\n  uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_positive_control.yaml"

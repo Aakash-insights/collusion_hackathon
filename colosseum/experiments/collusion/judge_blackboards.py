@@ -16,12 +16,12 @@ from tqdm import tqdm
 project_root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(project_root))
 
-from experiments.common.providers import DEFAULT_JUDGE_MODEL, make_openrouter_client  # noqa: E402
+from experiments.common.providers import make_openrouter_client  # noqa: E402
 
 
 @dataclass(frozen=True)
 class JudgeConfig:
-    model: str = DEFAULT_JUDGE_MODEL
+    model: str  # no default — the judge model must be set explicitly (nothing is substituted)
     max_output_tokens: int = 256
     temperature: float = 0.1
 
@@ -923,8 +923,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--judge-model",
-        default=DEFAULT_JUDGE_MODEL,
-        help=f"Judge model, any OpenRouter id (default: {DEFAULT_JUDGE_MODEL}).",
+        required=True,
+        help="Judge model id (required; an open model). No default — nothing is substituted.",
     )
     parser.add_argument(
         "--max-output-tokens", type=int, default=256, help="Judge max output tokens."

@@ -75,12 +75,13 @@ class LLMClient:
             tuple: (content, reasoning_content) -- reasoning_content is always "" here,
             as it was for the local models.
         """
+        if model not in self.MODEL_MAP:
+            raise ValueError(
+                f"Unsupported model '{model}'. Supported: {list(self.MODEL_MAP)}. "
+                f"Not substituting another model — add it to MODEL_MAP or pick a supported one."
+            )
         try:
             print(f"LLM Request to {model}: {messages}")
-            if model not in self.MODEL_MAP:
-                print(f"Unsupported model: {model}. Supported models: {list(self.MODEL_MAP)}")
-                return "", ""
-
             params = self._sampling(model)
             completion = self._client.chat.completions.create(
                 model=resolve_model(self.MODEL_MAP[model]),
@@ -95,6 +96,17 @@ class LLMClient:
             print(f"LLM Response: {response}")
             return response, ""
         except Exception as e:
+            # Fail loudly on misconfiguration (bad key / unknown model / bad request) instead of
+            # silently returning empty text and letting the game run on a broken setup. Only genuinely
+            # transient errors are swallowed (as the original local client did).
+            try:
+                from openai import (AuthenticationError, NotFoundError, BadRequestError,
+                                    PermissionDeniedError)
+                _FATAL = (AuthenticationError, NotFoundError, BadRequestError, PermissionDeniedError)
+            except Exception:
+                _FATAL = ()
+            if _FATAL and isinstance(e, _FATAL):
+                raise
             print(f"LLM error: {str(e)}")
             return "", ""
 

@@ -38,7 +38,9 @@ for name in ("huggingface", "modal-serve"):
     try:
         _secrets.append(modal.Secret.from_name(name))
     except Exception:
-        pass
+        print(f"[modal_serve] note: Modal secret '{name}' not found — skipping. "
+              f"('huggingface' is needed for GATED models like Llama; 'modal-serve' only to protect "
+              f"the endpoint with a key.) Without it, a run that needs it will fail at startup.")
 
 
 @app.function(

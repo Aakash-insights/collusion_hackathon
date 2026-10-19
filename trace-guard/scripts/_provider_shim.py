@@ -1,22 +1,19 @@
-"""Bridge the repo-root compute.env (LLM_PROVIDER) into inspect-ai's provider config.
+"""Bridge the repo-root compute.env into inspect-ai's provider config.
 
-inspect-ai selects a provider from the PREFIX of a model string and reads that provider's
-credentials from provider-specific env vars:
+inspect-ai selects a provider from the PREFIX of a model string and reads that provider's creds from
+provider-specific env vars. Inference here is always our OpenAI-compatible endpoint (Nebius by default,
+or a Modal-hosted model when util/hosted_model.py is active), so we point inspect-ai's built-in
+``openai/`` provider at it (OPENAI_BASE_URL / OPENAI_API_KEY) and rewrite model strings to
+``openai/<model>``.
 
-    openrouter/<model>   -> OPENROUTER_API_KEY           (default path, unchanged)
-    openai/<model>       -> OPENAI_API_KEY + OPENAI_BASE_URL
-
-Both OpenRouter and Nebius are OpenAI-compatible endpoints, so when the root compute.env
-selects LLM_PROVIDER=nebius we point inspect-ai's built-in ``openai/`` provider at Nebius by
-setting OPENAI_BASE_URL / OPENAI_API_KEY, and rewrite the ``openrouter/...`` model strings to
-``openai/<nebius-model>``. When LLM_PROVIDER is openrouter (the default) nothing is touched and
-the shipped OpenRouter path runs exactly as before.
+No model is ever substituted: `map_model` only normalizes same-model id-spelling (via
+llm_config.resolve_model); an unavailable model fails loudly at the API call. Set `LLM_MODEL` (or the
+project's INTENT_MODEL / INSPECT_EVAL_MODEL) to an open model Nebius serves, or host it with
+`python -m util.run`.
 
 Call ``apply()`` once at startup; call ``map_model(s)`` on each inspect-ai model string.
 """
 import os
-
-# Locate and import the repo-root llm_config (its own venv may differ from ours).
 import sys as _sys
 import pathlib as _pl
 
@@ -27,34 +24,22 @@ _sys.path.insert(0, str(_r / "util"))
 import llm_config  # noqa: E402
 
 
-def _nebius() -> bool:
-    return llm_config.provider() == "nebius"
-
-
 def apply() -> str:
-    """If LLM_PROVIDER=nebius, export OPENAI_BASE_URL/OPENAI_API_KEY for inspect-ai's
-    openai provider. Returns the active provider name. No-op for openrouter."""
-    if _nebius():
-        os.environ["OPENAI_BASE_URL"] = llm_config.base_url()
-        os.environ["OPENAI_API_KEY"] = llm_config.api_key()
-    return llm_config.provider()
+    """Point inspect-ai's openai provider at the configured endpoint. Returns the endpoint kind.
+    Raises (via llm_config.api_key()) if no key is configured — fail loudly, don't run keyless."""
+    os.environ["OPENAI_BASE_URL"] = llm_config.base_url()
+    os.environ["OPENAI_API_KEY"] = llm_config.api_key()
+    return llm_config.endpoint_kind()
 
 
-def map_model(model_str: str | None) -> str | None:
-    """Rewrite an inspect-ai model string for the active provider.
-
-    openrouter path: returned unchanged.
-    nebius path: ``openrouter/openai/gpt-4o`` -> ``openai/<resolved-nebius-model>``.
-    An already-openai/ or bare string is left as-is apart from Nebius model resolution.
-    """
-    if model_str is None or not _nebius():
-        return model_str
-    # Strip a leading provider prefix to recover the project-default model id that
-    # llm_config.NEBIUS_MODEL_MAP is keyed on (e.g. "openai/gpt-4o").
-    if model_str.startswith("openrouter/"):
-        project_default = model_str[len("openrouter/"):]
-    elif model_str.startswith("openai/"):
-        project_default = model_str[len("openai/"):]
-    else:
-        project_default = model_str
-    return "openai/" + llm_config.resolve_model(project_default)
+def map_model(model_str):
+    """Rewrite an inspect-ai model string to ``openai/<model>`` for our endpoint. Strips any leading
+    provider prefix to recover the bare model id, normalizes same-model spelling (no substitution),
+    and re-prefixes. `LLM_MODEL`, if set, wins (via resolve_model)."""
+    if model_str is None:
+        return None
+    m = model_str
+    for prefix in ("openrouter/", "openai/"):
+        if m.startswith(prefix):
+            m = m[len(prefix):]
+    return "openai/" + llm_config.resolve_model(m)

@@ -74,8 +74,11 @@ python -m util.run --model Qwen/Qwen2.5-7B-Instruct -- \
   bash -c "cd colosseum && uv run python -m experiments.collusion.run --config ..."
 ```
 - Nebius serves the model → runs on Nebius.
-- Nebius doesn't, but it's an open model → boots it on Modal **just for this run**, then tears it down.
-- Closed model with no provider (e.g. `openai/*`) → **fails loudly** (choose an available model).
+- Nebius doesn't, but it's an open model → **prints a warning and redirects to Modal**, hosting it
+  **just for this run**, then tearing it down.
+- Open model but **gated on Hugging Face** and you don't have access → **fails loudly** with the model's
+  HF access page and the exact `modal secret create huggingface HF_TOKEN=…` fix.
+- Closed model with no open weights (e.g. `openai/*`) → **fails loudly** (choose an available model).
 
 To *force* a Modal-hosted model (skip the Nebius check), use `util/hosted_model.py` directly — same
 boot/teardown lifecycle, nothing added to `compute.env`:
@@ -159,6 +162,10 @@ Async: `make_client(async_=True)`. Raw values: `llm_config.base_url()`, `.api_ke
   served anywhere.
 - **GPU / Docker:** `llm-cartel` steering needs a GPU (Modal `--gpu`); `trace-guard` needs Docker to
   run (not the basic Modal runner).
-- **Gated models on Modal:** Llama needs a HF token — `modal secret create huggingface HF_TOKEN=...`
-  (the default `util/modal_serve.py` model, Qwen, is open and needs none).
+- **Gated models on Modal:** some open-weight models (e.g. Llama, Gemma) are **gated** on Hugging Face —
+  you must accept their license and use a token that has access. When you host one via `python -m util.run`
+  / `util/hosted_model.py`, it **preflights HF access and fails loudly** if you don't have it, printing
+  the model's access page (`https://huggingface.co/<model>`) and the fix: accept the license there, then
+  `modal secret create huggingface HF_TOKEN=hf_...` (and `export HF_TOKEN=hf_...` locally). The default
+  `util/modal_serve.py` model, Qwen, is open and needs none.
 - Scaffolding ahead of live sponsor credits — validate once Nebius/Modal are funded.

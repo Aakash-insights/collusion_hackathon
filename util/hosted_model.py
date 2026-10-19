@@ -36,6 +36,59 @@ import pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 
+class ModelAccessError(RuntimeError):
+    """Raised when a model can't be hosted because we don't have access to it on Hugging Face
+    (gated repo without an approved token). Carries a human-readable, actionable message."""
+
+
+def _hf_token():
+    """Best-effort local HF token: env first, then the CLI-cached token."""
+    for var in ("HF_TOKEN", "HUGGING_FACE_HUB_TOKEN", "HUGGINGFACE_TOKEN"):
+        v = os.environ.get(var)
+        if v:
+            return v.strip()
+    try:
+        return (pathlib.Path.home() / ".cache" / "huggingface" / "token").read_text().strip() or None
+    except Exception:
+        return None
+
+
+def _check_hf_access(model):
+    """Preflight: confirm we can actually download this model from Hugging Face before spending time
+    (and credits) booting Modal. Gated repos without an approved token fail here with a clear pointer
+    to the model's access page — instead of a mysterious vLLM cold-start timeout later.
+
+    Checks with the LOCAL token; the actual download on Modal uses the `huggingface` Modal secret, so if
+    your local account differs from that secret this is only a best-effort hint (it never blocks on a
+    network hiccup — only on a definitive 401/403).
+    """
+    token = _hf_token()
+    url = f"https://huggingface.co/{model}/resolve/main/config.json"
+    req = urllib.request.Request(url, method="HEAD")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=20):
+            return  # 200 -> readable, we have access
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            raise ModelAccessError(
+                f"'{model}' is GATED on Hugging Face and your token doesn't have access, so it can't be "
+                f"hosted on Modal. To fix:\n"
+                f"  1. Request access (sign in, click 'Agree and access'):\n"
+                f"        https://huggingface.co/{model}\n"
+                f"  2. Create an HF access token:\n"
+                f"        https://huggingface.co/settings/tokens\n"
+                f"  3. Give that token to Modal so the server can download the weights:\n"
+                f"        modal secret create huggingface HF_TOKEN=hf_xxx\n"
+                f"     (and export HF_TOKEN=hf_xxx locally so this check passes too).\n"
+                f"Not substituting another model."
+            ) from None
+        return  # 404/5xx etc. — not an access problem; let the Modal boot surface the real error
+    except Exception:
+        return  # network hiccup — don't block; the Modal boot will surface real errors
+
+
 def _wait_ready(url, api_key, timeout):
     """Poll the endpoint until vLLM has loaded the model (first hit triggers the cold start)."""
     deadline = time.time() + timeout
@@ -51,7 +104,12 @@ def _wait_ready(url, api_key, timeout):
         except Exception as e:  # noqa: BLE001 - cold start returns connection errors / 503s
             last = e
         time.sleep(5)
-    raise TimeoutError(f"Modal model endpoint not ready after {timeout}s (last: {last})")
+    raise TimeoutError(
+        f"Modal model endpoint not ready after {timeout}s (last: {last}). If this is a GATED model, "
+        f"make sure the Modal `huggingface` secret holds a token WITH access "
+        f"(modal secret create huggingface HF_TOKEN=hf_xxx) and that you've accepted the model's "
+        f"license on its Hugging Face page."
+    )
 
 
 @contextlib.contextmanager
@@ -69,6 +127,8 @@ def hosted_model(model=None, gpu=None, api_key=None, ready_timeout=900):
     import modal_serve  # util/modal_serve.py (util/ is on sys.path above)
 
     served_model = os.environ.get("MODAL_SERVE_MODEL", modal_serve.MODEL)
+    # Fail fast with an actionable message if the model is gated and we lack access, before booting Modal.
+    _check_hf_access(served_model)
     saved = {k: os.environ.get(k) for k in ("LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL")}
     with modal.enable_output(), modal_serve.app.run():
         url = modal_serve.serve.get_web_url()

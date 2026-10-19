@@ -1,25 +1,27 @@
 """
 LLM provider resolution for the Colosseum experiments (hackathon edition).
 
-Hackathon standard: every model call goes through **OpenRouter** with a single
-``OPENROUTER_API_KEY``. Terrarium (0.1.1) does not know OpenRouter, but its
-``TogetherClient`` is a plain OpenAI-compatible chat-completions client with
-tool calling and a configurable ``base_url``, so ``provider: openrouter`` is
-routed through that client pointed at ``https://openrouter.ai/api/v1``.
+Hackathon standard: model calls go through the **shared OpenAI-compatible endpoint**
+(Nebius by default; see repo-root ``compute.env`` / ``util/llm_config.py``). Terrarium (0.1.1)
+has no notion of this endpoint, but its ``TogetherClient`` is a plain OpenAI-compatible
+chat-completions client with tool calling and a configurable ``base_url``, so the
+``provider: openrouter`` config label is routed through that client pointed at the shared
+endpoint's ``base_url`` with the shared key. (The ``openrouter`` label is just the historical
+routing key — no calls go to openrouter.ai, and there is no ``OPENROUTER_API_KEY``.)
 
 Config block::
 
     llm_models:
-      - label: gpt4o_mini
+      - label: qwen7b
         llm:
-          provider: openrouter
+          provider: openrouter                 # routing label -> shared endpoint (Nebius)
           openrouter:
-            model: openai/gpt-4o-mini        # any OpenRouter model id
+            model: Qwen/Qwen2.5-7B-Instruct    # an explicit, open model id (no default)
             params: { max_tokens: 1500, temperature: 0.7 }
 
 Every other provider (openai, anthropic, gemini, together, fireworks, vllm) is
 delegated unchanged to ``terrarium.utils``. Import the helpers from here instead
-of ``terrarium.utils`` so ``openrouter`` works everywhere.
+of ``terrarium.utils`` so the shared-endpoint routing works everywhere.
 """
 
 from __future__ import annotations
@@ -40,10 +42,9 @@ from llm_config import resolve_model
 
 load_dotenv()
 
-# Paper configs used gpt-4o-mini (persuasion/collusion, agent_misalignment) and
-# gpt-4.1-mini; the main collusion sweep ran Qwen2.5-7B-Instruct through vLLM.
-DEFAULT_MODEL = "openai/gpt-4o-mini"
-DEFAULT_JUDGE_MODEL = "openai/gpt-4o-mini"
+# No default model: configs/CLIs must name the model explicitly. The paper configs used closed models
+# (gpt-4o-mini / gpt-4.1-mini) that the hackathon endpoint (Nebius) doesn't serve; the main collusion
+# sweep ran Qwen2.5-7B-Instruct. Pick an open model per run — nothing is substituted or defaulted.
 
 
 def is_openrouter(llm_cfg: Dict[str, Any]) -> bool:
@@ -55,17 +56,9 @@ def openrouter_block(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
     return block if isinstance(block, dict) else {}
 
 
-def openrouter_api_key() -> str:
-    key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    if not key:
-        raise ValueError(
-            "OPENROUTER_API_KEY is not set. Copy .env.example to .env and paste the hackathon key."
-        )
-    return key
-
-
 def make_openrouter_client(llm_cfg: Dict[str, Any]):
-    """OpenAI-compatible chat client aimed at OpenRouter (Terrarium's TogetherClient)."""
+    """OpenAI-compatible chat client (Terrarium's TogetherClient) pointed at the shared endpoint.
+    base_url + key come from llm_config (Nebius by default); api_key() fails loudly if no key is set."""
     from llm_server.clients.together_client import TogetherClient
 
     block = openrouter_block(llm_cfg)
@@ -88,7 +81,13 @@ def get_client_instance(
 
 def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        return resolve_model(str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL))
+        model = openrouter_block(llm_config).get("model")
+        if not model:
+            raise ValueError(
+                "No model set under llm.openrouter.model in the config. Set an explicit (open) model "
+                "id — there is no default model, and nothing is substituted."
+            )
+        return resolve_model(str(model))
     return _tu.get_model_name(provider, llm_config)
 
 
@@ -135,13 +134,11 @@ def cost_note(cfg: Dict[str, Any], total_runs: int) -> str:
     for m in cfg.get("llm_models") or []:
         llm = m.get("llm") or {}
         models.append(get_model_name(str(llm.get("provider") or ""), llm))
-    links = (
-        " · ".join(f"https://openrouter.ai/{m}" for m in sorted(set(models)))
-        or "https://openrouter.ai/models"
-    )
+    model_list = " · ".join(sorted(set(models))) or "(none configured)"
     return (
         f"{total_runs} run(s), at most ≈ {estimate_calls(cfg, total_runs):,} model calls "
-        f"(tool loops usually use fewer). Rates: {links}"
+        f"(tool loops usually use fewer). Models: {model_list}. "
+        f"Rates: see Nebius AI Studio pricing (https://studio.nebius.com)."
     )
 
 

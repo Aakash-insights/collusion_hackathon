@@ -67,11 +67,13 @@ class LLMClient:
     def chat(self, messages: List[Dict[str, str]], model: str = "llama-3.1-8b",
              max_new_tokens: int = 4096) -> Tuple[str, str]:
         """Returns (content, reasoning_content); reasoning_content is always ""."""
+        if model not in self.MODEL_MAP:
+            raise ValueError(
+                f"Unsupported model '{model}'. Supported: {list(self.MODEL_MAP)}. "
+                f"Not substituting another model — add it to MODEL_MAP or pick a supported one."
+            )
         try:
             print(f"LLM Request to {model}: {messages}")
-            if model not in self.MODEL_MAP:
-                print(f"Unsupported model: {model}. Supported models: {list(self.MODEL_MAP)}")
-                return "", ""
             completion = self._client.chat.completions.create(
                 model=resolve_model(self.MODEL_MAP[model]),
                 messages=messages,
@@ -85,6 +87,16 @@ class LLMClient:
             print(f"LLM Response: {response}")
             return response, ""
         except Exception as e:
+            # Fail loudly on misconfiguration (bad key / unknown model / bad request) instead of
+            # silently returning empty text. Only genuinely transient errors are swallowed.
+            try:
+                from openai import (AuthenticationError, NotFoundError, BadRequestError,
+                                    PermissionDeniedError)
+                _FATAL = (AuthenticationError, NotFoundError, BadRequestError, PermissionDeniedError)
+            except Exception:
+                _FATAL = ()
+            if _FATAL and isinstance(e, _FATAL):
+                raise
             print(f"LLM error: {str(e)}")
             return "", ""
 

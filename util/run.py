@@ -2,8 +2,11 @@
 and NEVER substituting a different model:
 
   * Nebius serves the model                         -> run on Nebius
-  * Nebius doesn't, but it's self-hostable (open)   -> boot it on Modal for this run, then tear down
-  * closed model with no provider (e.g. openai/*)   -> FAIL LOUDLY (pick an available model)
+  * Nebius doesn't, but it's open-weight            -> WARN, then redirect to Modal (host it for this
+                                                       run, tear down on exit)
+  * open-weight but GATED on HF without access       -> FAIL LOUDLY with the model's HF access page + the
+                                                       `modal secret create huggingface ...` fix
+  * closed model with no open weights (e.g. openai/*) -> FAIL LOUDLY (pick an available model)
 
 Identification is a catalog lookup: `llm_config.nebius_serves(model)` checks Nebius's `GET /v1/models`.
 
@@ -51,13 +54,18 @@ def main():
 
     if served is False:
         if not _self_hostable(model):
-            sys.exit(f"[run] ERROR: '{model}' is not served by Nebius and is a closed model that cannot be "
-                     f"self-hosted on Modal. Choose an open model (or a provider that serves it). "
-                     f"Not substituting another model.")
-        print(f"[run] '{model}' is not on Nebius — hosting it on Modal for this run.", flush=True)
+            sys.exit(f"[run] ERROR: '{model}' is not served by Nebius and is a closed/proprietary model "
+                     f"with no open weights, so it can't be hosted on Modal either. Choose an open model "
+                     f"(or a provider that serves it). Not substituting another model.")
+        print(f"[run] WARNING: '{model}' is NOT served by Nebius. Redirecting to Modal — it will be "
+              f"hosted there for this run, then torn down on exit.", flush=True)
         import hosted_model
-        with hosted_model.hosted_model(model=model, gpu=args.gpu):
-            sys.exit(subprocess.run(cmd, env=os.environ).returncode)
+        try:
+            with hosted_model.hosted_model(model=model, gpu=args.gpu):
+                sys.exit(subprocess.run(cmd, env=os.environ).returncode)
+        except hosted_model.ModelAccessError as e:
+            # Gated on Hugging Face without access — print the actionable message, no traceback.
+            sys.exit(f"[run] ERROR: {e}")
 
     # served is None: couldn't reach the Nebius catalog. Don't guess — try Nebius and let the actual
     # inference call fail loudly if the model really isn't there (still no substitution).

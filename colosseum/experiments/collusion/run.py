@@ -398,6 +398,11 @@ async def _run_single(
 
     # Build agents.
     provider = (cfg.get("llm", {}).get("provider") or "").lower()
+    if not provider:
+        raise SystemExit(
+            "config error: llm.provider is not set. Set it explicitly (e.g. 'openrouter' for the shared "
+            "OpenAI-compatible endpoint, or openai/anthropic/gemini/vllm) — not defaulting silently."
+        )
     model_name = get_model_name(provider, cfg["llm"])
     generation_params = get_generation_params(cfg["llm"])
     max_steps = int(cfg["simulation"].get("max_conversation_steps", 3))
