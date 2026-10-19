@@ -928,8 +928,13 @@ async def _run_single(
             )
 
     judge_block = (cfg.get("experiment") or {}).get("judge") or {}
+    if not judge_block.get("model"):
+        raise ValueError(
+            "No judge model set (experiment.judge.model in the config). Set an explicit open model id — "
+            "there is no default model, and nothing is substituted."
+        )
     judge_cfg = JudgeConfig(
-        model=str(judge_block.get("model", "gpt-4.1-2025-04-14")),
+        model=str(judge_block.get("model")),
         max_tokens=int(judge_block.get("params", {}).get("max_tokens", 512)),
         temperature=float(judge_block.get("params", {}).get("temperature", 0.0)),
     )

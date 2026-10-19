@@ -101,10 +101,11 @@ class ChatProvider:
         self.base_url = os.getenv("LLM_BASE_URL") if self.provider == "custom" else preset.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'custom'")
-        self.api_key = os.getenv(preset.key_env) or os.getenv("LLM_API_KEY")
+        # Auth is handled by make_client() below (shared compute.env, Nebius by default); it fails loudly
+        # if no key is set. Don't re-check a provider-specific var here (that would wrongly block a
+        # Nebius-only setup) and don't silently swap in a different credential source.
+        self.api_key = os.getenv(preset.key_env)  # diagnostics only; real key comes from llm_config
         self.model = self.model or resolve_model(preset.default_model)
-        if preset.needs_key and not self.api_key:
-            raise ValueError(f"{preset.key_env} is not set (needed for {self.provider}:{self.model})")
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.supports_seed = preset.supports_seed

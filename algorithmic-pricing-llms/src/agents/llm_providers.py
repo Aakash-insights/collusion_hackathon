@@ -129,9 +129,10 @@ class OpenAICompatibleProvider(Provider):
         self.base_url = base_url or os.getenv("LLM_BASE_URL") or p.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'openai-compatible'")
-        self.api_key = api_key or os.getenv(p.key_env) or os.getenv("LLM_API_KEY")
-        if p.needs_key and not self.api_key:
-            raise ValueError(f"{p.key_env} is not set (LLM_PROVIDER={preset})")
+        # Auth is handled by make_client() below (shared compute.env, Nebius by default); it fails loudly
+        # if no key is set. Don't re-check a provider-specific var here (that would wrongly block a
+        # Nebius-only setup) and don't silently swap in a different credential source.
+        self.api_key = api_key or os.getenv(p.key_env)  # diagnostics only; real key comes from llm_config
         self.model_name = model or os.getenv("MODEL_NAME") or resolve_model(p.default_model)
         if not self.model_name:
             raise ValueError("MODEL_NAME must be set for provider 'openai-compatible'")
