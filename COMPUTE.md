@@ -7,8 +7,8 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
 - **Compute — Modal.** *Where your code runs.* Offload heavy/parallel runs and GPU work.
   **There's no Modal key to paste anywhere** — you just sign in through your browser once by running
   `modal setup`, and your credits attach to that account (**ask in the hackathon Slack channel to get
-  your Modal credits set up**). Modal can also host a model (`util/modal_serve.py`) as an
-  OpenAI-compatible endpoint — the inference fallback for the few experiments Nebius can't serve cleanly.
+  your Modal credits set up**). Modal can also host a model on demand (`util/hosted_model.py` boots one
+  for a run and tears it down) — the inference fallback for the few experiments Nebius can't serve cleanly.
 
 > **One spot:** copy `compute.env.example` → `compute.env`, add `NEBIUS_API_KEY`, done. `util/llm_config.py`
 > feeds it to every project's client. For cloud runs, `util/modal_run.py` also passes it into the Modal
@@ -33,8 +33,6 @@ Run any project exactly as its README says — it picks up `compute.env` automat
 | `NEBIUS_API_KEY` | your Nebius AI Studio key (default inference) |
 | `LLM_MODEL` *(opt)* | force one model id across every project |
 | `NEBIUS_DEFAULT_MODEL` *(opt)* | fallback when a project default has no Nebius equivalent |
-| `LLM_BASE_URL` *(opt)* | point inference at any OpenAI-compatible endpoint — a **persistent** `modal deploy` model, a local vLLM, etc. (not needed for `util/hosted_model.py`, which sets this automatically for a single run) |
-| `LLM_API_KEY` *(opt)* | key for that custom endpoint |
 
 `compute.env` is **gitignored** — keys never get committed.
 
@@ -68,47 +66,28 @@ modal run util/modal_run.py --project llm-cartel --gpu a10g --cmd "uv run python
 > `modal secret create …`; the Nebius key is injected automatically from `compute.env` by
 > `util/modal_run.py`, so you usually don't create that one by hand.
 
-**Host a model on Modal** (inference fallback — when Nebius can't serve/accept what an experiment
-needs):
-```bash
-MODAL_SERVE_MODEL="Qwen/Qwen2.5-7B-Instruct" modal deploy util/modal_serve.py
-# -> gives a public URL; then in compute.env:
-#    LLM_BASE_URL=https://<you>--serve.modal.run/v1
-#    LLM_API_KEY=<the MODAL_SERVE_API_KEY you set, if any>
-#    LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
-```
-Now every project talks to **your** Modal model through the same `llm_config` interface.
-
-The deployed endpoint is a **public HTTPS URL** — it's a plain OpenAI-compatible API, authenticated by
-the bearer key you chose (`MODAL_SERVE_API_KEY` → `LLM_API_KEY`), **not** by your Modal login. Your Modal
-browser auth is only for *deploying* it; callers just need the URL + key. So **set
-`MODAL_SERVE_API_KEY`** (via `modal secret create modal-serve MODAL_SERVE_API_KEY=...`) or the URL is
-open to anyone who has it and spends your credits. Typically one person deploys and shares the URL + key;
-teammates paste both into their own `compute.env`.
-
-**Or let it manage itself for a single run** with `util/hosted_model.py` — it brings a model up on Modal
-just for your command and tears it down afterward (no manual deploy/stop, no URL to share, no GPU left
-running):
+**Need a model Nebius can't serve?** Don't configure anything — run the experiment through
+`util/hosted_model.py`. It **boots a model on Modal just for that run**, wires the endpoint into the
+inference layer automatically, runs your command, and **tears the model down afterward** — no URLs to
+copy, nothing added to `compute.env`, no GPU left running:
 ```bash
 python -m util.hosted_model --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- \
   bash -c "cd llm-trust-breaking && python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1"
 ```
-It ephemeral-runs `util/modal_serve.py`, points `llm_config` at the temporary endpoint, waits for the
-model to load, runs your command, then stops the app. In your own Python:
+In your own Python:
 ```python
 from hosted_model import hosted_model          # util/ on sys.path (see §5 bootstrap)
 with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
     ...  # your code; llm_config points at the Modal model in here
 # torn down on exit
 ```
-Use `modal deploy` (above) instead when you want a **persistent** endpoint to share across the team.
 
 ---
 
 ## 4. Which provider does each experiment need?
 
 Nebius ✓ = works directly · Nebius (sub) = open-model substitute for a GPT/Gemini default ·
-Modal-host = use `util/modal_serve.py` if the default/capability doesn't fit Nebius.
+Modal-host = run the experiment via `util/hosted_model.py`, which boots a model on Modal just for that run.
 
 | project | inference | compute | notes |
 |---|---|---|---|
@@ -117,17 +96,17 @@ Modal-host = use `util/modal_serve.py` if the default/capability doesn't fit Neb
 | focal-points | **Nebius ✓** (Llama-3.3-70B) | laptop; Modal for scale | its OpenAI **Batch-API** path is OpenAI-only (optional, ignore) |
 | llm-agent-collusion-2 | **Nebius ✓** (open models) | Modal for tournaments | — |
 | algorithmic/collusion sweeps | Nebius ✓ | Modal for parallel runs | — |
-| llm-agent-collusion | **Nebius (sub)** (GPT-4.1→Llama-70B) | laptop; Modal for sweeps | paper-faithful GPT needs a Modal-hosted GPT-class model |
+| llm-agent-collusion | **Nebius (sub)** (GPT-4.1→Llama-70B) | laptop; Modal for sweeps | GPT-4.1 itself isn't available (no OpenRouter); runs on a Nebius open substitute |
 | colosseum | **Nebius (sub)** (GPT-4o-mini→Llama-8B) | **Modal** (topology sweeps) | — |
 | trace-guard | **Nebius (sub)** via its shim (GPT-4o→Llama) | **Docker required** (local; Modal-with-Docker is advanced) | doesn't fit the basic `util/modal_run.py` |
 | steganographic-collusion | **Nebius ✓** (hosted configs); **none** for scripted/distilgpt2 | laptop; Modal for sweeps | scripted + distilgpt2 configs make **no API calls** |
-| **llm-trust-breaking** | **Nebius or Modal-host — needs JSON-capable model** | **Modal** (~8k-call full run) | enforces structured output; pick a Nebius model that supports `response_format`, or host one on Modal (`util/modal_serve.py`). Its OpenAI-only gate was relaxed to a warning. |
+| **llm-trust-breaking** | **Nebius or Modal-host — needs JSON-capable model** | **Modal** (~8k-call full run) | enforces structured output; pick a Nebius model that supports `response_format`, or run it via `util/hosted_model.py`. Its OpenAI-only gate was relaxed to a warning. |
 | **collusive-llm-agents** | **Nebius — needs JSON-capable model** | laptop (notebooks) | notebooks require `response_format`; use a Nebius model that supports it, or Modal-host one |
 
 **Rule of thumb:** open-model experiments → Nebius; GPT/Gemini-default ones → Nebius with an open
-substitute (or Modal-host a matching model for fidelity); **JSON-mode** ones (trust-breaking,
-collusive notebooks) need a response_format-capable model on whichever endpoint; **GPU extra**
-(llm-cartel steering) → Modal GPU; **Docker** (trace-guard) → local Docker.
+substitute; **JSON-mode** ones (trust-breaking, collusive notebooks) need a response_format-capable
+model — on Nebius, or via `util/hosted_model.py`; **GPU extra** (llm-cartel steering) → Modal GPU;
+**Docker** (trace-guard) → local Docker.
 
 ---
 
@@ -152,21 +131,21 @@ Async: `make_client(async_=True)`. Raw values: `llm_config.base_url()`, `.api_ke
 
 ## 6. How it works
 
-- **`util/llm_config.py`** — shared inference interface: `make_client()` (Nebius by default, or your
-  `LLM_BASE_URL`) + `resolve_model()`. Every project's client calls these.
+- **`util/llm_config.py`** — shared inference interface: `make_client()` (Nebius by default; or a Modal
+  endpoint while `util/hosted_model.py` is active) + `resolve_model()`. Every project's client calls these.
 - **`util/modal_run.py`** — runs a project on Modal, injecting the same `compute.env`.
-- **`util/modal_serve.py`** — hosts an open model on Modal (vLLM) as an OpenAI-compatible endpoint for
-  the fallback cases.
+- **`util/hosted_model.py`** — boots a model on Modal for one run and tears it down, wiring the endpoint
+  into `llm_config` automatically. (`util/modal_serve.py` is the underlying vLLM server it runs.)
 
 ---
 
 ## 7. Caveats
 
 - **JSON-mode projects** (`llm-trust-breaking`, `collusive-llm-agents`) need a model that supports
-  `response_format`. On Nebius pick one that does; otherwise host one on Modal. trust-breaking's
-  OpenAI-only gate is now a warning, not a hard error.
-- **Model substitution:** GPT/Gemini defaults map to Llama models on Nebius. For paper fidelity to a
-  specific GPT model, host an equivalent on Modal and set `LLM_MODEL`.
+  `response_format`. On Nebius pick one that does; otherwise run via `util/hosted_model.py`.
+  trust-breaking's OpenAI-only gate is now a warning, not a hard error.
+- **Model substitution:** GPT/Gemini defaults map to Llama models on Nebius (the closed models
+  themselves aren't available without OpenRouter). Pin a specific Nebius model with `LLM_MODEL`.
 - **GPU / Docker:** `llm-cartel` steering needs a GPU (Modal `--gpu`); `trace-guard` needs Docker to
   run (not the basic Modal runner).
 - **Gated models on Modal:** Llama needs a HF token — `modal secret create huggingface HF_TOKEN=...`

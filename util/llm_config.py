@@ -4,16 +4,18 @@ ONE place to set your key and (optionally) a model: the repo-root `compute.env`
 (copy `compute.env.example` -> `compute.env`). Every project builds its model client from this,
 so you configure once and all ten projects follow.
 
-Default inference provider: **Nebius AI Studio** (OpenAI-compatible, open models). To run an
-experiment that Nebius can't serve/accept, host the model yourself on Modal (see `modal_serve.py`)
-and point `LLM_BASE_URL` at it — same interface, different endpoint.
+Default inference provider: **Nebius AI Studio** (OpenAI-compatible, open models). For an experiment
+Nebius can't serve/accept, run it through `util/hosted_model.py`, which boots a model on Modal and
+wires the endpoint in automatically — same interface, different endpoint.
 
-compute.env keys:
+compute.env keys (what participants set):
     NEBIUS_API_KEY        your Nebius AI Studio key               (default inference)
     LLM_MODEL             (optional) force one model id everywhere
     NEBIUS_DEFAULT_MODEL  (optional) fallback when a project default has no Nebius equivalent
-    LLM_BASE_URL          (optional) a custom OpenAI-compatible endpoint, e.g. your Modal-hosted model
-    LLM_API_KEY           (optional) key for that custom endpoint
+
+internal (set automatically by util/hosted_model.py — participants don't configure these):
+    LLM_BASE_URL          a custom OpenAI-compatible endpoint (the temporary Modal model)
+    LLM_API_KEY           key for that endpoint
 
 Public API:
     make_client(async_=False)        -> an (Async)OpenAI client pointed at the configured endpoint

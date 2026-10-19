@@ -1,31 +1,17 @@
-"""Host an open model on Modal as an OpenAI-compatible endpoint (inference fallback).
+"""vLLM model server on Modal — an OpenAI-compatible endpoint for experiments Nebius can't serve.
 
-Use this when an experiment can't run on Nebius AI Studio — e.g. it needs a model Nebius doesn't
-serve, or a capability/gate that Nebius trips. You serve the model yourself on Modal (vLLM), get an
-OpenAI-compatible URL, and point every project at it by setting these in `compute.env`:
+You don't run this directly. `util/hosted_model.py` runs it ephemerally around an experiment (boots a
+model, wires the endpoint into `llm_config`, tears it down):
 
-    LLM_BASE_URL=https://<your-app>--serve.modal.run/v1
-    LLM_API_KEY=<the key you set below>        # if MODAL_SERVE_API_KEY is set
-    LLM_MODEL=<MODEL below>                     # the served model id
+    python -m util.hosted_model --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- <your experiment command>
 
-`llm_config.make_client()` then routes every project through your Modal model — same interface as
-Nebius, different endpoint.
+SETUP (one-time): `pip install modal && modal setup` (browser auth). Gated models (e.g. Llama) need a
+HF token: `modal secret create huggingface HF_TOKEN=hf_...`. Pick a GPU that fits the model: A10G (24GB)
+~ up to 8B · A100-40GB ~ up to 32B · H100 for 70B (pass `--gpu` to hosted_model).
 
---------------------------------------------------------------------------------------------------
-SETUP
-    pip install modal
-    modal setup                                 # redeem your hackathon credits
-    # (gated models like Llama need a HF token:)
-    modal secret create huggingface HF_TOKEN=hf_...
-    # (optional: protect the endpoint with a key)
-    modal secret create modal-serve MODAL_SERVE_API_KEY=sk-local-...
-
-DEPLOY
-    MODAL_SERVE_MODEL="Qwen/Qwen2.5-7B-Instruct" modal deploy modal_serve.py
-    # -> prints a URL like  https://<you>--serve.modal.run  ; your endpoint is that + "/v1"
-
-Pick GPU to fit the model:  A10G (24GB) ~ up to 8B · A100-40GB ~ up to 32B · H100 for 70B.
-Scaffolding ahead of live credits — validate once your Modal account is funded.
+Advanced: `modal deploy util/modal_serve.py` gives a persistent shared endpoint; most teams won't need
+it (the ephemeral hosted_model flow is simpler and leaves nothing running). Scaffolding ahead of live
+credits — validate once your Modal account is funded.
 """
 import os
 import subprocess
