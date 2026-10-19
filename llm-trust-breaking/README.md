@@ -10,18 +10,17 @@ This research framework measures how large language models engage in **strategic
 
 ## Quick Start
 
-Requires Python 3.9+ (verified on 3.12) and an [OpenRouter](https://openrouter.ai) API key.
+Requires Python 3.9+ (verified on 3.12). Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
 
 ```bash
 pip install -r requirements.txt
 
-# Configure the API key
+# Inference is configured centrally in the repo-root compute.env (NEBIUS_API_KEY); see COMPUTE.md.
 cp .env.example .env
-# Edit .env: replace the placeholder with your OPENROUTER_API_KEY
-# (the placeholder value is rejected at startup, so you will know if you forgot)
+# Edit .env for any per-project overrides (temperature, reasoning effort, agent count)
 
-# Models: OpenAI family only (openai/*), reached through OpenRouter.
-# Other providers are rejected at startup -- see .env.example for why.
+# Models: OpenAI family only (openai/*). Other providers are rejected at startup
+# -- see .env.example for why.
 
 # 1. Smoke test -- ~10 API calls, under a minute. Confirms the key and the model work.
 python experiments/run_endogenous.py \

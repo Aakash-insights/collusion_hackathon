@@ -12,12 +12,13 @@
 > participant is replaced (1.4), or as the cheap convention task for swap detection (3.2).
 >
 > The paper ran open models locally on GPUs (transformers) plus OpenAI / Gemini batch
-> jobs. Here every model call goes **through OpenRouter** with one key, so it runs on
+> jobs. Here every model call goes through the shared inference config, so it runs on
 > any laptop. The default model is the paper's default, `meta-llama/llama-3.3-70b-instruct`;
-> any OpenRouter model id works and the paper's HuggingFace ids are mapped automatically.
+> any model id works and the paper's HuggingFace ids are mapped automatically.
 >
-> **Install** (< 1 min): `uv sync` (or `pip install -e .`), then `cp .env.example .env`
-> and paste the hackathon `OPENROUTER_API_KEY`. Rates per model: https://openrouter.ai/models.
+> **Install** (< 1 min): `uv sync` (or `pip install -e .`). Configure inference once in the
+> repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`; then `cp .env.example .env` for
+> any per-project overrides.
 > Calls per run = prompts × samples; the script prints the count and asks before spending.
 >
 > ```bash

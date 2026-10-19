@@ -36,11 +36,10 @@ _r = _pl.Path(__file__).resolve()
 while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
 _sys.path.insert(0, str(_r))
 import llm_config
-from llm_config import make_client, resolve_model
+from llm_config import resolve_model
 
 load_dotenv()
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 # Paper configs used gpt-4o-mini (persuasion/collusion, agent_misalignment) and
 # gpt-4.1-mini; the main collusion sweep ran Qwen2.5-7B-Instruct through vLLM.
 DEFAULT_MODEL = "openai/gpt-4o-mini"
@@ -73,10 +72,6 @@ def make_openrouter_client(llm_cfg: Dict[str, Any]):
     base_url = str(block.get("base_url") or llm_config.base_url())
     timeout = int(block.get("request_timeout", 120))
     client = TogetherClient(base_url=base_url, api_key=llm_config.api_key(), request_timeout=timeout)
-    # OpenRouter attribution headers (optional but recommended by OpenRouter).
-    client.session.headers.update(
-        {"HTTP-Referer": "https://github.com/hackathon-ny-starter-repo", "X-Title": "hackathon colosseum"}
-    )
     return client
 
 

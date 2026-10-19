@@ -27,8 +27,6 @@ try:
 except ImportError:  # pragma: no cover - optional convenience
     pass
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
 
 class LLMClient(ABC):
     """Abstract base class for LLM backends."""
@@ -220,17 +218,14 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         raise ValueError("LLM configuration must include a 'backend' field.")
 
     backend = backend.lower()
-    if backend == "openrouter":
-        api_key = config.get("api_key") or os.getenv("OPENROUTER_API_KEY")
-        if not api_key or api_key == "your-openrouter-key-here":
-            raise RuntimeError(
-                "backend 'openrouter' requires OPENROUTER_API_KEY in this project's .env "
-                "(see .env.example) or an `api_key` field in the config."
-            )
+    if backend in {"openrouter", "openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
+        # Hosted traffic is routed centrally via the repo-root llm_config (make_client picks
+        # base_url + key from compute.env / NEBIUS_API_KEY). Per-config api_key/base_url
+        # overrides are still honored when present.
         client = OpenAIChatClient(
             model=config["model"],
-            api_key=api_key,
-            base_url=config.get("base_url", OPENROUTER_BASE_URL),
+            api_key=config.get("api_key"),
+            base_url=config.get("base_url"),
             default_temperature=config.get("temperature"),
             default_max_tokens=config.get("max_tokens"),
         )
@@ -238,12 +233,6 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         if min_interval > 0:
             return RateLimitedClient(client, min_interval)
         return client
-    if backend in {"openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
-        raise ValueError(
-            f"LLM backend '{backend}' was removed: hosted models now run through OpenRouter. "
-            "Use `backend: openrouter` with an OpenRouter model id (e.g. openai/gpt-4o-mini, "
-            "google/gemini-2.5-flash, meta-llama/llama-3.1-8b-instruct)."
-        )
     if backend in {"hf", "transformers", "huggingface"}:
         return TransformersClient(
             model=config["model"],

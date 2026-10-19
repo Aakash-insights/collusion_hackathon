@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 import sys as _sys, pathlib as _pl
 _r = _pl.Path(__file__).resolve()
@@ -24,8 +23,6 @@ from llm_config import make_client, resolve_model
 # a parent directory can never leak in.
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 load_dotenv(_PROJECT_ROOT / ".env")
-
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 class LLMClient:
@@ -50,11 +47,10 @@ class LLMClient:
     # `temperature` argument of generate(). Kept as-is so runs stay comparable.
     SAMPLING = dict(temperature=0.7, top_p=0.9, top_k=50, repetition_penalty=1.1)
 
-    def __init__(self, api_key: str | None = None, base_url: str = OPENROUTER_BASE_URL):
-        if api_key:
-            self._client = OpenAI(api_key=api_key, base_url=base_url)
-        else:
-            self._client = make_client()
+    def __init__(self):
+        # Client built by the repo-root llm_config utility (compute.env selects provider +
+        # base_url + key).
+        self._client = make_client()
         print(f"LLMClient initialized. Models: {list(self.MODEL_MAP)}")
 
     def generate(self, model_name: str, system_prompt: str, user_prompt: str,

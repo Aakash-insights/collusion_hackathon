@@ -14,15 +14,15 @@ With the increasing deployment of AI technologies in marketplaces, the study exp
 
 ## Setup ⚙️
 
-Requires Python 3.9+ and an [OpenRouter](https://openrouter.ai) API key.
+Requires Python 3.9+. Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # then put your OPENROUTER_API_KEY in .env
+cp .env.example .env      # optional per-project overrides
 jupyter notebook          # open cournot.ipynb or bertrand.ipynb
 ```
 
-All model calls go through OpenRouter. The notebooks keep the paper's original models —
+The notebooks keep the paper's original models —
 `openai/gpt-4o-2024-08-06` for Cournot and `openai/gpt-3.5-turbo` for Bertrand — set in
 the `MODEL_SPEC` constant near the top of each notebook. Adjust the constants and the
 number of rounds as you see fit, and run the cells in order.

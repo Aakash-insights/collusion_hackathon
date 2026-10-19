@@ -97,11 +97,11 @@ numbers against the actual messages. One JSON object per line; `json.loads` per 
 the loader you need.
 
 ### 4. Hosted LLM Experiments
-The hosted configs keep the paper's models but reach them through **OpenRouter**, with a
-single key in this project's `.env`:
+The hosted configs keep the paper's models; inference is configured once in the repo-root
+`compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`:
 
 ```bash
-cp .env.example .env          # then put your OPENROUTER_API_KEY in .env
+cp .env.example .env          # optional per-project overrides
 python -m auditor.experiments pricing_llm_gemini pricing_llm_groq
 ```
 

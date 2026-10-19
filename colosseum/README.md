@@ -21,15 +21,15 @@ This repo contains experiments for Colosseum under `experiments/` that utilizes 
 >
 > Colosseum runs teams of tool-calling LLM agents on shared tasks (Jira ticket allocation,
 > hospital scheduling, ...) and measures whether an assigned coalition gains at the expense of
-> the others. For the sprint everything runs on a laptop **through OpenRouter with one key**;
-> the paper's `openai/gpt-4o-mini` is the default model and any OpenRouter id that supports
-> tool calling can be substituted in a config. The local-GPU (vLLM) route is untouched but
-> not needed.
+> the others. For the sprint inference is configured once in the repo-root `compute.env`
+> (`NEBIUS_API_KEY`) — see `COMPUTE.md`; the paper's `openai/gpt-4o-mini` is the default model and
+> any model id that supports tool calling can be substituted in a config. The local-GPU (vLLM)
+> route is untouched but not needed.
 >
 > **Install and preflight** (the brief flags Terrarium/CoLLAB as the setup risk)
 > ```bash
 > uv sync                                  # Terrarium 0.1.1 from PyPI + CoLLAB vendored in external/
-> cp .env.example .env                     # paste the hackathon OPENROUTER_API_KEY
+> cp .env.example .env                     # optional per-project overrides
 > uv run python -m experiments.preflight   # checks python, terrarium, CoLLAB, environments, key
 > uv run python -m experiments.preflight --ping   # + one tiny model call
 > ```
@@ -90,9 +90,8 @@ starter repo and found automatically. Only if you move it: set `TERRARIUM_COLLAB
 - `source .venv/bin/activate`
 - `uv sync`
 
-3) Configure environment and API keys (if needed)(never put real keys in `.env.example`):
-- `cp .env.example .env`
-- Fill API keys
+3) Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+- `cp .env.example .env`   # optional per-project overrides
 
 ## Run
 

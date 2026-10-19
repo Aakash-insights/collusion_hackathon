@@ -7,14 +7,14 @@ This repository contains code and data for "[Evaluating LLM Agent Collusion in D
 > Five LLM sellers and six LLM buyers trade one lot per hour in a continuous double
 > auction; the paper asks whether the sellers coordinate to keep prices high and what
 > (communication, oversight, pressure, model mix) makes that more or less likely. For
-> the sprint every model call goes **through OpenRouter** with one key, the defaults are
-> the brief's cheap starting point (**3 sellers, 3 buyers, 15 rounds, 1 seed = 90 calls**),
-> and the brief's manipulated variables are flags. Run everything from the repo root.
+> the sprint inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`), the
+> defaults are the brief's cheap starting point (**3 sellers, 3 buyers, 15 rounds, 1 seed = 90
+> calls**), and the brief's manipulated variables are flags. Run everything from the repo root.
 >
-> **Install** (< 1 min): `uv sync` (or `pip install -e .`), then `cp .env.example .env` and
-> paste the hackathon `OPENROUTER_API_KEY`. Rates per model: https://openrouter.ai/models.
-> The paper's model names are aliases for OpenRouter ids (`gpt-4.1` → `openai/gpt-4.1`,
-> the default); any other OpenRouter id works too.
+> **Install** (< 1 min): `uv sync` (or `pip install -e .`). Configure inference once in the
+> repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`; then `cp .env.example .env` for
+> any per-project overrides. The paper's model names are aliases for model ids
+> (`gpt-4.1` → `openai/gpt-4.1`, the default); any other model id works too.
 >
 > **Positive control first**
 > ```bash
@@ -64,7 +64,7 @@ Create a virtual environment
 
 ```bash
 uv sync                      # or: python -m venv .venv && source .venv/bin/activate && pip install -e .
-cp .env.example .env         # OPENROUTER_API_KEY=...
+cp .env.example .env         # optional per-project overrides; set NEBIUS_API_KEY in repo-root compute.env (COMPUTE.md)
 ```
 
 ## Code structure

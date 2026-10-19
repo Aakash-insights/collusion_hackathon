@@ -1,40 +1,38 @@
-"""Central LLM provider config shared by every project in this repo.
+"""Central LLM config shared by every project in this repo.
 
-ONE place to set your keys and choose a provider: the repo-root `compute.env` file
+ONE place to set your key and (optionally) a model: the repo-root `compute.env`
 (copy `compute.env.example` -> `compute.env`). Every project builds its model client from this,
 so you configure once and all ten projects follow.
 
+Default inference provider: **Nebius AI Studio** (OpenAI-compatible, open models). To run an
+experiment that Nebius can't serve/accept, host the model yourself on Modal (see `modal_serve.py`)
+and point `LLM_BASE_URL` at it — same interface, different endpoint.
+
 compute.env keys:
-    LLM_PROVIDER        openrouter | nebius          (default: openrouter)
-    OPENROUTER_API_KEY  your OpenRouter key
-    NEBIUS_API_KEY      your Nebius AI Studio key
-    LLM_MODEL           (optional) force one model id across every project
-    NEBIUS_DEFAULT_MODEL (optional) fallback model when a project's default has no Nebius equivalent
+    NEBIUS_API_KEY        your Nebius AI Studio key               (default inference)
+    LLM_MODEL             (optional) force one model id everywhere
+    NEBIUS_DEFAULT_MODEL  (optional) fallback when a project default has no Nebius equivalent
+    LLM_BASE_URL          (optional) a custom OpenAI-compatible endpoint, e.g. your Modal-hosted model
+    LLM_API_KEY           (optional) key for that custom endpoint
 
 Public API:
-    make_client(async_=False)        -> an (Async)OpenAI client pointed at the chosen provider
-    resolve_model(project_default)   -> the model id to use for the chosen provider
-    base_url(), api_key(), provider(), config()
-
-Provider note: OpenRouter and Nebius are both OpenAI-compatible *inference* endpoints, so this is a
-true drop-in swap. Modal is a *compute* layer (where code runs), not a provider — `modal_run.py`
-reads this same compute.env and runs your code, which then uses the provider selected here.
+    make_client(async_=False)        -> an (Async)OpenAI client pointed at the configured endpoint
+    resolve_model(project_default)   -> the model id to use
+    base_url(), api_key(), endpoint_kind(), config()
 """
 import os
 import functools
 from pathlib import Path
 
-PROVIDERS = {
-    "openrouter": {"base_url": "https://openrouter.ai/api/v1", "key_env": "OPENROUTER_API_KEY"},
-    "nebius":     {"base_url": "https://api.studio.nebius.com/v1", "key_env": "NEBIUS_API_KEY"},
-}
+NEBIUS_BASE_URL = "https://api.studio.nebius.com/v1"
 
-# A project passes its paper-default model id (an OpenRouter-style id). For Nebius we map to a
-# served open model; OpenAI/Gemini-family defaults have no Nebius equivalent and fall back to
-# NEBIUS_DEFAULT_MODEL. Extend as needed from your Nebius console catalog.
+# Projects pass their paper-default model id (often an OpenAI-style string). We map those to a
+# Nebius-served open model; anything unmapped falls back to NEBIUS_DEFAULT_MODEL. Extend from the
+# Nebius console catalog as needed. (When using a custom LLM_BASE_URL / Modal model, set LLM_MODEL.)
 NEBIUS_MODEL_MAP = {
     "openai/gpt-4o-mini":                 "meta-llama/Llama-3.1-8B-Instruct",
     "openai/gpt-4o":                      "meta-llama/Llama-3.3-70B-Instruct",
+    "openai/gpt-4o-2024-08-06":           "meta-llama/Llama-3.3-70B-Instruct",
     "openai/gpt-4.1":                     "meta-llama/Llama-3.3-70B-Instruct",
     "openai/gpt-4.1-mini":                "meta-llama/Llama-3.1-8B-Instruct",
     "openai/gpt-3.5-turbo":               "meta-llama/Llama-3.1-8B-Instruct",
@@ -78,54 +76,49 @@ def _load():
     return f
 
 
-def provider():
+def endpoint_kind():
+    """'custom' if LLM_BASE_URL is set (e.g. a Modal-hosted model), else 'nebius'."""
     _load()
-    return os.environ.get("LLM_PROVIDER", "openrouter").strip().lower()
+    return "custom" if os.environ.get("LLM_BASE_URL") else "nebius"
 
 
 def base_url():
     _load()
-    # explicit override wins; else the provider's default endpoint
-    return os.environ.get("LLM_BASE_URL") or PROVIDERS[provider()]["base_url"]
+    return os.environ.get("LLM_BASE_URL") or NEBIUS_BASE_URL
 
 
 def api_key():
     _load()
-    p = provider()
-    return (os.environ.get(PROVIDERS[p]["key_env"])
-            or os.environ.get("OPENROUTER_API_KEY")
+    return (os.environ.get("LLM_API_KEY")
             or os.environ.get("NEBIUS_API_KEY")
             or "")
 
 
 def resolve_model(project_default):
-    """Return the model id to use. LLM_MODEL overrides everything; on Nebius, map or fall back."""
+    """Model id to use. LLM_MODEL overrides everything. On a custom endpoint, LLM_MODEL should name
+    the served model (else the project default is passed through). On Nebius, map the default."""
     _load()
     forced = os.environ.get("LLM_MODEL")
     if forced:
         return forced
-    if provider() == "nebius":
-        return NEBIUS_MODEL_MAP.get(project_default,
-                                    os.environ.get("NEBIUS_DEFAULT_MODEL", NEBIUS_FALLBACK))
-    return project_default
+    if endpoint_kind() == "custom":
+        return project_default  # custom endpoint: set LLM_MODEL to the served model id
+    return NEBIUS_MODEL_MAP.get(project_default,
+                                os.environ.get("NEBIUS_DEFAULT_MODEL", NEBIUS_FALLBACK))
 
 
 def config():
-    return {"provider": provider(), "base_url": base_url(),
+    return {"endpoint": endpoint_kind(), "base_url": base_url(),
             "has_key": bool(api_key()), "forced_model": os.environ.get("LLM_MODEL")}
 
 
 def make_client(async_=False, **kwargs):
-    """Construct an (Async)OpenAI client for the selected provider."""
+    """Construct an (Async)OpenAI client for the configured endpoint (Nebius by default)."""
     from openai import OpenAI, AsyncOpenAI
     cls = AsyncOpenAI if async_ else OpenAI
     return cls(base_url=base_url(), api_key=api_key(), **kwargs)
 
 
-# ---- import bootstrap for projects in nested dirs / separate venvs --------------------------------
-# Projects whose client lives several dirs deep (and in their own venv) can import this module with:
-#     from llm_config import make_client, resolve_model   # after adding the repo root to sys.path
-# Use `bootstrap()` from a known file to locate+add the repo root automatically:
 def bootstrap():
     """Call from a project file to put the repo root (this module) on sys.path. Returns the root."""
     import sys

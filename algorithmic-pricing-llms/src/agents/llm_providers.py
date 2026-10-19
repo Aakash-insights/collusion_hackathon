@@ -138,15 +138,9 @@ class OpenAICompatibleProvider(Provider):
         self.supports_seed = p.supports_seed
         self.is_remote = "localhost" not in self.base_url and "127.0.0.1" not in self.base_url
 
-        headers = {}
-        if preset == "openrouter":
-            headers = {
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon algorithmic-pricing-llms",
-            }
         # Client is built by the repo-root llm_config utility (compute.env selects provider +
         # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_remote.
-        self._client = make_client(async_=True, default_headers=headers)
+        self._client = make_client(async_=True)
         self._json_mode = True  # drop response_format if the model rejects it
 
     async def complete(self, messages, temperature, seed):

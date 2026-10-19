@@ -60,11 +60,12 @@ def require_supported_model(model: str) -> str:
     normalised = normalize_model_name(model)
 
     if not normalised.startswith("openai/"):
-        raise ValueError(
-            f"Model '{model}' is not supported. This project runs OpenAI models only "
-            "(structured output is required to read agent decisions back reliably). "
-            "Pass an openai/* model, e.g. openai/gpt-4o-mini — see .env.example."
+        print(
+            f"NOTE: '{model}' is not an OpenAI model. This project needs structured (JSON) output to "
+            "read agent decisions; on Nebius/Modal use a model that supports response_format/JSON "
+            "(e.g. a Qwen or Llama variant that does), or decisions may parse as EMPTY. Proceeding."
         )
+        return normalised
 
     if not supports_structured_output(normalised):
         print(

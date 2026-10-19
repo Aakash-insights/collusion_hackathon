@@ -146,15 +146,9 @@ class OpenRouterLLM(APIBaseLLM):
         self.top_p = top_p
         self.is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
-        headers = {}
-        if self.provider == "openrouter":
-            headers = {
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon focal-points",
-            }
         # Client built by the repo-root llm_config utility (compute.env selects provider +
         # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_local.
-        self.client = make_client(default_headers=headers)
+        self.client = make_client()
         print(f"[INFO] Initialized OpenRouterLLM ({self.provider}) with model_id: {self.model_id}")
         print(
             f"[INFO] Reasoning effort: {self.reasoning_display} | temperature: {temperature} | seed: {seed}"

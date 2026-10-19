@@ -81,7 +81,7 @@ cleanup_llm/
 │  ├─ scripted_cleaner.py # Cleaning strategy baseline
 │  ├─ llm_agent.py   # LLM wrapper
 │  ├─ prompts.py     # LLM prompts and formatting
-│  └─ llm_client.py       # OpenRouter LLM client
+│  └─ llm_client.py       # LLM client (shared inference config)
 ├─ games/           # Game runners and experiments
 │  ├─ run_episode.py # Single episode runner
 │  ├─ tournament.py  # Multi-game tournament

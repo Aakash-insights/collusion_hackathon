@@ -29,8 +29,9 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 > The judge defaults to `qwen/qwen3-14b` (the paper's Qwen judge).
 > The GPU scripts are untouched and documented below; you do not need them.
 >
-> **Install** (< 1 min): `uv sync` (or `pip install -e .`), then `cp .env.example .env`
-> and paste the hackathon `OPENROUTER_API_KEY`. Rates per model: https://openrouter.ai/models.
+> **Install** (< 1 min): `uv sync` (or `pip install -e .`). Configure inference once in the
+> repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`; then `cp .env.example .env` for
+> any per-project overrides.
 > A 300-round duopoly is 600 calls (reasoning models also bill thinking tokens); every
 > script prints the call count and asks before spending.
 >
@@ -216,7 +217,7 @@ python r1_triopoly_tester.py P0,P3,P0 1 14B
 
 ### chatgpt_duopoly_tester.py
 
-2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through OpenRouter (which exposes the same `/responses` endpoint). Requires `OPENROUTER_API_KEY` in `.env`, like everything else here. Model ids are OpenRouter ids; a bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. Verified 2026-09-16 with gpt-5.4: reasoning summaries come back through OpenRouter and land in `thoughts`.
+2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through the shared inference config (set `NEBIUS_API_KEY` in the repo-root `compute.env` — see `COMPUTE.md`), like everything else here. A bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. Verified 2026-09-16 with gpt-5.4: reasoning summaries land in `thoughts`.
 
 ```bash
 python chatgpt_duopoly_tester.py [options]

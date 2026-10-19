@@ -32,8 +32,6 @@ from llm_config import make_client, resolve_model
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
 
 class Message(TypedDict):
     role: str
@@ -99,13 +97,7 @@ class OpenRouterClient(ModelWrapper):
     def __init__(self, model_name: str, **kwargs):
         super().__init__(model_name, **kwargs)
         self.model_name = resolve_model(model_name)
-        self.client = make_client(
-            timeout=120,
-            default_headers={
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon llm-agent-collusion",
-            },
-        )
+        self.client = make_client(timeout=120)
         self.is_remote = "localhost" not in str(self.client.base_url) and "127.0.0.1" not in str(self.client.base_url)
 
     def generate(self, messages: List[Message]) -> Optional[str]:

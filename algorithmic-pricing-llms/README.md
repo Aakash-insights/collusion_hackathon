@@ -16,14 +16,13 @@
 > **1. Install (CPU only, < 1 min)**
 > ```bash
 > uv sync                      # or: pip install -e .
-> cp .env.example .env         # paste the hackathon OPENROUTER_API_KEY
+> cp .env.example .env         # optional per-project overrides
 > ```
-> All model calls go through [OpenRouter](https://openrouter.ai) with one key. The thesis used
-> `mistral-large-2411`, which OpenRouter no longer serves, so the default is the current
-> `mistralai/mistral-large-2512` (`mistralai/mistral-large-2407` is the closest match, at 4x the
-> price). Pass `--model <openrouter id>` to try anything else (e.g.
-> `mistralai/mistral-small-3.2-24b-instruct`, `openai/gpt-4.1-mini`, `google/gemini-2.5-flash`).
-> Rates per model: https://openrouter.ai/models.
+> Inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+> The thesis used `mistral-large-2411`; the default here is `mistralai/mistral-large-2512`
+> (`mistralai/mistral-large-2407` is the closest match, at 4x the price). Pass `--model <id>` to
+> try anything else (e.g. `mistralai/mistral-small-3.2-24b-instruct`, `openai/gpt-4.1-mini`,
+> `google/gemini-2.5-flash`).
 >
 > **2. Positive control first** (defaults = one prompt, alpha 1, one seed)
 > ```bash
@@ -102,13 +101,13 @@ uv sync
 
 ### Environment Setup
 
-Create a `.env` file in the project root:
+Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+Any per-project overrides go in a local `.env` (optional):
 
 ```bash
-OPENROUTER_API_KEY=your_key
 MODEL_NAME=mistralai/mistral-large-2512
 ```
-See `.env.example` for the (optional) direct-provider alternatives.
+See `.env.example` for the available overrides.
 
 ### Running Experiments
 

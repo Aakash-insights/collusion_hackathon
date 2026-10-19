@@ -112,15 +112,9 @@ class ChatProvider:
 
         self.reasoning = reasoning
 
-        headers = {}
-        if self.provider == "openrouter":
-            headers = {
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon llm-cartel",
-            }
         # Client built by the repo-root llm_config utility (compute.env selects provider +
         # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_local.
-        self._client = make_client(default_headers=headers)
+        self._client = make_client()
 
     @property
     def spec(self) -> str:

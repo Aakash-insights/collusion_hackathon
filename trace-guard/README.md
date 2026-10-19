@@ -120,7 +120,7 @@ Detectors (what happened) → Intent Analyzer (why it's suspicious) → 5-Dim Sc
 > | Python >= 3.10 | — |
 > | `pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
 > | **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
-> | An OpenRouter API key | in `.env` |
+> | `NEBIUS_API_KEY` | in the repo-root `compute.env` (see `COMPUTE.md`) |
 > | Smoke test (5 samples, one monitor) | **~10 min**, a few hundred model calls |
 > | Full experiment (all monitors, 50 samples) | **6–8 h**, 2,400 evaluation runs |
 >
@@ -131,7 +131,7 @@ Detectors (what happened) → Intent Analyzer (why it's suspicious) → 5-Dim Sc
 
 ```bash
 pip install -e .              # or: uv pip install -e .   (inspect-ai + control-arena)
-cp .env.example .env          # put your OPENROUTER_API_KEY in .env
+cp .env.example .env          # optional per-project overrides; set NEBIUS_API_KEY in repo-root compute.env (COMPUTE.md)
 
 # One-off: build the BashArena images (requires Docker running)
 control-arena env setup --env bash_arena
@@ -150,15 +150,15 @@ python scripts/run_eval.py --monitor simple_untrusted --attack-only --limit 20 -
 python scripts/analyze_results.py --log-dir logs/experiments --output figures/ --all-plots
 ```
 
-All models are reached through **OpenRouter**, keeping the project's original choices:
-`openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as
-the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai
-model string works).
+Inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the
+untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with
+`--untrusted-model` / `--trusted-model`; any inspect-ai model string works). The `openrouter/...`
+strings are rewritten to the shared Nebius provider automatically by `scripts/_provider_shim.py`.
 
 **Intent analyzer (optional).** The original project ran a second-opinion pass by Claude
 Opus 4.6 via AWS Bedrock whenever the heuristic detectors flagged an action. It is
-disabled unless `INTENT_MODEL` is set in `.env`; the same model is available as
-`openrouter/anthropic/claude-opus-4.6`. Opus is the expensive tier (US$5 / US$25 per
+disabled unless `INTENT_MODEL` is set in `.env`. Opus is the expensive tier (US$5 / US$25 per
 million tokens in/out), so leave it off for smoke tests, and swap in another model id if
 you prefer — nothing else depends on it.
 
