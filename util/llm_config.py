@@ -40,6 +40,7 @@ _NEBIUS_SAME_MODEL_ALIASES = {
     "meta-llama/llama-3.3-70b-instruct":  "meta-llama/Llama-3.3-70B-Instruct",
     "meta-llama/llama-3.1-8b-instruct":   "meta-llama/Llama-3.1-8B-Instruct",
     "deepseek/deepseek-r1-0528":          "deepseek-ai/DeepSeek-R1-0528",
+    "mistralai/mistral-large-2411":       "mistralai/Mistral-Large-Instruct-2411",
 }
 
 

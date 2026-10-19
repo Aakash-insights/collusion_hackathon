@@ -1,14 +1,14 @@
 """
 LLM provider clients for the pricing agents.
 
-Hackathon standard: all model calls go through **OpenRouter** with one
-``OPENROUTER_API_KEY``. The default model is the one the thesis used,
-(closest available: ``mistralai/mistral-large-2512``); pick any other OpenRouter model id with
-``MODEL_NAME`` / ``--model`` (rates: https://openrouter.ai/models).
+Hackathon standard: all model calls go through the shared endpoint (**Nebius AI Studio** by default; see
+the repo-root ``compute.env`` / ``util/llm_config.py``). The default model is the thesis model,
+``mistralai/Mistral-Large-Instruct-2411``; pass any other model id with ``MODEL_NAME`` / ``--model``.
+To run with a model Nebius doesn't serve, use the one entry point ``python -m util.run`` (it hosts it on
+Modal or fails loudly). No model is ever substituted.
 
-The thesis's direct Mistral-SDK path (``LLM_PROVIDER=mistral``) and other
-OpenAI-compatible endpoints are kept as opt-in alternatives for reproduction
-or debugging, but participants should not need them.
+The thesis's direct Mistral-SDK path (``LLM_PROVIDER=mistral``) and other OpenAI-compatible endpoints are
+kept as opt-in alternatives for reproduction or debugging, but participants should not need them.
 """
 
 from __future__ import annotations
@@ -35,17 +35,18 @@ class Preset:
     supports_seed: bool = False
 
 
-# The thesis used mistral-large-2411. OpenRouter no longer serves it (checked 2026-09-15), so
-# the default is the current Mistral Large; mistralai/mistral-large-2407 (same generation as
-# 2411, 4x the price) is the closest match if fidelity matters more than budget.
-THESIS_MODEL_OPENROUTER = "mistralai/mistral-large-2512"
+# The thesis used Mistral Large 24.11. Nebius (the default endpoint) serves open-weight models by their
+# Hugging Face repo id, so the default here is that HF-cased id — the same model the thesis used, and
+# ungated on HF so it can also be Modal-hosted if Nebius doesn't serve it. Pass any other model with
+# --model / MODEL_NAME.
+THESIS_MODEL = "mistralai/Mistral-Large-Instruct-2411"
 
 PRESETS: Dict[str, Preset] = {
     # Hackathon default: one key, every model.
     "openrouter": Preset(
         "https://openrouter.ai/api/v1",
         "OPENROUTER_API_KEY",
-        THESIS_MODEL_OPENROUTER,
+        THESIS_MODEL,
         supports_seed=True,
     ),
     # Alternatives (not needed for the hackathon)
@@ -159,8 +160,9 @@ class OpenAICompatibleProvider(Provider):
             )
         except fatal as e:
             raise FatalProviderError(
-                f"{self.model_name}: {e}. Check the model id at https://openrouter.ai/models "
-                "and your OPENROUTER_API_KEY."
+                f"{self.model_name}: {e}. Check the model id and your NEBIUS_API_KEY in the repo-root "
+                f"compute.env. If the model isn't on Nebius, run via `python -m util.run --model "
+                f"{self.model_name} -- <cmd>` to host it on Modal (or fail with a clear reason)."
             ) from e
         except BadRequestError as e:
             if self._json_mode and "response_format" in str(e).lower():
@@ -199,7 +201,8 @@ def make_provider(
 
 
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
-    model = model or os.getenv("MODEL_NAME") or THESIS_MODEL_OPENROUTER
+    model = model or os.getenv("MODEL_NAME") or THESIS_MODEL
     return (
-        f"≈ {n_calls:,} model calls. Per-token rates for this model: https://openrouter.ai/{model}"
+        f"≈ {n_calls:,} model calls with {model}. Per-token rates: Nebius AI Studio "
+        f"(https://studio.nebius.com)."
     )

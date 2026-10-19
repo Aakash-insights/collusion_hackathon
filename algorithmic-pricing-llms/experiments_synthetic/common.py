@@ -15,9 +15,9 @@ project 1.2 recipe:
        --temperature 0.7      sampling temperature
   3. Expand --seeds only after the positive control works.
 
-Provider: OpenRouter by default (one OPENROUTER_API_KEY); --model / MODEL_NAME is any
-OpenRouter model id, default mistralai/mistral-large-2512 (thesis: mistral-large-2411, no
-longer on OpenRouter).
+Inference: the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the repo-root compute.env).
+--model / MODEL_NAME is any open model id the shared config can resolve; left unset it defaults to the
+thesis model, mistralai/Mistral-Large-Instruct-2411. Nothing is ever substituted.
 
     python experiments_synthetic/duopoly.py --rounds 30          # smoke test (~60 calls)
     python experiments_synthetic/duopoly.py                      # positive control, 600 calls
@@ -178,7 +178,7 @@ def make_parser(n_firms_default: int, description: str) -> argparse.ArgumentPars
     m.add_argument(
         "--model",
         default=None,
-        help="OpenRouter model id (default: env MODEL_NAME or mistralai/mistral-large-2512)",
+        help="model id (default: env MODEL_NAME, else the thesis model mistralai/Mistral-Large-Instruct-2411)",
     )
 
     o = ap.add_argument_group("output")

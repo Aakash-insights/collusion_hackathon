@@ -19,10 +19,9 @@
 > cp .env.example .env         # optional per-project overrides
 > ```
 > Inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
-> The thesis used `mistral-large-2411`; the default here is `mistralai/mistral-large-2512`
-> (`mistralai/mistral-large-2407` is the closest match, at 4x the price). Pass `--model <id>` to
-> try anything else (e.g. `mistralai/mistral-small-3.2-24b-instruct`, `openai/gpt-4.1-mini`,
-> `google/gemini-2.5-flash`).
+> The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights; served
+> by Nebius, or Modal-hosted via `python -m util.run` if not). Pass `--model <id>` to try any other open
+> model (e.g. `meta-llama/Llama-3.3-70B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`).
 >
 > **2. Positive control first** (defaults = one prompt, alpha 1, one seed)
 > ```bash
@@ -105,7 +104,7 @@ Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — s
 Any per-project overrides go in a local `.env` (optional):
 
 ```bash
-MODEL_NAME=mistralai/mistral-large-2512
+MODEL_NAME=mistralai/Mistral-Large-Instruct-2411
 ```
 See `.env.example` for the available overrides.
 

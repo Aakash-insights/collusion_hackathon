@@ -41,8 +41,8 @@ firm sees its history and picks a price; the market returns quantities and profi
 thesis found prices well above the competitive (Nash) level that fall by about 3.7% per
 extra competitor. Sprint project 1.2: verify the positive control, then ablate one
 variable at a time (visible history, persistent notes, shuffled names, temperature) via
-CLI flags, through OpenRouter (default `mistralai/mistral-large-2512`; the thesis's
-`mistral-large-2411` is no longer served).
+CLI flags. Inference goes through the shared endpoint (Nebius by default); the default model is the
+thesis model `mistralai/Mistral-Large-Instruct-2411`.
 
 ```bash
 cd algorithmic-pricing-llms && uv sync && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
