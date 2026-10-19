@@ -11,15 +11,18 @@ wires the endpoint in automatically — same interface, different endpoint.
 compute.env keys (what participants set):
     NEBIUS_API_KEY        your Nebius AI Studio key               (default inference)
     LLM_MODEL             (optional) force one model id everywhere
-    NEBIUS_DEFAULT_MODEL  (optional) fallback when a project default has no Nebius equivalent
 
 internal (set automatically by util/hosted_model.py — participants don't configure these):
     LLM_BASE_URL          a custom OpenAI-compatible endpoint (the temporary Modal model)
     LLM_API_KEY           key for that endpoint
 
+No model is ever substituted and there is no default model — an unavailable model fails loudly or
+reroutes to Modal (util/run.py), never gets swapped for another.
+
 Public API:
     make_client(async_=False)        -> an (Async)OpenAI client pointed at the configured endpoint
-    resolve_model(project_default)   -> the model id to use
+    resolve_model(requested)         -> the model id to use (same model only; never substituted)
+    nebius_serves(model)             -> True / False / None (catalog check)
     base_url(), api_key(), endpoint_kind(), config()
 """
 import os
@@ -28,22 +31,16 @@ from pathlib import Path
 
 NEBIUS_BASE_URL = "https://api.studio.nebius.com/v1"
 
-# Projects pass their paper-default model id (often an OpenAI-style string). We map those to a
-# Nebius-served open model; anything unmapped falls back to NEBIUS_DEFAULT_MODEL. Extend from the
-# Nebius console catalog as needed. (When using a custom LLM_BASE_URL / Modal model, set LLM_MODEL.)
-NEBIUS_MODEL_MAP = {
-    "openai/gpt-4o-mini":                 "meta-llama/Llama-3.1-8B-Instruct",
-    "openai/gpt-4o":                      "meta-llama/Llama-3.3-70B-Instruct",
-    "openai/gpt-4o-2024-08-06":           "meta-llama/Llama-3.3-70B-Instruct",
-    "openai/gpt-4.1":                     "meta-llama/Llama-3.3-70B-Instruct",
-    "openai/gpt-4.1-mini":                "meta-llama/Llama-3.1-8B-Instruct",
-    "openai/gpt-3.5-turbo":               "meta-llama/Llama-3.1-8B-Instruct",
+# We NEVER substitute a different model. The only translation here is id-SPELLING for the SAME model:
+# a few starter defaults are written in OpenRouter casing, and Nebius spells the identical model
+# slightly differently. Anything not listed is passed through UNCHANGED — and if it isn't actually on
+# Nebius, the run reroutes to Modal or fails loudly (see util/run.py); it is never swapped for another
+# model and there is no generic fallback.
+_NEBIUS_SAME_MODEL_ALIASES = {
     "meta-llama/llama-3.3-70b-instruct":  "meta-llama/Llama-3.3-70B-Instruct",
     "meta-llama/llama-3.1-8b-instruct":   "meta-llama/Llama-3.1-8B-Instruct",
-    "mistralai/mistral-large-2512":       "mistralai/Mistral-Large-Instruct-2411",
     "deepseek/deepseek-r1-0528":          "deepseek-ai/DeepSeek-R1-0528",
 }
-NEBIUS_FALLBACK = "meta-llama/Llama-3.3-70B-Instruct"
 
 
 def _find_root_env():
@@ -96,17 +93,40 @@ def api_key():
             or "")
 
 
-def resolve_model(project_default):
-    """Model id to use. LLM_MODEL overrides everything. On a custom endpoint, LLM_MODEL should name
-    the served model (else the project default is passed through). On Nebius, map the default."""
+def resolve_model(requested):
+    """The model id to use — NEVER a different model. `LLM_MODEL` overrides; otherwise the requested id
+    passes through, with only same-model id-spelling normalized for Nebius. There is no fallback: if the
+    id isn't available, the run reroutes to Modal or fails loudly (util/run.py) — it is never swapped."""
     _load()
     forced = os.environ.get("LLM_MODEL")
     if forced:
         return forced
     if endpoint_kind() == "custom":
-        return project_default  # custom endpoint: set LLM_MODEL to the served model id
-    return NEBIUS_MODEL_MAP.get(project_default,
-                                os.environ.get("NEBIUS_DEFAULT_MODEL", NEBIUS_FALLBACK))
+        return requested
+    return _NEBIUS_SAME_MODEL_ALIASES.get(requested, requested)
+
+
+@functools.lru_cache(maxsize=1)
+def _nebius_catalog():
+    """Set of model ids Nebius currently serves (GET /v1/models), or None if it can't be fetched."""
+    import urllib.request
+    import json
+    try:
+        req = urllib.request.Request(NEBIUS_BASE_URL.rstrip("/") + "/models")
+        key = os.environ.get("NEBIUS_API_KEY")
+        if key:
+            req.add_header("Authorization", f"Bearer {key}")
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return {m.get("id") for m in json.load(r).get("data", [])}
+    except Exception:
+        return None
+
+
+def nebius_serves(model):
+    """True / False if Nebius serves `model`; None if the catalog couldn't be checked."""
+    _load()
+    cat = _nebius_catalog()
+    return None if cat is None else (model in cat)
 
 
 def config():
