@@ -12,8 +12,6 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
 > **One spot:** copy `compute.env.example` → `compute.env`, add `NEBIUS_API_KEY`, done. `util/llm_config.py`
 > feeds it to every project's client; `util/modal_run.py` feeds the same file to cloud runs.
 
-> We are **not** using OpenRouter.
-
 ---
 
 ## Quick start
