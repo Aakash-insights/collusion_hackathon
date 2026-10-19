@@ -48,16 +48,16 @@ class Preset:
     supports_seed: bool = False
 
 
-# The paper ran DeepSeek-R1-Distill-Qwen 7B/14B/32B via vLLM. Those distills are no longer
-# served on OpenRouter (checked 2026-09-15). run_game.py makes participants choose their agent
-# model explicitly; this constant is only the fallback for bare `openrouter:` specs.
-PAPER_MODEL_OPENROUTER = "deepseek/deepseek-r1-0528"
-JUDGE_MODEL_OPENROUTER = "qwen/qwen3-14b"  # paper's judges: Qwen3-14B and others via vLLM
+# The paper ran DeepSeek-R1-Distill-Qwen 7B/14B/32B via vLLM. run_game.py makes participants choose
+# their agent model explicitly; this constant is only the fallback for bare `openrouter:` specs. Model
+# ids are in Nebius / Hugging Face casing (used as-is; nothing rewritten).
+PAPER_MODEL = "deepseek-ai/DeepSeek-R1-0528"
+JUDGE_MODEL = "Qwen/Qwen3-14B"  # paper's judges: Qwen3-14B and others via vLLM
 
 PRESETS: Dict[str, Preset] = {
     # Hackathon default: one key, every model.
     "openrouter": Preset(
-        "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", PAPER_MODEL_OPENROUTER, supports_seed=True
+        "https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", PAPER_MODEL, supports_seed=True
     ),
     # Local / offline escape hatch (no key)
     "ollama": Preset("http://localhost:11434/v1", "OLLAMA_API_KEY", "llama3.2:3b", needs_key=False),
@@ -196,6 +196,6 @@ def split_thoughts_and_price(text: str) -> Tuple[str, Optional[float]]:
 
 
 def cost_note(n_calls: int, models: Optional[List[str]] = None) -> str:
-    models = sorted({m for m in (models or []) if m}) or [PAPER_MODEL_OPENROUTER]
+    models = sorted({m for m in (models or []) if m}) or [PAPER_MODEL]
     links = " · ".join(f"https://openrouter.ai/{m.split(':', 1)[-1]}" for m in models)
     return f"≈ {n_calls:,} model calls. Reasoning models bill their thinking tokens too. Rates: {links}"

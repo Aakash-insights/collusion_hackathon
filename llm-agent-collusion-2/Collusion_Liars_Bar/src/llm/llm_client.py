@@ -35,16 +35,16 @@ load_dotenv(_PROJECT_ROOT / ".env")
 class LLMClient:
     """Chat client with the same contract as the original local client."""
 
-    # Short name -> OpenRouter model id.
+    # Short name -> Hugging Face / Nebius model id (used as-is; nothing rewritten).
     # llama-3.1-8b and qwen2.5-7b are the original checkpoints. The other two replace
-    # models that are no longer served on OpenRouter (Meta-Llama-3-8B-Instruct and
+    # models that are no longer readily served (Meta-Llama-3-8B-Instruct and
     # Mistral-7B-Instruct-v0.3); both substitutes are drawn from the authors' own
     # extended model table. See notes/llm-agent-collusion-2.md for the decision.
     MODEL_MAP = {
-        "llama-3.1-8b": "meta-llama/llama-3.1-8b-instruct",
-        "qwen2.5-7b":   "qwen/qwen-2.5-7b-instruct",
-        "llama-3.2-3b": "meta-llama/llama-3.2-3b-instruct",   # was llama-3-8b
-        "ministral-8b": "mistralai/ministral-8b-2512",        # was mistral-7b
+        "llama-3.1-8b": "meta-llama/Llama-3.1-8B-Instruct",
+        "qwen2.5-7b":   "Qwen/Qwen2.5-7B-Instruct",
+        "llama-3.2-3b": "meta-llama/Llama-3.2-3B-Instruct",       # was llama-3-8b
+        "ministral-8b": "mistralai/Ministral-8B-Instruct-2410",   # was mistral-7b
     }
 
     def __init__(self):

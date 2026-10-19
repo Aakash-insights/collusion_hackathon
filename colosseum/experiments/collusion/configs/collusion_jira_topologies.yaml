@@ -44,7 +44,7 @@ llm_models:
     llm:
       provider: openrouter
       openrouter:
-        model: qwen/qwen-2.5-7b-instruct
+        model: Qwen/Qwen2.5-7B-Instruct
         params:
           max_tokens: 1024
           temperature: 0.4

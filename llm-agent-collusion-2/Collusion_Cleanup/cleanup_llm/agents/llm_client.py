@@ -28,19 +28,20 @@ load_dotenv(_PROJECT_ROOT / ".env")
 class LLMClient:
     """Chat client with the same contract as the original local client."""
 
-    # Short name -> OpenRouter model id. Entries marked "was ..." replace checkpoints
-    # that are no longer served on OpenRouter; see notes/llm-agent-collusion-2.md.
+    # Short name -> Hugging Face / Nebius model id (used as-is; nothing rewritten). Entries marked
+    # "was ..." replace the paper's original checkpoints with available equivalents; see
+    # notes/llm-agent-collusion-2.md.
     MODEL_MAP = {
         # --roster small (the README default)
-        "llama-3.1-8b":      "meta-llama/llama-3.1-8b-instruct",
-        "qwen2.5-7b":        "qwen/qwen-2.5-7b-instruct",
-        "llama-3.2-3b":      "meta-llama/llama-3.2-3b-instruct",          # was llama-3-8b
-        "ministral-8b":      "mistralai/ministral-8b-2512",               # was mistral-7b
+        "llama-3.1-8b":      "meta-llama/Llama-3.1-8B-Instruct",
+        "qwen2.5-7b":        "Qwen/Qwen2.5-7B-Instruct",
+        "llama-3.2-3b":      "meta-llama/Llama-3.2-3B-Instruct",             # was llama-3-8b
+        "ministral-8b":      "mistralai/Ministral-8B-Instruct-2410",        # was mistral-7b
         # --roster large
-        "llama-3.1-70b":     "meta-llama/llama-3.1-70b-instruct",
-        "llama-3.3-70b":     "meta-llama/llama-3.3-70b-instruct",         # was llama-3-70b
-        "mistral-small-24b": "mistralai/mistral-small-3.2-24b-instruct",  # was mixtral-8x7b
-        "qwen2.5-72b":       "qwen/qwen-2.5-72b-instruct",                # was qwen2.5-32b
+        "llama-3.1-70b":     "meta-llama/Llama-3.1-70B-Instruct",
+        "llama-3.3-70b":     "meta-llama/Llama-3.3-70B-Instruct",           # was llama-3-70b
+        "mistral-small-24b": "mistralai/Mistral-Small-3.2-24B-Instruct-2506",  # was mixtral-8x7b
+        "qwen2.5-72b":       "Qwen/Qwen2.5-72B-Instruct",                   # was qwen2.5-32b
     }
 
     # The local client sampled with these fixed values for every model and ignored the

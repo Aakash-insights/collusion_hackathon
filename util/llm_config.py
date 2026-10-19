@@ -31,19 +31,6 @@ from pathlib import Path
 
 NEBIUS_BASE_URL = "https://api.studio.nebius.com/v1"
 
-# We NEVER substitute a different model. The only translation here is id-SPELLING for the SAME model:
-# a few starter defaults are written in OpenRouter casing, and Nebius spells the identical model
-# slightly differently. Anything not listed is passed through UNCHANGED — and if it isn't actually on
-# Nebius, the run reroutes to Modal or fails loudly (see util/run.py); it is never swapped for another
-# model and there is no generic fallback.
-_NEBIUS_SAME_MODEL_ALIASES = {
-    "meta-llama/llama-3.3-70b-instruct":  "meta-llama/Llama-3.3-70B-Instruct",
-    "meta-llama/llama-3.1-8b-instruct":   "meta-llama/Llama-3.1-8B-Instruct",
-    "deepseek/deepseek-r1-0528":          "deepseek-ai/DeepSeek-R1-0528",
-    "mistralai/mistral-large-2411":       "mistralai/Mistral-Large-Instruct-2411",
-}
-
-
 def _find_root_env():
     """Walk up from this file and the CWD to find the repo-root compute.env."""
     for start in (Path(__file__).resolve().parent, Path.cwd().resolve()):
@@ -100,16 +87,13 @@ def api_key():
 
 
 def resolve_model(requested):
-    """The model id to use — NEVER a different model. `LLM_MODEL` overrides; otherwise the requested id
-    passes through, with only same-model id-spelling normalized for Nebius. There is no fallback: if the
-    id isn't available, the run reroutes to Modal or fails loudly (util/run.py) — it is never swapped."""
+    """The model id to use — NEVER a different model. `LLM_MODEL` overrides everything; otherwise the
+    requested id passes through UNCHANGED. Model ids are written in Nebius / Hugging Face casing
+    throughout, so there is no id rewriting and no fallback: if the id isn't available, the run reroutes
+    to Modal or fails loudly (util/run.py) — it is never swapped for another model."""
     _load()
     forced = os.environ.get("LLM_MODEL")
-    if forced:
-        return forced
-    if endpoint_kind() == "custom":
-        return requested
-    return _NEBIUS_SAME_MODEL_ALIASES.get(requested, requested)
+    return forced if forced else requested
 
 
 @functools.lru_cache(maxsize=1)

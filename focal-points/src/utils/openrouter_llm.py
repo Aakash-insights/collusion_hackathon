@@ -1,24 +1,20 @@
 """
-OpenRouter backend for the focal-point experiments (hackathon standard).
+LLM backend for the focal-point experiments (hackathon standard).
 
-Every model call goes through **OpenRouter** with one ``OPENROUTER_API_KEY``, so the
-experiments run on any laptop with no GPU. The paper's models were served locally
-through HuggingFace transformers (``meta-llama/Llama-3.3-70B-Instruct`` was the
-default in ``experiments.sh`` / the Dockerfile) or through the OpenAI / Gemini
-APIs; the same families exist on OpenRouter, so the default model here is
-``meta-llama/llama-3.3-70b-instruct``. Any OpenRouter model id works
-(rates: https://openrouter.ai/models).
+Every model call goes through the shared endpoint (**Nebius AI Studio** by default; see the repo-root
+``compute.env`` / ``util/llm_config.py``), so the experiments run on any laptop with no GPU. The paper's
+default model (``meta-llama/Llama-3.3-70B-Instruct`` in ``experiments.sh`` / the Dockerfile) is the
+default here too — model ids are used as-is, in Nebius / Hugging Face casing (the same ids the paper
+used); nothing is rewritten or substituted.
 
 Model specs:
-  * an OpenRouter id, e.g. ``meta-llama/llama-3.3-70b-instruct``, ``openai/gpt-4o``,
-    ``qwen/qwen2.5-72b-instruct``, ``google/gemini-2.5-flash``;
-  * a HuggingFace id from the paper (``meta-llama/Llama-3.3-70B-Instruct``) is
-    mapped to its OpenRouter id automatically (see ``HF_TO_OPENROUTER``);
+  * a Hugging Face / Nebius model id, e.g. ``meta-llama/Llama-3.3-70B-Instruct``,
+    ``Qwen/Qwen2.5-72B-Instruct``;
   * ``custom:<model>`` uses ``LLM_BASE_URL`` / ``LLM_API_KEY`` (any OpenAI-compatible
     server); ``ollama:<model>`` a free local Ollama. Not needed for the hackathon.
 
-Sampling N responses per prompt is done with N separate calls: OpenRouter only
-forwards ``n`` to some providers, and separate calls also make resume trivial.
+Sampling N responses per prompt is done with N separate calls (robust across providers and makes
+resume trivial).
 """
 
 from __future__ import annotations
@@ -40,34 +36,7 @@ while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.
 _sys.path.insert(0, str(_r / "util"))
 from llm_config import make_client, resolve_model
 
-DEFAULT_MODEL = resolve_model("meta-llama/llama-3.3-70b-instruct")  # paper default (experiments.sh / Dockerfile)
-
-#: HuggingFace ids used by the paper -> OpenRouter ids (only those that exist there).
-HF_TO_OPENROUTER: Dict[str, str] = {
-    "meta-llama/Llama-3.3-70B-Instruct": "meta-llama/llama-3.3-70b-instruct",
-    "meta-llama/Llama-3.1-70B-Instruct": "meta-llama/llama-3.1-70b-instruct",
-    "meta-llama/Meta-Llama-3-70B-Instruct": "meta-llama/llama-3-70b-instruct",
-    "meta-llama/Llama-3.1-8B-Instruct": "meta-llama/llama-3.1-8b-instruct",
-    "meta-llama/Meta-Llama-3-8B-Instruct": "meta-llama/llama-3-8b-instruct",
-    "meta-llama/Llama-3.2-3B-Instruct": "meta-llama/llama-3.2-3b-instruct",
-    "meta-llama/Llama-3.2-1B-Instruct": "meta-llama/llama-3.2-1b-instruct",
-    "Qwen/Qwen2.5-72B-Instruct": "qwen/qwen2.5-72b-instruct",
-    "Qwen/Qwen2.5-7B-Instruct": "qwen/qwen2.5-7b-instruct",
-    "Qwen/Qwen2-72B-Instruct": "qwen/qwen-2-72b-instruct",
-    "google/gemma-3-27b-it": "google/gemma-3-27b-it",
-    "google/gemma-3-12b-it": "google/gemma-3-12b-it",
-    "google/gemma-3-4b-it": "google/gemma-3-4b-it",
-    "microsoft/Phi-4-mini-instruct": "microsoft/phi-4-mini-instruct",
-    "openai/gpt-oss-120b": "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b": "openai/gpt-oss-20b",
-    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B": "deepseek/deepseek-r1-distill-llama-70b",
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": "deepseek/deepseek-r1-distill-qwen-32b",
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": "deepseek/deepseek-r1-distill-qwen-14b",
-    "gpt-4o": "openai/gpt-4o",
-    "gpt-5": "openai/gpt-5",
-    "gpt-5.1": "openai/gpt-5.1",
-    "gemini-3-flash-preview": "google/gemini-3-flash-preview",
-}
+DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct"  # paper default (experiments.sh / Dockerfile)
 
 
 @dataclass(frozen=True)
@@ -86,11 +55,12 @@ PRESETS: Dict[str, Preset] = {
 
 
 def parse_model_spec(spec: str) -> Tuple[str, str]:
-    """'custom:foo' -> ('custom', 'foo'); a bare id -> ('openrouter', <mapped id>)."""
+    """'custom:foo' -> ('custom', 'foo'); a bare id -> (provider, id). Model ids are used as-is, in
+    Nebius / Hugging Face casing (the same ids the paper used) — nothing is rewritten."""
     if ":" in spec and spec.split(":", 1)[0] in PRESETS:
         provider, model = spec.split(":", 1)
         return provider, model
-    return os.getenv("LLM_PROVIDER", "openrouter"), HF_TO_OPENROUTER.get(spec, spec)
+    return os.getenv("LLM_PROVIDER", "openrouter"), spec
 
 
 def resolve_model_id(spec: str) -> str:
@@ -120,6 +90,7 @@ class OpenRouterLLM(APIBaseLLM):
         top_p: float | None = None,
     ) -> None:
         self.provider, model = parse_model_spec(model_id)
+        model = resolve_model(model)  # honor LLM_MODEL override; otherwise use the id as-is (no rewrite)
         preset = PRESETS[self.provider]
         self.base_url = os.getenv("LLM_BASE_URL") if self.provider == "custom" else preset.base_url
         if not self.base_url:

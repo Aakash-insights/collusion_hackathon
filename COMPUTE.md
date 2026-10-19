@@ -42,8 +42,8 @@ Run any project exactly as its README says — it picks up `compute.env` automat
 Put `NEBIUS_API_KEY` in `compute.env`; model calls route through `https://api.studio.nebius.com/v1`.
 **No model is ever substituted and there is no default model.** To run an experiment with a specific
 model, use the **one entry point** below (§3) — it sends the model to Nebius if Nebius serves it,
-otherwise hosts it on Modal for you, otherwise stops with a clear error. (A few starter defaults written
-in OpenRouter id-casing are normalized to the *identical* Nebius id — same model, not a substitution.)
+otherwise hosts it on Modal for you, otherwise stops with a clear error. Model ids are written in Nebius
+(Hugging Face) casing throughout — nothing is rewritten or substituted.
 
 ---
 
