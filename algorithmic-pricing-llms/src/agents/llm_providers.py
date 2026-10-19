@@ -17,6 +17,12 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
 Message = Dict[str, str]
 
 
@@ -126,13 +132,11 @@ class OpenAICompatibleProvider(Provider):
         self.api_key = api_key or os.getenv(p.key_env) or os.getenv("LLM_API_KEY")
         if p.needs_key and not self.api_key:
             raise ValueError(f"{p.key_env} is not set (LLM_PROVIDER={preset})")
-        self.model_name = model or os.getenv("MODEL_NAME") or p.default_model
+        self.model_name = model or os.getenv("MODEL_NAME") or resolve_model(p.default_model)
         if not self.model_name:
             raise ValueError("MODEL_NAME must be set for provider 'openai-compatible'")
         self.supports_seed = p.supports_seed
         self.is_remote = "localhost" not in self.base_url and "127.0.0.1" not in self.base_url
-
-        from openai import AsyncOpenAI
 
         headers = {}
         if preset == "openrouter":
@@ -140,9 +144,9 @@ class OpenAICompatibleProvider(Provider):
                 "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
                 "X-Title": "hackathon algorithmic-pricing-llms",
             }
-        self._client = AsyncOpenAI(
-            base_url=self.base_url, api_key=self.api_key or "not-needed", default_headers=headers
-        )
+        # Client is built by the repo-root llm_config utility (compute.env selects provider +
+        # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_remote.
+        self._client = make_client(async_=True, default_headers=headers)
         self._json_mode = True  # drop response_format if the model rejects it
 
     async def complete(self, messages, temperature, seed):

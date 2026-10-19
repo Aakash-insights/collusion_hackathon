@@ -34,7 +34,13 @@ from .llm import APIBaseLLM
 
 load_dotenv()
 
-DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct"  # paper default (experiments.sh / Dockerfile)
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
+DEFAULT_MODEL = resolve_model("meta-llama/llama-3.3-70b-instruct")  # paper default (experiments.sh / Dockerfile)
 
 #: HuggingFace ids used by the paper -> OpenRouter ids (only those that exist there).
 HF_TO_OPENROUTER: Dict[str, str] = {
@@ -140,17 +146,15 @@ class OpenRouterLLM(APIBaseLLM):
         self.top_p = top_p
         self.is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
-        from openai import OpenAI
-
         headers = {}
         if self.provider == "openrouter":
             headers = {
                 "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
                 "X-Title": "hackathon focal-points",
             }
-        self.client = OpenAI(
-            base_url=self.base_url, api_key=self.api_key or "not-needed", default_headers=headers
-        )
+        # Client built by the repo-root llm_config utility (compute.env selects provider +
+        # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_local.
+        self.client = make_client(default_headers=headers)
         print(f"[INFO] Initialized OpenRouterLLM ({self.provider}) with model_id: {self.model_id}")
         print(
             f"[INFO] Reasoning effort: {self.reasoning_display} | temperature: {temperature} | seed: {seed}"

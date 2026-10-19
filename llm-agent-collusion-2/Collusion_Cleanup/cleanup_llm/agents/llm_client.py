@@ -14,6 +14,12 @@ from typing import Any, Dict, List, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
 # This project's own .env (llm-agent-collusion-2/.env), by explicit path so a .env in
 # a parent directory can never leak in.
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -45,14 +51,11 @@ class LLMClient:
     SAMPLING = dict(temperature=0.7, top_p=0.9, top_k=50, repetition_penalty=1.1)
 
     def __init__(self, api_key: str | None = None, base_url: str = OPENROUTER_BASE_URL):
-        api_key = api_key or os.getenv("OPENROUTER_API_KEY")
-        if not api_key or api_key == "your-openrouter-key-here":
-            raise ValueError(
-                "OPENROUTER_API_KEY is not set (or is still the placeholder). "
-                f"Copy .env.example to {_PROJECT_ROOT / '.env'} and fill it in."
-            )
-        self._client = OpenAI(api_key=api_key, base_url=base_url)
-        print(f"LLMClient initialized (OpenRouter). Models: {list(self.MODEL_MAP)}")
+        if api_key:
+            self._client = OpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self._client = make_client()
+        print(f"LLMClient initialized. Models: {list(self.MODEL_MAP)}")
 
     def generate(self, model_name: str, system_prompt: str, user_prompt: str,
                  temperature: float = 0.7, max_tokens: int = 1024) -> str:
@@ -74,7 +77,7 @@ class LLMClient:
                 print(f"Unsupported model: {model}. Supported models: {list(self.MODEL_MAP)}")
                 return "", ""
             completion = self._client.chat.completions.create(
-                model=self.MODEL_MAP[model],
+                model=resolve_model(self.MODEL_MAP[model]),
                 messages=messages,
                 max_tokens=max_new_tokens,
                 temperature=self.SAMPLING["temperature"],

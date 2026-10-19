@@ -15,12 +15,21 @@ load_dotenv(_PROJECT_ROOT / '.env')
 # API CONFIGURATION - Loaded from .env file
 # ============================================================================
 
+# Route provider base_url / key / model through the repo-root shared LLM config.
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists():
+    _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import api_key as _llm_api_key, resolve_model as _resolve_model
+
 # Model / temperature defaults (used when no explicit model is passed)
-MODEL = os.getenv('OPENROUTER_MODEL', 'gpt-4o-mini')
+MODEL = _resolve_model(os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o-mini'))
 TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
-# OpenRouter Configuration (every model call goes through OpenRouter)
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
+# OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;
+# falls back to this project's own OPENROUTER_API_KEY .env entry).
+OPENROUTER_API_KEY = _llm_api_key() or os.getenv('OPENROUTER_API_KEY', '')
 _PLACEHOLDER_KEY = 'your-openrouter-key-here'  # the value shipped in .env.example
 
 # Reasoning Model Configuration (for o1/o3/gpt-5 models)

@@ -12,6 +12,14 @@ model at startup instead of letting a run finish with unusable data.
 
 from typing import Tuple
 
+# Route provider base_url / key / model through the repo-root shared LLM config.
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists():
+    _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import base_url as _llm_base_url, api_key as _llm_api_key, resolve_model
+
 from src.llm.capabilities import is_reasoning_model, supports_structured_output
 from src.llm.providers.openrouter_client import OpenRouterClient
 from src.llm.providers.parallel_openrouter_async import AsyncOpenRouterParallelClient
@@ -87,27 +95,38 @@ def create_llm_clients(
     Returns:
         (llm_client, parallel_client)
     """
+    # Default the model id through the shared config (LLM_MODEL override / Nebius mapping).
+    model = resolve_model(model)
     normalised = require_supported_model(model)
 
+    # Key and provider endpoint come from the shared compute.env (llm_config); fall back to
+    # the key passed in (this project's own .env) if the shared config has none.
+    openrouter_api_key = _llm_api_key() or openrouter_api_key
     if not openrouter_api_key:
         raise ValueError(
             "OPENROUTER_API_KEY is not set. Add it to this project's .env "
             "(see .env.example)."
         )
 
+    # llm_config.base_url() returns the provider root (e.g. https://openrouter.ai/api/v1);
+    # these clients POST to the chat/completions endpoint under it.
+    chat_url = _llm_base_url().rstrip("/") + "/chat/completions"
+
     # Reasoning models spend much longer before emitting their first token.
     timeout = 300 if is_reasoning_model(normalised) else 120
 
-    print(f"Using OpenRouter with model: {normalised}")
+    print(f"Using provider endpoint {chat_url} with model: {normalised}")
     llm_client = OpenRouterClient(
         api_key=openrouter_api_key,
         model=normalised,
         temperature=temperature,
         timeout=timeout,
+        base_url=chat_url,
     )
     parallel_client = AsyncOpenRouterParallelClient(
         api_key=openrouter_api_key,
         max_concurrent=max_workers,
         timeout=timeout,
+        base_url=chat_url,
     )
     return llm_client, parallel_client

@@ -1,139 +1,118 @@
-# Compute & inference: OpenRouter, Nebius, and Modal
+# Compute & inference: one config, every project
 
-You have **three** ways to get model inference and compute for these projects. Every project
-works out of the box with **OpenRouter** (the default). Hackathon sponsors also give you
-**Nebius** credits (an inference API) and **Modal** credits (serverless compute). This page is the
-one-stop guide for using all three.
+You set your keys and provider **once**, at the repo root, and every project uses it automatically.
+There are two separate things, at two different layers:
 
-> TL;DR
-> - **OpenRouter** — default; nothing to change. Put your key in each project's `.env`.
-> - **Nebius AI Studio** — cheaper/sponsored inference for *open* models. One-line `.env` change per project (table below).
-> - **Modal** — run any project *in the cloud* (offload your laptop, parallelize, or use a GPU) via `modal_run.py`.
+- **Inference** — *where model calls go.* Choose **OpenRouter** (default) or **Nebius AI Studio**
+  (sponsored). They're both OpenAI-compatible, so switching is a one-line change.
+- **Compute** — *where your code runs.* Run locally (default) or on **Modal** (sponsored serverless
+  GPU/CPU). Modal isn't an inference provider — it runs your code, which still uses the inference
+  provider you chose above.
 
-The three are independent: you can use Nebius for inference **and** Modal for compute at the same
-time (Modal just runs your command; the command still picks an inference provider via `.env`).
+> **One spot:** copy `compute.env.example` → `compute.env`, fill it in, done. `llm_config.py` feeds
+> it to every project's model client, and `modal_run.py` feeds the same file to cloud runs.
 
 ---
 
-## 1. OpenRouter (default)
-
-Each project ships a `.env.example`. Copy it and add your key:
+## Quick start
 
 ```bash
-cd <project> && cp .env.example .env     # then edit .env:
-# OPENROUTER_API_KEY=sk-or-...
+cp compute.env.example compute.env      # at the repo root
+# edit compute.env:
+#   LLM_PROVIDER=openrouter              # or: nebius
+#   OPENROUTER_API_KEY=sk-or-...         # and/or NEBIUS_API_KEY=...
 ```
 
-That's it — follow the project's own README quick start. All model calls go through
-`https://openrouter.ai/api/v1` using OpenAI-style model ids (e.g. `openai/gpt-4o-mini`,
-`meta-llama/llama-3.3-70b-instruct`).
+That's it. Run any project exactly as its README says — it picks up `compute.env` automatically. No
+per-project `.env` editing is needed for the provider/key (projects still have their own `.env` for
+project-specific settings; those keep working).
 
 ---
 
-## 2. Nebius AI Studio (sponsored inference)
+## 1. The one spot — `compute.env`
 
-**What it is.** Nebius AI Studio is an **OpenAI-compatible inference API** serving *open* models
-(Llama, Qwen, DeepSeek, Mistral, etc.). Because every project here already talks to an
-OpenAI-compatible endpoint, pointing one at Nebius is just **base URL + key + model id**.
+| key | meaning |
+|---|---|
+| `LLM_PROVIDER` | `openrouter` (default) or `nebius` — switches inference for **all** projects |
+| `OPENROUTER_API_KEY` | your OpenRouter key |
+| `NEBIUS_API_KEY` | your Nebius AI Studio key |
+| `LLM_MODEL` *(optional)* | force one model id across every project (overrides each project's default) |
+| `NEBIUS_DEFAULT_MODEL` *(optional)* | fallback model when a project's default has no Nebius equivalent |
 
-**Get your key.** Redeem your Nebius credits and create an API key in the Nebius AI Studio
-console → **set `NEBIUS_API_KEY`**. (Credit redemption link is pinned in the hackathon Slack /
-Luma; this guide works the moment your key is active.)
+`compute.env` is **gitignored** — your keys never get committed.
 
-> Endpoint: `https://api.studio.nebius.com/v1` — confirm the exact base URL and the model ids in
-> your Nebius console; the examples below are the common ones.
+---
 
-### The universal recipe
+## 2. Inference: OpenRouter ⇄ Nebius
 
-In the project's `.env`, three things:
+**OpenRouter (default).** Put `OPENROUTER_API_KEY` in `compute.env`. Nothing else to do.
 
+**Nebius AI Studio (sponsored).** Redeem your credits, create a key in the Nebius console, then:
 ```bash
-# 1) use your Nebius key as the OpenRouter key the project already reads
-OPENROUTER_API_KEY=<your NEBIUS_API_KEY>
-# 2) point the base URL at Nebius  (the var name differs per project — see the table)
-OPENROUTER_BASE_URL=https://api.studio.nebius.com/v1
-# 3) pick a Nebius-served model id (NOT an OpenRouter id) — see "models" below
-MODEL_NAME=meta-llama/Llama-3.3-70B-Instruct
+# in compute.env
+LLM_PROVIDER=nebius
+NEBIUS_API_KEY=...
 ```
+Every project now routes through `https://api.studio.nebius.com/v1`. Nebius serves **open** models
+(Llama, Qwen, DeepSeek, Mistral), so each project's default model id is **auto-mapped** to a Nebius
+equivalent (see `NEBIUS_MODEL_MAP` in `llm_config.py`); OpenAI/Gemini-family defaults fall back to
+`NEBIUS_DEFAULT_MODEL` (default `meta-llama/Llama-3.3-70B-Instruct`). Force a specific model for
+everything with `LLM_MODEL`.
 
-Then run the project normally. **Two caveats:** (a) the base-URL env var is not identical across
-projects — use the table; (b) Nebius serves **open** models, so a project whose default is an
-OpenAI-family model (e.g. `openai/gpt-4.1`) must be pointed at a Nebius model id instead.
-
-### Per-project switch (what to set / edit)
-
-| project | base-URL env var to set in `.env` | model flag / var | notes |
-|---|---|---|---|
-| algorithmic-pricing-llms | `LLM_PROVIDER=openai-compatible` + base URL in that preset | `MODEL_NAME` | has a provider-preset system (`src/agents/llm_providers.py`) |
-| llm-cartel | add a Nebius preset / set base URL in `harness/providers.py` | `MODEL_NAME` / `--models` | preset dict at `harness/providers.py` |
-| focal-points | base URL in `src/utils/openrouter_llm.py` preset | `MODEL_NAME` | open-model default already (Llama-3.3-70B) |
-| llm-agent-collusion | **`LLM_BASE_URL`** (already supported) | model via config/alias | env-only, no code edit |
-| colosseum | **`OPENROUTER_BASE_URL`** (already supported) | `llm_cfg.openrouter.model` | env-only, no code edit |
-| llm-agent-collusion-2 | `OPENROUTER_BASE_URL` constant in the two `llm_client.py` | roster model map | edit `Collusion_Cleanup/.../llm_client.py` + `Collusion_Liars_Bar/.../llm_client.py` |
-| llm-trust-breaking | `OPENROUTER_MODEL` + base URL in `src/llm/client_factory.py` | `--model` | enforces JSON mode; pick a Nebius model that supports `response_format` |
-| collusive-llm-agents | edit `base_url=` in `bertrand.ipynb` / `cournot.ipynb` | `MODEL_SPEC` in notebook | notebooks hardcode the URL |
-| steganographic-collusion | **`OPENAI_BASE_URL`** (already read) | per-config model | only "hosted" configs need a key; scripted/distilgpt2 configs need none |
-| trace-guard | `inspect-ai` model string / provider base URL | `INSPECT_EVAL_MODEL`, `INTENT_MODEL` | uses `inspect-ai`; set the OpenAI-compatible provider base URL it reads |
-
-"env-only" projects (**llm-agent-collusion, colosseum, steganographic-collusion**) need *no code
-change* — just set the listed var in `.env`. The rest need a one-line edit at the file shown.
-
-### Suggested Nebius model ids
-Check your console for the live catalog; common choices:
-`meta-llama/Llama-3.3-70B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`,
-`deepseek-ai/DeepSeek-R1`, `meta-llama/Llama-3.1-8B-Instruct` (cheap smoke tests),
-`mistralai/Mistral-Large-Instruct-2411`.
+> Confirm the exact base URL and model ids in your Nebius console when your credits are live.
 
 ---
 
-## 3. Modal (sponsored serverless compute)
+## 3. Compute: Modal (sponsored serverless)
 
-**What it is.** [Modal](https://modal.com) runs your code in the cloud on demand — CPU or GPU,
-pay-per-second, with your sponsored credits. Use it to **offload long/parallel runs from your
-laptop**, or to run the optional **`[gpu]`** parts (e.g. `llm-cartel` activation steering). Your
-inference provider is still chosen by the project's `.env` (OpenRouter or Nebius) — Modal just
-runs the command.
+Run any project in the cloud (offload long/parallel runs, or use a GPU for the optional `[gpu]`
+parts). Inference still follows `compute.env`.
 
-**One-time setup.**
 ```bash
 pip install modal
-modal setup                 # authenticate; redeem your hackathon credits (link in Slack/Luma)
-# store your inference keys as a Modal secret the runner will inject:
-modal secret create hackathon-keys \
-  OPENROUTER_API_KEY=sk-or-... \
-  NEBIUS_API_KEY=... \
-  OPENROUTER_BASE_URL=https://api.studio.nebius.com/v1   # include only if using Nebius
-```
+modal setup                         # authenticate + redeem your hackathon credits
+# modal_run.py reads your repo-root compute.env automatically (injected as a Secret).
 
-**Run any project on Modal** with the generic runner at the repo root:
-```bash
-# CPU example (llm-cartel smoke game):
+# run a project on Modal (CPU):
 modal run modal_run.py --project llm-cartel \
   --cmd "uv run python run_game.py --models openai/gpt-4.1-mini --rounds 30"
 
-# pip-based project:
-modal run modal_run.py --project llm-agent-collusion-2 \
-  --cmd "python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small"
-
-# GPU example (optional [gpu] extras):
-modal run modal_run.py --project llm-cartel --gpu a10g \
-  --cmd "uv run python steering/<script>.py"
+# GPU (optional [gpu] extras):
+modal run modal_run.py --project llm-cartel --gpu a10g --cmd "uv run python steering/<script>.py"
 ```
-
-The runner uploads the chosen project folder, installs its deps (`uv sync` if it has a
-`pyproject.toml`, else `pip install -r requirements.txt`), injects your `hackathon-keys` secret as
-env vars, runs your command, and streams the output back. See `modal_run.py` for details and flags.
-
-**Caveats.** `focal-points` and `trace-guard` expect **Docker** locally for parts of their
-pipeline — those parts don't map onto the basic Modal runner; use the CPU/OpenRouter path for them,
-or run their non-Docker entrypoints. Big result directories are excluded from the upload to keep it
-fast.
+The runner uploads the chosen project, installs its deps (`uv sync` or `pip`), injects your
+`compute.env`, runs the command, and streams output back. (If you'd rather use a named Modal secret
+than upload `compute.env`, create `modal secret create hackathon-keys ...` — the runner falls back to
+it.)
 
 ---
 
-## Which should I use?
+## 4. How it works (for the curious)
 
-- **Just hacking / small runs:** OpenRouter from your laptop.
-- **Want sponsored inference, open models, cost headroom:** Nebius (Section 2).
-- **Long sweeps, many parallel runs, or GPU extras:** Modal (Section 3), with inference still via
-  OpenRouter or Nebius.
+- **`llm_config.py`** (repo root) is the shared inference interface: `make_client()` returns an
+  OpenAI client pointed at the selected provider; `resolve_model(default)` returns the right model id.
+  Every project's client was wired to call these, so one `compute.env` controls them all.
+- **`modal_run.py`** reads the same `compute.env` as a Modal Secret — the compute layer consuming the
+  one config.
+- Switching provider = edit `compute.env` and re-run. No code changes, no per-project edits.
+
+---
+
+## 5. Known limits & caveats
+
+- **`llm-trust-breaking` is effectively OpenRouter-only.** It enforces structured JSON output and an
+  **OpenAI-family-only** model gate, so a Nebius (Llama) model is rejected. Use OpenRouter for it, or
+  set `LLM_MODEL=openai/...` (served via OpenRouter) — i.e. keep `LLM_PROVIDER=openrouter` for this one.
+- **JSON-mode projects need a response_format-capable Nebius model.** `llm-trust-breaking` and the
+  `collusive-llm-agents` notebooks require `response_format={"type":"json_object"}`; on Nebius pick a
+  served model that supports it, or outputs may parse empty.
+- **Model substitution on Nebius.** OpenAI/Gemini defaults (e.g. `openai/gpt-4o`) have no Nebius
+  equivalent and map to Llama models — so a GPT-4o/4o-mini pair becomes Llama-3.3-70B / Llama-3.1-8B.
+  Set `LLM_MODEL` or extend `NEBIUS_MODEL_MAP` to choose differently.
+- **`trace-guard`:** the main eval path (`scripts/run_eval.py`) is wired for both providers; its
+  `scripts/test_model_access.py` and `scripts/run_posthoc.py` are still OpenRouter-only. It also needs
+  **Docker** to actually run.
+- **`focal-points`:** the client always follows `compute.env`, but a caller passing an explicit
+  `model_id` bypasses the Nebius auto-mapping for that id (use `LLM_MODEL` to force one).
+- **Docker projects:** `focal-points` and `trace-guard` need Docker for parts of their pipeline —
+  those parts don't run on the basic Modal runner; use their local CPU/OpenRouter path.

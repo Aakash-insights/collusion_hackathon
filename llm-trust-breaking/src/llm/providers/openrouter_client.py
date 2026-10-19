@@ -12,7 +12,8 @@ class OpenRouterClient(BaseLLMClient):
     """OpenRouter API client with structured output support."""
 
     def __init__(self, api_key: str, model: str = "openai/gpt-4o-mini", temperature: float = 0.7,
-                 timeout: int = 120, max_retries: int = 3):
+                 timeout: int = 120, max_retries: int = 3,
+                 base_url: str = "https://openrouter.ai/api/v1/chat/completions"):
         """
         Initialize OpenRouter client.
 
@@ -25,7 +26,7 @@ class OpenRouterClient(BaseLLMClient):
         """
         super().__init__(model, temperature)
         self.api_key = api_key
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.base_url = base_url
         self.timeout = timeout
         self.max_retries = max_retries
 

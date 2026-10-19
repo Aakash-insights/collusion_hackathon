@@ -26,6 +26,12 @@ from dotenv import load_dotenv
 # from the current directory, which is not where the key is meant to live.
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
+# Let the repo-root compute.env (LLM_PROVIDER + keys) drive inspect-ai. No-op for the
+# default OpenRouter path; for LLM_PROVIDER=nebius this points inspect-ai's openai provider
+# at Nebius and rewrites model strings to openai/<model>. See scripts/_provider_shim.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _provider_shim
+
 from inspect_ai import eval
 
 from control_arena import EvalMode
@@ -213,17 +219,24 @@ def main():
 
     args = parser.parse_args()
 
+    # Apply the root compute.env provider choice, then remap model strings accordingly.
+    # (openrouter -> unchanged; nebius -> openai/<model> + OPENAI_BASE_URL/OPENAI_API_KEY)
+    provider = _provider_shim.apply()
+    args.untrusted_model = _provider_shim.map_model(args.untrusted_model)
+    args.trusted_model = _provider_shim.map_model(args.trusted_model)
+    if os.environ.get("INTENT_MODEL"):
+        os.environ["INTENT_MODEL"] = _provider_shim.map_model(os.environ["INTENT_MODEL"])
 
     # Fail before Docker and BashArena spin up, not ten minutes into the run.
-
-    if any(m.startswith("openrouter/") for m in (args.untrusted_model, args.trusted_model)):
-
+    if provider == "nebius":
+        key = os.environ.get("OPENAI_API_KEY", "")
+        if not key:
+            sys.exit("NEBIUS_API_KEY is not set in the repo-root compute.env "
+                     "(LLM_PROVIDER=nebius). Fill it in and re-run.")
+    elif any(m.startswith("openrouter/") for m in (args.untrusted_model, args.trusted_model)):
         key = os.environ.get("OPENROUTER_API_KEY", "")
-
         if not key or key == "your-openrouter-key-here":
-
             sys.exit("OPENROUTER_API_KEY is not set (or is still the placeholder). "
-
                      "Copy .env.example to .env and fill it in.")
 
     # Determine which monitors to run

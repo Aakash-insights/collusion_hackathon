@@ -30,6 +30,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
 Message = Dict[str, str]
 
 
@@ -96,7 +102,7 @@ class ChatProvider:
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'custom'")
         self.api_key = os.getenv(preset.key_env) or os.getenv("LLM_API_KEY")
-        self.model = self.model or preset.default_model
+        self.model = self.model or resolve_model(preset.default_model)
         if preset.needs_key and not self.api_key:
             raise ValueError(f"{preset.key_env} is not set (needed for {self.provider}:{self.model})")
         self.temperature = temperature
@@ -106,17 +112,15 @@ class ChatProvider:
 
         self.reasoning = reasoning
 
-        from openai import OpenAI
-
         headers = {}
         if self.provider == "openrouter":
             headers = {
                 "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
                 "X-Title": "hackathon llm-cartel",
             }
-        self._client = OpenAI(
-            base_url=self.base_url, api_key=self.api_key or "not-needed", default_headers=headers
-        )
+        # Client built by the repo-root llm_config utility (compute.env selects provider +
+        # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_local.
+        self._client = make_client(default_headers=headers)
 
     @property
     def spec(self) -> str:

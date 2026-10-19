@@ -23,6 +23,12 @@ import time
 from openai import OpenAI, APIError, BadRequestError
 from tqdm import tqdm
 
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
@@ -92,20 +98,15 @@ class OpenRouterClient(ModelWrapper):
 
     def __init__(self, model_name: str, **kwargs):
         super().__init__(model_name, **kwargs)
-        base_url = os.getenv("LLM_BASE_URL") or OPENROUTER_BASE_URL
-        api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("LLM_API_KEY")
-        if not api_key and "localhost" not in base_url and "127.0.0.1" not in base_url:
-            raise ValueError("OPENROUTER_API_KEY is not set (copy .env.example to .env)")
-        self.is_remote = "localhost" not in base_url and "127.0.0.1" not in base_url
-        self.client = OpenAI(
-            base_url=base_url,
-            api_key=api_key or "not-needed",
+        self.model_name = resolve_model(model_name)
+        self.client = make_client(
             timeout=120,
             default_headers={
                 "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
                 "X-Title": "hackathon llm-agent-collusion",
             },
         )
+        self.is_remote = "localhost" not in str(self.client.base_url) and "127.0.0.1" not in str(self.client.base_url)
 
     def generate(self, messages: List[Message]) -> Optional[str]:
         params = dict(self.additional_params)

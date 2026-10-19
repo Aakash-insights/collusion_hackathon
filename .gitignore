@@ -10,3 +10,6 @@ HACKATHON_CHANGES.md
 # environments
 .venv/
 __pycache__/
+
+# central hackathon compute config (keys)
+compute.env

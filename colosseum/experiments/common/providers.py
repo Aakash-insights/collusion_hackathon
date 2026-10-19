@@ -31,6 +31,13 @@ from dotenv import load_dotenv
 
 import terrarium.utils as _tu
 
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r))
+import llm_config
+from llm_config import make_client, resolve_model
+
 load_dotenv()
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
@@ -63,9 +70,9 @@ def make_openrouter_client(llm_cfg: Dict[str, Any]):
     from llm_server.clients.together_client import TogetherClient
 
     block = openrouter_block(llm_cfg)
-    base_url = str(block.get("base_url") or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL)
+    base_url = str(block.get("base_url") or llm_config.base_url())
     timeout = int(block.get("request_timeout", 120))
-    client = TogetherClient(base_url=base_url, api_key=openrouter_api_key(), request_timeout=timeout)
+    client = TogetherClient(base_url=base_url, api_key=llm_config.api_key(), request_timeout=timeout)
     # OpenRouter attribution headers (optional but recommended by OpenRouter).
     client.session.headers.update(
         {"HTTP-Referer": "https://github.com/hackathon-ny-starter-repo", "X-Title": "hackathon colosseum"}
@@ -86,7 +93,7 @@ def get_client_instance(
 
 def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        return str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL)
+        return resolve_model(str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL))
     return _tu.get_model_name(provider, llm_config)
 
 

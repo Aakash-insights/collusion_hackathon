@@ -34,9 +34,19 @@ NOTE (scaffolding): written ahead of live hackathon credits; validate once your 
 funded. `focal-points` and `trace-guard` need Docker for parts of their pipeline — those parts do
 not map onto this basic runner; use their CPU/OpenRouter path instead.
 """
+import os
+
 import modal
 
 app = modal.App("hackathon-runner")
+
+# The same repo-root compute.env that configures local runs also drives cloud runs: if present it is
+# injected as the container's env (LLM_PROVIDER + keys); otherwise fall back to a named Modal secret.
+SECRET = (
+    modal.Secret.from_dotenv(filename="compute.env")
+    if os.path.exists("compute.env")
+    else modal.Secret.from_name("hackathon-keys")
+)
 
 # One image serves every project: the project's own deps are installed at runtime (first call is
 # slower; re-runs reuse the cached upload). uv handles the pyproject projects; pip the rest.
@@ -51,6 +61,7 @@ image = (
         ignore=[
             ".git", "**/.git", "**/.venv", "**/__pycache__", "**/node_modules",
             "**/*.tar.gz", "**/*.pt", "**/*.safetensors",
+            "compute.env",  # keys travel via the Modal Secret, never baked into the image
         ],
     )
 )
@@ -70,7 +81,7 @@ def _install_cmd(proj: str) -> str:
 @app.function(
     image=image,
     timeout=3600,
-    secrets=[modal.Secret.from_name("hackathon-keys")],
+    secrets=[SECRET],
 )
 def run_project(project: str, cmd: str) -> int:
     """Install the project's deps, then run `cmd` inside the project dir. Output streams live."""

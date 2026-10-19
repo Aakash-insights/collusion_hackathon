@@ -58,20 +58,23 @@ class OpenAIChatClient(LLMClient):
         default_temperature: Optional[float] = None,
         default_max_tokens: Optional[int] = None,
     ) -> None:
-        try:
-            from openai import OpenAI  # type: ignore
-        except ImportError as exc:  # pragma: no cover - missing optional dependency
-            raise RuntimeError(
-                "OpenAIChatClient requires the `openai` package. "
-                "Install it with `pip install openai`."
-            ) from exc
+        # Route hosted traffic through the repo-root shared LLM config (OpenRouter/Nebius).
+        import sys as _sys, pathlib as _pl
+        _r = _pl.Path(__file__).resolve()
+        while _r != _r.parent and not (_r / "llm_config.py").exists():
+            _r = _r.parent
+        _sys.path.insert(0, str(_r))
+        from llm_config import make_client, resolve_model
 
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OpenAIChatClient requires an API key via `api_key` or OPENAI_API_KEY.")
-
-        self._client = OpenAI(api_key=api_key, base_url=base_url or os.getenv("OPENAI_BASE_URL"))
-        self.model = model
+        # make_client() already picks base_url+api_key from the shared config; honor any
+        # explicit overrides passed by the caller (e.g. per-config `api_key`/`base_url`).
+        overrides = {}
+        if api_key:
+            overrides["api_key"] = api_key
+        if base_url:
+            overrides["base_url"] = base_url
+        self._client = make_client(**overrides)
+        self.model = resolve_model(model)
         self.default_temperature = default_temperature
         self.default_max_tokens = default_max_tokens
 
