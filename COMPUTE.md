@@ -72,11 +72,19 @@ modal run util/modal_run.py --project llm-cartel --gpu a10g --cmd "uv run python
 needs):
 ```bash
 MODAL_SERVE_MODEL="Qwen/Qwen2.5-7B-Instruct" modal deploy util/modal_serve.py
-# -> gives a URL; then in compute.env:
+# -> gives a public URL; then in compute.env:
 #    LLM_BASE_URL=https://<you>--serve.modal.run/v1
+#    LLM_API_KEY=<the MODAL_SERVE_API_KEY you set, if any>
 #    LLM_MODEL=Qwen/Qwen2.5-7B-Instruct
 ```
 Now every project talks to **your** Modal model through the same `llm_config` interface.
+
+The deployed endpoint is a **public HTTPS URL** — it's a plain OpenAI-compatible API, authenticated by
+the bearer key you chose (`MODAL_SERVE_API_KEY` → `LLM_API_KEY`), **not** by your Modal login. Your Modal
+browser auth is only for *deploying* it; callers just need the URL + key. So **set
+`MODAL_SERVE_API_KEY`** (via `modal secret create modal-serve MODAL_SERVE_API_KEY=...`) or the URL is
+open to anyone who has it and spends your credits. Typically one person deploys and shares the URL + key;
+teammates paste both into their own `compute.env`.
 
 ---
 
