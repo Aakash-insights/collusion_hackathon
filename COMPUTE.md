@@ -12,8 +12,7 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
 
 > **One spot:** copy `compute.env.example` → `compute.env`, add `NEBIUS_API_KEY`, done. `util/llm_config.py`
 > feeds it to every project's client. For cloud runs, `util/modal_run.py` also passes it into the Modal
-> container (as a Secret) so your code can still reach Nebius there — that's about *inference* creds, not
-> Modal login (Modal auth is the browser sign-in above).
+> container (as a Secret) so your code can still reach Nebius there.
 
 ---
 
