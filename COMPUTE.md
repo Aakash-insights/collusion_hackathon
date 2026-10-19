@@ -6,7 +6,8 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
   serving open models. Every project routes through it automatically.
 - **Compute — Modal.** *Where your code runs.* Offload heavy/parallel runs and GPU work. Modal can
   **also host a model** (`util/modal_serve.py`) as an OpenAI-compatible endpoint — the inference fallback
-  for the few experiments Nebius can't serve cleanly.
+  for the few experiments Nebius can't serve cleanly. Modal **authenticates through your web browser**
+  (run `modal setup`); **ask in the hackathon Slack channel about redeeming your Modal credits.**
 
 > **One spot:** copy `compute.env.example` → `compute.env`, add `NEBIUS_API_KEY`, done. `util/llm_config.py`
 > feeds it to every project's client; `util/modal_run.py` feeds the same file to cloud runs.
