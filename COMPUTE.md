@@ -86,6 +86,23 @@ browser auth is only for *deploying* it; callers just need the URL + key. So **s
 open to anyone who has it and spends your credits. Typically one person deploys and shares the URL + key;
 teammates paste both into their own `compute.env`.
 
+**Or let it manage itself for a single run** with `util/hosted_model.py` — it brings a model up on Modal
+just for your command and tears it down afterward (no manual deploy/stop, no URL to share, no GPU left
+running):
+```bash
+python -m util.hosted_model --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- \
+  bash -c "cd llm-trust-breaking && python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1"
+```
+It ephemeral-runs `util/modal_serve.py`, points `llm_config` at the temporary endpoint, waits for the
+model to load, runs your command, then stops the app. In your own Python:
+```python
+from hosted_model import hosted_model          # util/ on sys.path (see §5 bootstrap)
+with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
+    ...  # your code; llm_config points at the Modal model in here
+# torn down on exit
+```
+Use `modal deploy` (above) instead when you want a **persistent** endpoint to share across the team.
+
 ---
 
 ## 4. Which provider does each experiment need?
