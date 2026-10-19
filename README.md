@@ -7,6 +7,11 @@ with a quick start; the projects are independent, so start with the question tha
 you. The starter gives you a working harness, not results: the sprint questions are yours to
 answer.
 
+> **Compute & inference (OpenRouter · Nebius · Modal):** every project works out of the box with
+> OpenRouter. Hackathon sponsors also provide **Nebius** inference credits and **Modal** serverless
+> compute credits — see **[`COMPUTE.md`](COMPUTE.md)** for one-line-per-project setup and the
+> generic `modal_run.py` cloud runner.
+
 ## At a glance
 
 | folder | paper / project | one-line summary |
