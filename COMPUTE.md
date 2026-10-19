@@ -33,7 +33,7 @@ Run any project exactly as its README says — it picks up `compute.env` automat
 | `NEBIUS_API_KEY` | your Nebius AI Studio key (default inference) |
 | `LLM_MODEL` *(opt)* | force one model id across every project |
 | `NEBIUS_DEFAULT_MODEL` *(opt)* | fallback when a project default has no Nebius equivalent |
-| `LLM_BASE_URL` *(opt)* | a custom OpenAI-compatible endpoint, e.g. your **Modal-hosted** model |
+| `LLM_BASE_URL` *(opt)* | point inference at any OpenAI-compatible endpoint — a **persistent** `modal deploy` model, a local vLLM, etc. (not needed for `util/hosted_model.py`, which sets this automatically for a single run) |
 | `LLM_API_KEY` *(opt)* | key for that custom endpoint |
 
 `compute.env` is **gitignored** — keys never get committed.
