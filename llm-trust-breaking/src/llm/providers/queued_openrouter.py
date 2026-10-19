@@ -25,7 +25,8 @@ class QueuedOpenRouterClient:
         api_key: str,
         max_workers: int = 50,
         timeout: int = 120,
-        max_retries: int = 3
+        max_retries: int = 3,
+        base_url: Optional[str] = None,
     ):
         """
         Initialize queued OpenRouter client.
@@ -37,7 +38,19 @@ class QueuedOpenRouterClient:
             max_retries: Maximum number of retry attempts (default: 3)
         """
         self.api_key = api_key
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        if base_url is None:
+            # follow the central compute.env provider (OpenRouter/Nebius); fall back to OpenRouter
+            try:
+                import sys as _sys, pathlib as _pl
+                _r = _pl.Path(__file__).resolve()
+                while _r != _r.parent and not (_r / "llm_config.py").exists():
+                    _r = _r.parent
+                _sys.path.insert(0, str(_r))
+                import llm_config
+                base_url = llm_config.base_url().rstrip("/") + "/chat/completions"
+            except Exception:
+                base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.base_url = base_url
         self.max_workers = max_workers
         self.timeout = timeout
         self.max_retries = max_retries

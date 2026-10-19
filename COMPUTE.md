@@ -87,7 +87,35 @@ it.)
 
 ---
 
-## 4. How it works (for the curious)
+## 4. Use it in your own script
+
+Writing a new experiment or helper? Use the shared config so your script follows `compute.env` like
+everything else — no hardcoded keys or endpoints:
+
+```python
+# locate + import the shared config (works from any project subdir and any venv)
+import sys, pathlib
+_r = pathlib.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists():
+    _r = _r.parent
+sys.path.insert(0, str(_r))
+from llm_config import make_client, resolve_model
+
+client = make_client()                          # OpenAI client for the selected provider
+model  = resolve_model("openai/gpt-4o-mini")    # your default; auto-mapped to Nebius when selected
+
+resp = client.chat.completions.create(
+    model=model, messages=[{"role": "user", "content": "hello"}])
+```
+
+- **Async:** `make_client(async_=True)` → an `AsyncOpenAI` client.
+- **Raw values** if you need them: `llm_config.base_url()`, `llm_config.api_key()`, `llm_config.provider()`.
+- **Jupyter** (no `__file__`): start the walk from `pathlib.Path.cwd()` instead of `__file__`.
+- **On Modal:** nothing extra — `modal_run.py` injects `compute.env`, so the same snippet just works.
+
+---
+
+## 5. How it works (for the curious)
 
 - **`llm_config.py`** (repo root) is the shared inference interface: `make_client()` returns an
   OpenAI client pointed at the selected provider; `resolve_model(default)` returns the right model id.
@@ -98,7 +126,7 @@ it.)
 
 ---
 
-## 5. Known limits & caveats
+## 6. Known limits & caveats
 
 - **`llm-trust-breaking` is effectively OpenRouter-only.** It enforces structured JSON output and an
   **OpenAI-family-only** model gate, so a Nebius (Llama) model is rejected. Use OpenRouter for it, or

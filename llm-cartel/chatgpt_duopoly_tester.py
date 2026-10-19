@@ -45,10 +45,15 @@ parser.add_argument("--seed", type=int, default=None, help="Run a single episode
 parser.add_argument("--overwrite", action="store_true", help="Overwrite any existing output file instead of resuming from the first failed or missing round")
 args = parser.parse_args()
 
-api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key or api_key.startswith("<") or api_key == "your-openrouter-key-here":
-    raise ValueError("OPENROUTER_API_KEY not found. Copy .env.example to .env and fill it in.")
-client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+import sys as _sys, pathlib as _pl
+_r = _pl.Path(__file__).resolve()
+while _r != _r.parent and not (_r / "llm_config.py").exists():
+    _r = _r.parent
+_sys.path.insert(0, str(_r))
+import llm_config
+if not llm_config.api_key():
+    raise ValueError("No API key found. Set OPENROUTER_API_KEY or NEBIUS_API_KEY in compute.env (or .env).")
+client = llm_config.make_client()  # follows compute.env (OpenRouter / Nebius)
 
 # OpenRouter ids are provider-qualified; accept the paper's bare OpenAI names too.
 if "/" not in args.model:
