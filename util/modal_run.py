@@ -40,11 +40,14 @@ import modal
 
 app = modal.App("hackathon-runner")
 
+# Repo root = parent of this util/ dir, so paths work regardless of where `modal run` is invoked.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 # The same repo-root compute.env that configures local runs also drives cloud runs: if present it is
 # injected as the container's env (LLM_PROVIDER + keys); otherwise fall back to a named Modal secret.
 SECRET = (
-    modal.Secret.from_dotenv(filename="compute.env")
-    if os.path.exists("compute.env")
+    modal.Secret.from_dotenv(path=ROOT, filename="compute.env")
+    if os.path.exists(os.path.join(ROOT, "compute.env"))
     else modal.Secret.from_name("hackathon-keys")
 )
 
@@ -56,7 +59,7 @@ image = (
     .pip_install("uv")
     # upload the repo so any --project is available; skip heavy/irrelevant dirs to keep it fast.
     .add_local_dir(
-        ".",
+        ROOT,
         remote_path="/repo",
         ignore=[
             ".git", "**/.git", "**/.venv", "**/__pycache__", "**/node_modules",

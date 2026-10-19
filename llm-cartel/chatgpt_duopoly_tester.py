@@ -47,9 +47,9 @@ args = parser.parse_args()
 
 import sys as _sys, pathlib as _pl
 _r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "llm_config.py").exists():
+while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
     _r = _r.parent
-_sys.path.insert(0, str(_r))
+_sys.path.insert(0, str(_r / "util"))
 import llm_config
 if not llm_config.api_key():
     raise ValueError("No API key found. Set OPENROUTER_API_KEY or NEBIUS_API_KEY in compute.env (or .env).")

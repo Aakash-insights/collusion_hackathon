@@ -9,8 +9,8 @@ not results: the sprint questions are yours to answer.
 
 > **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set
 > `NEBIUS_API_KEY`; every project uses it automatically (inference defaults to **Nebius AI Studio**).
-> Sponsors also provide **Modal** serverless compute — run any project in the cloud with `modal_run.py`,
-> or host a model with `modal_serve.py`. Full guide: **[`COMPUTE.md`](COMPUTE.md)**.
+> Sponsors also provide **Modal** serverless compute — run any project in the cloud with `util/modal_run.py`,
+> or host a model with `util/modal_serve.py`. Full guide: **[`COMPUTE.md`](COMPUTE.md)**.
 
 ## At a glance
 

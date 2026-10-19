@@ -19,8 +19,8 @@ from typing import Dict, List, Optional
 
 import sys as _sys, pathlib as _pl
 _r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r))
+while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
+_sys.path.insert(0, str(_r / "util"))
 from llm_config import make_client, resolve_model
 
 Message = Dict[str, str]

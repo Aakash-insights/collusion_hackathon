@@ -18,9 +18,9 @@ load_dotenv(_PROJECT_ROOT / '.env')
 # Route provider base_url / key / model through the repo-root shared LLM config.
 import sys as _sys, pathlib as _pl
 _r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "llm_config.py").exists():
+while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
     _r = _r.parent
-_sys.path.insert(0, str(_r))
+_sys.path.insert(0, str(_r / "util"))
 from llm_config import api_key as _llm_api_key, resolve_model as _resolve_model
 
 # Model / temperature defaults (used when no explicit model is passed)
