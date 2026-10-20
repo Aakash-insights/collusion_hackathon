@@ -1,11 +1,12 @@
-"""OpenRouter-backed LLM client for Liar's Bar.
+"""Routed LLM client for Liar's Bar (provider selected by the shared repo-root compute.env).
 
 The experiments were originally run against four local Hugging Face checkpoints
 (7-8B instruct models on H100s) through `LocalLLMClient`. This client keeps that
 interface -- `chat(messages, model) -> (content, reasoning_content)` -- along with the
 per-model sampling parameters, the cap on generated tokens and the response clean-up
 the local client applied, so the game logic sees the same kind of text. Only the
-inference moves from local GPUs to OpenRouter.
+inference moves from local GPUs to the shared routed provider config (Nebius default,
+OpenRouter fallback) selected by the repo-root compute.env.
 
 `player.py` always imported an `LLMClient` from this module; the file was missing from
 the published repository, so this also restores the import.

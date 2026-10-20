@@ -1,9 +1,10 @@
-"""OpenRouter-backed LLM client for Cleanup.
+"""Routed LLM client for Cleanup (provider selected by the shared repo-root compute.env).
 
 Replaces `LocalLLMClient`, which ran Hugging Face checkpoints on H100s. Same interface
 (`generate(...) -> str` and `chat(...) -> (content, reasoning_content)`), same fixed
 sampling parameters, same handling of the token budget -- only the inference moves to
-OpenRouter.
+the shared routed provider config (Nebius default, OpenRouter fallback) selected by the
+repo-root compute.env.
 """
 from __future__ import annotations
 

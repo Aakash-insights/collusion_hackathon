@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an academic research project (repackaged as a hackathon starter, see the top of README.md) investigating algorithmic collusion among Large Language Model (LLM) agents in oligopoly markets. The project tests Folk Theorem predictions about coordination breakdown as market concentration decreases, extending from duopoly (n=2) to five-agent markets (n=5).
 
-**Hackathon constraints**: everything must run on a laptop (no GPU) through OpenRouter with a single `OPENROUTER_API_KEY`. The LLM call sits behind `src/agents/llm_providers.py`. Do not reintroduce a hard dependency on a specific vendor SDK. Keep heavy packages (torch, sentence-transformers) in optional extras.
+**Hackathon constraints**: everything must run on a laptop (no GPU) through the shared inference config in the repo-root `compute.env` (`NEBIUS_API_KEY` for the default Nebius endpoint, plus an optional `OPENROUTER_API_KEY` for the OpenRouter fallback that covers closed models). The LLM call sits behind `src/agents/llm_providers.py`. Do not reintroduce a hard dependency on a specific vendor SDK. Keep heavy packages (torch, sentence-transformers) in optional extras.
 
 **Key Research Question**: Do LLM agent collusion mechanisms break down according to Folk Theorem predictions as the number of market participants increases?
 
@@ -46,7 +46,7 @@ This is an academic research project (repackaged as a hackathon starter, see the
 ### Core Components
 
 **`/src/agents/`** - LLM Agent Implementation
-- `LLMAgent` builds the chat request and validates the JSON answer; the call goes through `llm_providers.py` (OpenRouter by default with one key, default `mistralai/mistral-large-2512`; the thesis model mistral-large-2411 is no longer on OpenRouter; direct Mistral SDK / other OpenAI-compatible endpoints are opt-in). Exposes `temperature` and `seed`.
+- `LLMAgent` builds the chat request and validates the JSON answer; the call goes through `llm_providers.py`, which uses the shared inference config (Nebius default → OpenRouter fallback → Modal → fail loud; see `util/llm_config.py`). The default model is `mistralai/Mistral-Large-Instruct-2411` (open); direct Mistral SDK / other OpenAI-compatible endpoints are opt-in. Exposes `temperature` and `seed`.
 - Maintains 100-period rolling memory for strategic learning
 - Implements prompt-based pricing decisions with structured responses
 
@@ -78,7 +78,7 @@ This is an academic research project (repackaged as a hackathon starter, see the
 ### Data Flow
 
 1. **Configuration** → Market parameters (α, β, μ, costs) and agent setup
-2. **LLM Infrastructure** → Mistral API integration with rate limiting
+2. **LLM Infrastructure** → inference via the shared config (Nebius default → OpenRouter fallback) with rate limiting
 3. **Market Simulation** → 300-period repeated pricing games using Calvano demand
 4. **Data Collection** → Results stored in `data/results/all_experiments.parquet`
 5. **Analysis** → Statistical models and text analysis of agent reasoning
@@ -87,7 +87,7 @@ This is an academic research project (repackaged as a hackathon starter, see the
 ### Key Dependencies
 
 - **`polars`** - High-performance DataFrame operations (preferred over pandas)
-- **`mistralai`** - LLM API integration (`mistral-large-2411` primary model)
+- **`mistralai`** - LLM API integration (default model `mistralai/Mistral-Large-Instruct-2411`)
 - **`statsmodels/linearmodels`** - Econometric analysis and panel data models
 - **`seaborn/matplotlib`** - Statistical visualization
 - **`sentence-transformers`** - Text analysis and embedding generation for agent reasoning
@@ -95,14 +95,14 @@ This is an academic research project (repackaged as a hackathon starter, see the
 
 ### Environment Configuration
 
-Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` (and optionally `MODEL_NAME`). Keep heavy packages (torch, sentence-transformers) in the optional extras; core install must stay CPU-only and quick.
+Inference is configured in the repo-root `compute.env`: set `NEBIUS_API_KEY` for the default Nebius endpoint and, optionally, `OPENROUTER_API_KEY` to enable the OpenRouter fallback (needed for closed models). Override the model via `MODEL_NAME` if desired. Keep heavy packages (torch, sentence-transformers) in the optional extras; core install must stay CPU-only and quick.
 
 ## Important Implementation Notes
 
 ### Rate Limiting
 - Built-in rate limiting in `RateLimiter` class prevents API overuse
 - Default 1-second delay between LLM requests
-- Critical for managing Mistral API costs during experiments
+- Critical for managing inference API costs during experiments
 
 ### Memory Architecture
 - Agents maintain 100-period rolling window of market history

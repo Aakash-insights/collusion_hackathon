@@ -5,8 +5,10 @@ Poses Schelling-style coordination problems (and the Amsterdam / Nottingham
 Bardsley tasks, and the bargaining table) to an LLM, samples several answers per
 prompt and computes a coordination index (how often two random answers agree).
 
-All model calls go through OpenRouter (one OPENROUTER_API_KEY); the default model
-is the paper's default, meta-llama/llama-3.3-70b-instruct.
+All model calls go through the shared inference config (Nebius by default, with
+OpenRouter as fallback for closed/unavailable models), set via the repo-root
+`compute.env`; the default model is the paper's default,
+meta-llama/Llama-3.3-70B-Instruct.
 
     python main.py                                   # schelling, 18 prompts × 10 samples = 180 calls
     python main.py -s 30                             # paper's 30 samples per prompt

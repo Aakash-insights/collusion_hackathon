@@ -199,7 +199,7 @@ algorithmic-collusion-thesis/
 
 - **API Rate Limits**: Built-in rate limiting prevents overuse; adjust `rate_limit_seconds` if needed
 - **Memory Usage**: Large experiments may require substantial RAM for data processing
-- **Model Availability**: Ensure Mistral API key has access to `mistral-large-2411`
+- **Model Availability**: Ensure the shared inference config (`compute.env`) can reach the default model `mistralai/Mistral-Large-Instruct-2411` — served by Nebius, with the OpenRouter fallback for models Nebius doesn't serve
 
 **Development Tips:**
 

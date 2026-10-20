@@ -6,8 +6,9 @@ Hackathon standard: model calls go through the **shared OpenAI-compatible endpoi
 has no notion of this endpoint, but its ``TogetherClient`` is a plain OpenAI-compatible
 chat-completions client with tool calling and a configurable ``base_url``, so the
 ``provider: openrouter`` config label is routed through that client pointed at the shared
-endpoint's ``base_url`` with the shared key. (The ``openrouter`` label is just the historical
-routing key — no calls go to openrouter.ai, and there is no ``OPENROUTER_API_KEY``.)
+endpoint's ``base_url`` with the shared key. (The ``openrouter`` label is just a routing
+key to the shared OpenAI-compatible client (Nebius by default); it does not itself select
+OpenRouter or force calls to openrouter.ai.)
 
 Config block::
 

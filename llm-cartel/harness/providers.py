@@ -1,10 +1,12 @@
 """
 LLM providers for the laptop-scale harness (run_game.py, branch_game.py, api_judge.py).
 
-Hackathon standard: every model call goes through **OpenRouter** with one
-``OPENROUTER_API_KEY``. The paper ran DeepSeek-R1 distills (7B/14B/32B) through
-vLLM on GPUs; those distills are no longer served on OpenRouter, so the default
-is the full reasoning model ``deepseek/deepseek-r1-0528``. Any OpenRouter model id works
+Model calls follow the shared inference config (util/llm_config.py): **Nebius** by
+default, with **OpenRouter** as the fallback for closed models
+(``NEBIUS_API_KEY`` / optional ``OPENROUTER_API_KEY`` in compute.env). The paper ran
+DeepSeek-R1 distills (7B/14B/32B) through vLLM on GPUs; those distills are no longer
+served on OpenRouter, so the default is the full reasoning model
+``deepseek/deepseek-r1-0528``. Any OpenRouter model id works
 (rates: https://openrouter.ai/models), e.g. ``qwen/qwen3-14b`` or
 ``openai/gpt-4.1-mini``.
 
@@ -81,7 +83,7 @@ def parse_model_spec(spec: str) -> Tuple[str, str]:
             return prefix, rest
         if prefix in _REMOVED_PREFIXES:
             raise ValueError(
-                f"The '{prefix}:' prefix was removed: every hosted model goes through OpenRouter. "
+                f"The '{prefix}:' prefix was removed: every hosted model goes through the shared inference config. "
                 f"Use the OpenRouter id instead, e.g. {_REMOVED_PREFIXES[prefix].replace('<model>', rest)}."
             )
     return os.getenv("LLM_PROVIDER", "openrouter"), spec

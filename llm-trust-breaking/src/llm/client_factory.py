@@ -1,13 +1,14 @@
 """
 Factory for creating LLM clients.
 
-All model traffic goes through OpenRouter — there is no direct-to-provider path.
+Model traffic goes through the shared inference config (`util/llm_config.py`; Nebius
+default, OpenRouter fallback).
 
-This project supports OpenAI-family models only. The reason is structured output:
-agent decisions are read back as JSON via `response_format`, and a model without that
-support falls through to asking for JSON inside the prompt, whose failure mode is an
-empty decision rather than an error. The factory therefore rejects an unsupported
-model at startup instead of letting a run finish with unusable data.
+Structured output matters here: agent decisions are read back as JSON via
+`response_format`, and a model without that support falls through to asking for JSON
+inside the prompt, whose failure mode is an empty decision rather than an error. The
+factory warns on an unsupported model at startup rather than letting a run silently
+finish with unusable data.
 """
 
 from typing import Tuple

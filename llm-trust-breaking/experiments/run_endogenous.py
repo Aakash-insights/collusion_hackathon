@@ -227,7 +227,7 @@ def main():
     print(f"Agent model assignments: {agent_models}")
 
     # ------------------------------------------------------------------
-    # LLM clients (all traffic goes through OpenRouter)
+    # LLM clients (inference via the shared repo-root compute.env config)
     # ------------------------------------------------------------------
     llm_client, parallel_client = create_llm_clients(
         model=model,

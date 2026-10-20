@@ -512,7 +512,7 @@ def load_model(
     Load an LLM implementation.
 
     backend="openrouter" (default, hackathon standard): every model id - including the
-    paper's HuggingFace ids - is served through OpenRouter, no GPU needed.
+    paper's HuggingFace ids - is served through the shared inference endpoint, no GPU needed.
     backend="original": the paper's dispatch (OpenAI Responses API / Gemini / local
     transformers) - needs the `providers` and/or `gpu` extras and the matching keys.
     """

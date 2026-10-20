@@ -37,7 +37,7 @@ class Player:
             'alliance_established_game': None
         }
         
-        # LLM initialization (all inference goes through OpenRouter)
+        # LLM initialization (inference via the shared repo-root compute.env config)
         self.llm_client = LLMClient()
         self.model_name = model_name
 

@@ -42,7 +42,8 @@ class Preset:
 THESIS_MODEL = "mistralai/Mistral-Large-Instruct-2411"
 
 PRESETS: Dict[str, Preset] = {
-    # Hackathon default: one key, every model.
+    # Opt-in OpenRouter preset (fallback for closed models / models Nebius doesn't serve).
+    # The standard path is the shared compute.env config (Nebius default); see the module docstring.
     "openrouter": Preset(
         "https://openrouter.ai/api/v1",
         "OPENROUTER_API_KEY",
