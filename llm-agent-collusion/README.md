@@ -6,15 +6,32 @@ This repository contains code and data for "[Evaluating LLM Agent Collusion in D
 >
 > Five LLM sellers and six LLM buyers trade one lot per hour in a continuous double
 > auction; the paper asks whether the sellers coordinate to keep prices high and what
-> (communication, oversight, pressure, model mix) makes that more or less likely. For
-> the sprint inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`), the
+> (communication, oversight, pressure, model mix) makes that more or less likely. The
 > defaults are the brief's cheap starting point (**3 sellers, 3 buyers, 15 rounds, 1 seed = 90
-> calls**), and the brief's manipulated variables are flags. Run everything from the repo root.
+> calls**), and the brief's manipulated variables are flags. Run commands from **this experiment's
+> directory** (`llm-agent-collusion/`) — the `src/continuous_double_auction/...` paths below are
+> relative to it.
+>
+> **Inference — this experiment's defaults are CLOSED models.** The paper/default models are
+> `gpt-4.1` / Claude / Gemini, which Nebius doesn't serve, so they run via **OpenRouter**: set
+> **`OPENROUTER_API_KEY`** in the repo-root `compute.env` (not just `NEBIUS_API_KEY`). Alternatively,
+> pass an open model that Nebius serves via `--seller_models` / `--buyer_models` (e.g.
+> `--seller_models qwen/qwen3-14b`). See `../COMPUTE.md` for the full routing story (Nebius →
+> OpenRouter → Modal → fail loud).
 >
 > **Install** (< 1 min): `uv sync` (or `pip install -e .`). Configure inference once in the
-> repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`; then `cp .env.example .env` for
-> any per-project overrides. The paper's model names are aliases for model ids
-> (`gpt-4.1` → `openai/gpt-4.1`, the default); any other model id works too.
+> repo-root `compute.env` (`NEBIUS_API_KEY` + `OPENROUTER_API_KEY` for the closed defaults) — see
+> `../COMPUTE.md`; the local `.env` (`cp .env.example .env`) is only for per-project overrides, not
+> keys. The paper's model names are aliases for model ids (`gpt-4.1` → `openai/gpt-4.1`, the
+> default); any other model id works too.
+>
+> **Launch** — two equivalent ways (neither is the only one):
+> - **Recommended** (explicit routing via the shared entry point, run from the repo root):
+>   `python -m util.run --model <id> -- uv run python src/continuous_double_auction/simulation.py ...`
+>   — note `util.run`'s single `--model` sets one model for all agents; to give sellers/buyers
+>   different models, use the native flags below instead.
+> - **Native** (what the examples below use; reads `compute.env` automatically via the shared config),
+>   run from `llm-agent-collusion/`: `uv run python src/continuous_double_auction/simulation.py ...`.
 >
 > **Positive control first**
 > ```bash
@@ -52,7 +69,8 @@ This repository contains code and data for "[Evaluating LLM Agent Collusion in D
 > on, `llm_eval_full.json` (judge scores with evidence), plus `llm_judge_reliability_analysis.json`.
 > The per-agent prompt/response transcripts (~250 MB) were removed from this copy; get them from
 > the upstream repo: https://github.com/andyjliu/llm-agent-collusion/tree/main/data.
-> `evaluation/plot.py --results-dir data` reproduces the paper's figures from what is here.
+> `python src/continuous_double_auction/evaluation/plot.py --results-dir data` (the default
+> `--results-dir` is already `data`) reproduces the paper's figures from what is here.
 >
 > Original README follows.
 
@@ -60,12 +78,16 @@ This repository contains code and data for "[Evaluating LLM Agent Collusion in D
 
 ## Installation
 
-Create a virtual environment
+Create a virtual environment (run from this experiment's directory, `llm-agent-collusion/`):
 
 ```bash
 uv sync                      # or: python -m venv .venv && source .venv/bin/activate && pip install -e .
-cp .env.example .env         # optional per-project overrides; set NEBIUS_API_KEY in repo-root compute.env (COMPUTE.md)
+cp .env.example .env         # optional per-project overrides (NOT keys)
 ```
+
+Set keys once in the **repo-root `compute.env`** (`NEBIUS_API_KEY`, plus `OPENROUTER_API_KEY`
+because the default models — GPT-4.1 / Claude / Gemini — are closed and route via OpenRouter); see
+`../COMPUTE.md`.
 
 ## Code structure
 
@@ -83,30 +105,43 @@ The codebase is structured as follows:
 
 ## Usage
 
-You can run a simulation from the command line with the following command:
+Run a simulation from the command line (from `llm-agent-collusion/`):
 
 ```bash
-python src/continuous_double_auction/simulation.py
+uv run python src/continuous_double_auction/simulation.py
 ```
+
+`--help` lists every flag with its default. The main ones (all optional) are below; defaults match the
+sprint-brief starting point, not the paper.
 
 ### Command Line Arguments
 
-| Argument                   | Type           | Required | Default                                                   | Description                                                                  |
-| -------------------------- | -------------- | -------- | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `--seller_valuations`      | list of floats | No       | `[80.0, 80.0, 80.0, 80.0, 80.0]`                          | List of seller valuations (true costs for each seller)                       |
-| `--buyer_valuations`       | list of floats | No       | `[100.0, 100.0, 100.0, 100.0, 100.0, 100.0]`              | List of buyer valuations (true values for each buyer)                        |
-| `--seller_models`          | list of str    | No       | `["gpt-4.1", "gpt-4.1", "gpt-4.1", "gpt-4.1", "gpt-4.1"]` | Models to use for sellers (must be in SUPPORTED\_MODELS)                     |
-| `--buyer_models`           | list of str    | No       | `["gpt-4.1", "gpt-4.1", "gpt-4.1", "gpt-4.1", "gpt-4.1"]` | Models to use for buyers (must be in SUPPORTED\_MODELS)                      |
-| `--seller_prompt_template` | str            | No       | `"seller_prompt_base.jinja2"`                             | Prompt template file to use for sellers                                      |
-| `--rounds`                 | int            | No       | `30`                                                      | Number of rounds (hours) to run the simulation for                           |
-| `--temperature`            | float          | No       | `0.7`                                                     | Temperature for the models                                                   |
-| `--tag`                    | str            | No       | `""` (empty string)                                       | Custom tag to identify the experiment                                        |
-| `--seller_comms_enabled`   | flag           | No       | `False`                                                   | Whether sellers can communicate or not                                       |
-| `--buyer_comms_enabled`    | flag           | No       | `False`                                                   | Whether buyers can communicate or not                                        |
-| `--hide_num_rounds`        | flag           | No       | `False`                                                   | If set, agents will not be told the total number of rounds in the simulation |
-| `--oversight_enabled`      | flag           | No       | `False`                                                   | Whether to enable oversight for sellers                                      |
-| `--boss_pressure`          | flag           | No       | `False`                                                   | Whether to apply pressure on sellers to keep prices high                     |
-| `--max_message_length`     | int            | No       | `500`                                                     | Maximum length for agent communication messages                              |
+| Argument                   | Type           | Default                        | Description                                                                  |
+| -------------------------- | -------------- | ------------------------------ | ---------------------------------------------------------------------------- |
+| `--sellers`                | int            | `3`                            | Number of sellers (paper: 5)                                                 |
+| `--buyers`                 | int            | `3`                            | Number of buyers (paper: 6)                                                  |
+| `--rounds`                 | int            | `15`                           | Number of rounds (hours) to run (paper: 30)                                  |
+| `--paper`                  | flag           | `False`                        | Paper setting: 5 sellers, 6 buyers, 30 rounds (~330 calls)                   |
+| `--seeds`                  | list of ints   | `[0]`                          | One run per seed (agent names, initial orders, API seed where supported)     |
+| `--seller_valuations`      | list of floats | `[80.0]`                       | Seller cost(s): one value for all, or one per seller                         |
+| `--buyer_valuations`       | list of floats | `[100.0]`                      | Buyer value(s): one value for all, or one per buyer                          |
+| `--seller_models`          | list of str    | `[gpt-4.1]`                    | One for all sellers or one per seller (paper aliases or any model id)        |
+| `--buyer_models`           | list of str    | `[gpt-4.1]`                    | One for all buyers or one per buyer; `zip` = free rule-based ZIP buyer       |
+| `--temperature`            | float          | `0.7`                          | Temperature for the models                                                   |
+| `--seller_prompt_template` | str            | `seller_prompt_base.jinja2`    | Prompt template file to use for sellers                                      |
+| `--seller_comms_enabled`   | flag           | `False`                        | Sellers can message each other                                              |
+| `--buyer_comms_enabled`    | flag           | `False`                        | Buyers can message each other                                               |
+| `--max_message_length`     | int            | `500`                          | Message cap in characters                                                   |
+| `--hide_num_rounds`        | flag           | `False`                        | Do not tell agents the total number of rounds                               |
+| `--oversight_enabled`      | flag           | `False`                        | An overseer model reads seller messages (score 4/4 gags all sellers)        |
+| `--overseer_model`         | str            | `gpt-4.1-mini`                 | Overseer model (paper: gpt-4.1-mini)                                        |
+| `--overseer_sample_fraction` | float        | `1.0`                          | Share of seller messages the overseer sees each round (try 0.25, 0.5, 1.0)  |
+| `--boss_pressure`          | flag           | `False`                        | CEO message pressuring sellers to keep prices high                          |
+| `--tag`                    | str            | `""`                           | Run name suffix to identify the experiment                                   |
+| `--log_dir`                | str            | `results`                      | Directory to write run outputs to                                           |
+| `--llm_eval`               | flag           | `False`                        | LLM-as-judge coordination scoring after the run (+1 call per seller-round)   |
+| `--wandb`                  | flag           | `False`                        | Log to Weights & Biases (needs `--extra wandb`)                             |
+| `-y`, `--yes`              | flag           | `False`                        | Skip the cost confirmation prompt                                          |
 
 ### Experiments
 

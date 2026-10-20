@@ -56,9 +56,10 @@ printed. That preserves your intent rather than silently falling back to an unre
 
 ---
 
-## 3. Running an experiment — the one entry point
+## 3. Running an experiment — the entry point
 
-**There is a single way to run any inference experiment**, and it handles everything automatically:
+**The recommended way to run an experiment with a specific model** is the entry point below — it handles
+provider routing automatically (you never choose Nebius-vs-OpenRouter-vs-Modal yourself):
 
 ```bash
 python -m util.run --model <model id> -- <the experiment's normal command>
@@ -81,6 +82,12 @@ What it does, in order — **you never choose the provider yourself**:
 
 No model is ever silently swapped for a default. If something is misconfigured, the run fails loudly and
 tells you how to fix it — it never quietly runs the "wrong" thing.
+
+> **You can also run a project's native command directly** (e.g. `uv run python run_game.py …` from its
+> README). It uses the model configured in `compute.env` (Nebius by default, or whatever `LLM_MODEL` is
+> set to) — but it won't auto-route to OpenRouter/Modal. Use `util.run` when you want to pick a specific
+> model and have routing handled. (A couple of projects run their own way — e.g. `trace-guard` via its
+> inspect-ai shim, and the notebook projects via Jupyter; their READMEs say so.)
 
 > **First time using Modal?** You don't paste a Modal key anywhere. Run **`modal setup`** once (opens a
 > browser; stores a token in `~/.modal.toml`); your hackathon Modal **credits attach to that account**

@@ -10,18 +10,20 @@
 >
 > This is the "Fish-style duopoly implementation" from the sprint brief: a repeated
 > two-seller pricing game, 300 rounds, visible history, persistent notes. It has been
-> trimmed to run on a 16 GB laptop with no GPU, calling models **through OpenRouter**, and
-> the sprint's one-variable-at-a-time ablations are command-line flags.
+> trimmed to run on a 16 GB laptop with no GPU, calling models through the shared
+> inference config (**Nebius** by default, OpenRouter as fallback), and the sprint's
+> one-variable-at-a-time ablations are command-line flags.
 >
 > **1. Install (CPU only, < 1 min)**
 > ```bash
 > uv sync                      # or: pip install -e .
 > cp .env.example .env         # optional per-project overrides
 > ```
-> Inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
-> The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights; served
-> by Nebius, or Modal-hosted via `python -m util.run` if not). Pass `--model <id>` to try any other open
-> model (e.g. `meta-llama/Llama-3.3-70B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`).
+> Inference is configured once in the **repo-root** `compute.env` (one level up): set `NEBIUS_API_KEY`,
+> and add `OPENROUTER_API_KEY` if you use closed models or models Nebius doesn't serve — see
+> [`../COMPUTE.md`](../COMPUTE.md). The default model is the thesis model,
+> `mistralai/Mistral-Large-Instruct-2411` (open weights, served by Nebius). Pass `--model <id>` to try any
+> other open model (e.g. `meta-llama/Llama-3.3-70B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`).
 >
 > **2. Positive control first** (defaults = one prompt, alpha 1, one seed)
 > ```bash
@@ -100,8 +102,10 @@ uv sync
 
 ### Environment Setup
 
-Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
-Any per-project overrides go in a local `.env` (optional):
+Configure inference once in the **repo-root** `compute.env` (one level up from this experiment):
+set `NEBIUS_API_KEY`, and add `OPENROUTER_API_KEY` if you use closed models or models Nebius doesn't
+serve — see [`../COMPUTE.md`](../COMPUTE.md). That repo-root `compute.env` holds the shared keys; this
+project's local `.env` is only for optional per-project overrides:
 
 ```bash
 MODEL_NAME=mistralai/Mistral-Large-Instruct-2411
@@ -109,6 +113,8 @@ MODEL_NAME=mistralai/Mistral-Large-Instruct-2411
 See `.env.example` for the available overrides.
 
 ### Running Experiments
+
+The native commands below use the model from the repo-root `compute.env` (Nebius by default):
 
 ```bash
 # Run individual experiments
@@ -119,6 +125,13 @@ python experiments_synthetic/oligopoly_5.py
 
 # Baseline monopoly experiment
 python experiments_synthetic/monopoly.py
+```
+
+To pin a specific model and let the shared config handle provider routing (Nebius → OpenRouter → Modal),
+run the same command through the repo-root entry point (one level up) — see [`../COMPUTE.md`](../COMPUTE.md):
+
+```bash
+python -m util.run --model <model id> -- uv run python experiments_synthetic/duopoly.py
 ```
 
 ### Data Analysis
@@ -346,7 +359,7 @@ ln(Price_run) = β₀ + β₁·GroupSize + β₂·PromptType + X'γ + ε
 
 **Development Workflow:**
 
-1. Configure API keys in `.env` file
+1. Configure inference keys once in the repo-root `compute.env` (see [`../COMPUTE.md`](../COMPUTE.md)); use the local `.env` only for per-project overrides
 2. Run experiments using scripts in `experiments_synthetic/`
 3. Analyze results using Jupyter notebooks in `notebooks/`
 4. Generate visualizations and statistical outputs

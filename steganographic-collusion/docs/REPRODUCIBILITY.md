@@ -16,7 +16,7 @@ This document records the exact steps required to rebuild all Task 7 artifacts f
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r docs/requirements-extras.txt
+pip install -r requirements.txt
 ```
 
 ## Regeneration Pipeline

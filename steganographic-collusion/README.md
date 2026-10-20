@@ -4,7 +4,7 @@ Audit the Whisper is a research artifact for detecting steganographic collusion 
 
 ## Project Highlights
 - **Capacity-guided auditing:** Formal analysis with full proofs linking auditor interventions to covert-channel capacity, minimax lower bounds, and time-uniform e-value guarantees.
-- **ColludeBench-v0:** Pricing, first-price auction, peer review, continuous double auction, and hosted-LLM scenarios (Gemini, Llama 3.1 8B, GPT-4o-mini via OpenRouter) with configurable colluders and reproducible manifests.
+- **ColludeBench-v0:** Pricing, first-price auction, peer review, continuous double auction, and hosted-LLM scenarios (Gemini, Llama 3.1 8B, GPT-4o-mini, reached through the shared inference router — see §4) with configurable colluders and reproducible manifests.
 - **Calibrated detector stack:** Mutual information, permutation invariance, watermark variance, fairness-aware acceptance bias, and welfare guard tuned to false-positive rate $\le 10^{-3}$ via 10k honest runs plus sequential martingales.
 - **External validation:** Head-to-head evaluations against Secret Collusion, CASE, Perfect Collusion Benchmark, and SentinelAgent, all at fixed FPRs using pre-registered thresholds.
 - **End-to-end reproducibility:** Deterministic seeds, dataset hashes, regeneration scripts, CI smoke tests, and anonymised artifact packaging for double-blind review.
@@ -25,14 +25,19 @@ Audit the Whisper is a research artifact for detecting steganographic collusion 
 
 ## Getting Started
 
-### 1. Clone & Environment Setup
+### 1. Environment Setup
+This experiment ships inside the starter repo. From the repo root, enter the
+experiment directory and create an environment:
 ```bash
-git clone <repo-url>
-cd Steganographic_Collusion
+cd steganographic-collusion
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+`requirements.txt` is the complete install (numerical stack, YAML, the OpenAI-compatible
+client used for hosted inference, and the local `distilgpt2` backend). `docs/requirements-extras.txt`
+is only the minimal numerical/test subset — prefer `requirements.txt` here. If you are on a
+CPU-only laptop, install the CPU build of torch first (see the note in `requirements.txt`).
 
 ### 2. Quick Verification
 Run the CI smoke script (optional but recommended):
@@ -97,19 +102,33 @@ numbers against the actual messages. One JSON object per line; `json.loads` per 
 the loader you need.
 
 ### 4. Hosted LLM Experiments
-The hosted configs keep the paper's models; inference is configured once in the repo-root
-`compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`:
+The hosted configs keep the paper's models. Inference is configured once, centrally: copy
+the repo-root `compute.env.example` → `compute.env` and set `NEBIUS_API_KEY` (the open default).
+Models Nebius doesn't serve — including closed ones (GPT/Gemini/Claude) — route through the
+optional `OPENROUTER_API_KEY`. The hosted clients here pick up `base_url` + key automatically
+from that shared config via `util/llm_config.py`; the `backend:` label inside a config
+(`openrouter`, `gemini`, `groq`, …) does not select the provider — the central router does.
+See `../COMPUTE.md` for the full routing story (Nebius → OpenRouter → Modal → fail loud).
 
 ```bash
-cp .env.example .env          # optional per-project overrides
+# Keys live in the repo-root compute.env (see ../COMPUTE.md). The local .env is only for
+# per-project overrides and is optional:
+cp .env.example .env          # optional
 python -m auditor.experiments pricing_llm_gemini pricing_llm_groq
 ```
 
-| Config | Original | Runs now (OpenRouter id) |
+`auditor.experiments` takes **labels** (not config filenames). The hosted labels are
+`pricing_llm_gemini`, `pricing_llm_groq`, and `pricing_llm_open`; each maps to a
+`configs/audits/<label>_audit.yaml`.
+
+| Label / config prefix | Original | Routed model id |
 | --- | --- | --- |
-| `pricing_llm_gemini*` | Gemini 2.5 Flash | `google/gemini-2.5-flash` |
-| `pricing_llm_groq*` | Llama 3.1 8B (Groq's `llama-3.1-8b-instant`) | `meta-llama/llama-3.1-8b-instruct` |
-| `pricing_llm_closed` | GPT-4o-mini | `openai/gpt-4o-mini` |
+| `pricing_llm_gemini` | Gemini 2.5 Flash | `google/gemini-2.5-flash` |
+| `pricing_llm_groq` | Llama 3.1 8B (Groq's `llama-3.1-8b-instant`) | `meta-llama/llama-3.1-8b-instruct` |
+| `pricing_llm_closed` (config only) | GPT-4o-mini | `openai/gpt-4o-mini` |
+
+To force a specific model for a run instead of the config's default, you can route the command
+through the shared entry point: `python -m util.run --model <id> -- python -m auditor.experiments <label>`.
 
 Each hosted audit is 20 seeds × 8 rounds = **160 calls** (~4 min on Gemini 2.5 Flash, a few
 cents) and each honest calibration 10 × 8 = 80; the whole hosted suite is ~500 calls, about
@@ -120,16 +139,19 @@ with no key.
 `configs/pricing_llm_open*.yaml` and `review_llm_open.yaml` run `distilgpt2` locally via
 `transformers`. Budget for it: torch is ~5 GB installed from PyPI (~0.8 GB with the CPU
 index, see `requirements.txt`), the weights are 350 MB, peak RAM ~1.2 GB, and generation
-is slow on CPU — about 7–8 s per turn on 8 cores, so `pricing_llm_open_audit` (20 seeds)
-takes ~40 min and the calibration (50 seeds) ~3 h. `auditor.experiments` skips these
-labels with a message if `transformers` is not installed.
+is slow on CPU — about 7–8 s per turn on 8 cores, so the `pricing_llm_open` audit (20 seeds,
+config `configs/audits/pricing_llm_open_audit.yaml`) takes ~40 min and the calibration
+(50 seeds) ~3 h. `auditor.experiments` skips these labels with a message if `transformers`
+is not installed.
 
 ### 6. Honest-Run Validation
-To reproduce the 10k honest-run FPR bound:
+To reproduce the 10k honest-run FPR bound (10,000 Monte Carlo replicates is the default):
 ```bash
-python -m auditor.validate_union --config configs/audits/validate_union.yaml --runs 10000
+python -m auditor.validate_union --replicates 10000
 ```
-Results are logged to `results/calibration/union_validation.json` with Clopper–Pearson statistics and e-value traces.
+This resamples the shipped honest-run calibration samples; it takes no `--config` (there is no
+`validate_union.yaml`). Results are written to `results/calibration/union_validation.json`
+(override with `--output`); use `--seed` to change the RNG seed.
 
 ## References & Documentation
 - **Threat model:** `docs/threat_model.md`

@@ -10,37 +10,56 @@ This research framework measures how large language models engage in **strategic
 
 ## Quick Start
 
-Requires Python 3.9+ (verified on 3.12). Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+Requires Python 3.9+ (verified on 3.12). Inference is configured **once, centrally**, in the
+repo-root `compute.env` — not in this project. See `../COMPUTE.md` for the full story.
 
 ```bash
 pip install -r requirements.txt
 
-# Inference is configured centrally in the repo-root compute.env (NEBIUS_API_KEY); see COMPUTE.md.
+# 1. Configure inference once, at the REPO ROOT (one level up). See ../COMPUTE.md.
+cp ../compute.env.example ../compute.env
+# Edit ../compute.env:
+#   NEBIUS_API_KEY=...        # default inference (open models)
+#   OPENROUTER_API_KEY=...    # needed only if you run a closed model (GPT / Claude / Gemini)
+
+# 2. (Optional) per-project overrides live in a LOCAL .env (temperature, reasoning effort, agent count).
 cp .env.example .env
-# Edit .env for any per-project overrides (temperature, reasoning effort, agent count)
 
-# Models: OpenAI family only (openai/*). Other providers are rejected at startup
-# -- see .env.example for why.
+# Models: this experiment reads agent decisions back as structured JSON (response_format),
+# so pick a model that supports it. GPT / Claude via OpenRouter qualify, as do many Nebius
+# models. Non-OpenAI models are accepted (a warning prints) — the old OpenAI-only gate is
+# now advisory, not a hard error.
 
-# 1. Smoke test -- ~10 API calls, under a minute. Confirms the key and the model work.
-python experiments/run_endogenous.py \
-  --game diners --agents 2 --trials 1 --rounds 1 \
-  --model openai/gpt-4o-mini --use-queue
+# 3. Smoke test -- ~10 API calls, under a minute. Confirms the key and the model work.
+#    Recommended launcher: the one entry point routes Nebius -> OpenRouter -> Modal for you.
+python -m util.run --model openai/gpt-4o-mini -- \
+  python experiments/run_endogenous.py \
+    --game diners --agents 2 --trials 1 --rounds 1 \
+    --model openai/gpt-4o-mini --use-queue
 
-# 2. Full 10-round experiment -- ~8,000 API calls, see "Cost" below.
-python experiments/run_endogenous.py \
-  --game diners \
-  --agents 5 \
-  --trials 20 \
-  --rounds 10 \
-  --model openai/gpt-5.2 \
-  --use-queue \
-  --round-robin
+# (`python -m util.run` is run from the repo root; the native command below also works
+#  directly from this directory since it reads the repo-root compute.env.)
+
+# 4. Full 10-round experiment -- ~8,000 API calls, see "Cost" below.
+python -m util.run --model openai/gpt-4o-mini -- \
+  python experiments/run_endogenous.py \
+    --game diners \
+    --agents 5 \
+    --trials 20 \
+    --rounds 10 \
+    --model openai/gpt-4o-mini \
+    --use-queue \
+    --round-robin
 ```
+
+Either launch path works: the recommended `python -m util.run --model <id> -- <native cmd>`
+routes the model across providers automatically, and the plain
+`python experiments/run_endogenous.py …` command also works because it reads the repo-root
+`compute.env` directly. Neither is the only way to run it.
 
 **Output:** JSON with all stages + deception classifications →
 `outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{model}` is the
-model name with `/` replaced by `_` (e.g. `openai_gpt-5.2_endogenous.json`).
+model name with `/` replaced by `_` (e.g. `openai_gpt-4o-mini_endogenous.json`).
 
 ### Cost
 
@@ -48,7 +67,7 @@ Each trial-round makes 4 calls per agent (three stages + judge) plus a pairwise
 reflection step that grows as N×(N−1). With 5 agents that is 40 calls per trial-round,
 so the full example above is 20 × 10 × 40 ≈ **8,000 calls**, each allowed up to 2,000
 output tokens. Run the smoke test first, note what one call costs for your model, and
-scale `--trials` and `--rounds` from there. If the API key or model is wrong, the run
+scale `--trials` and `--rounds` from there. If the key or model is wrong, the run
 aborts at the first stage instead of burning the whole budget.
 
 ---
@@ -219,43 +238,46 @@ LLM-Strategic-Deception/
 ### Homogeneous Groups (All Same Model)
 
 ```bash
-python experiments/run_endogenous.py \
-  --game diners \
-  --agents 5 \
-  --trials 20 \
-  --rounds 10 \
-  --model openai/gpt-5.2 \
-  --use-queue \
-  --round-robin
+python -m util.run --model openai/gpt-4o-mini -- \
+  python experiments/run_endogenous.py \
+    --game diners \
+    --agents 5 \
+    --trials 20 \
+    --rounds 10 \
+    --model openai/gpt-4o-mini \
+    --use-queue \
+    --round-robin
 ```
 
 ### Heterogeneous Groups (Mixed Models)
 
-Agents can run different models. All of them must be OpenAI-family (`openai/*`); the
-agent names are deterministic, so for `--agents 5` they are always `J M Q T Z`.
+Agents can run different models. Each should support structured output (`response_format`);
+GPT / Claude via OpenRouter qualify, as do many Nebius models. The agent names are
+deterministic, so for `--agents 5` they are always `J M Q T Z`.
 
 Create `my_models.json`:
 ```json
 {
   "J": "openai/gpt-4o-mini",
-  "M": "openai/gpt-5.2",
-  "Q": "openai/gpt-5.2",
-  "T": "openai/gpt-5.2",
-  "Z": "openai/gpt-5.2"
+  "M": "openai/gpt-4o",
+  "Q": "openai/gpt-4o",
+  "T": "openai/gpt-4o",
+  "Z": "openai/gpt-4o"
 }
 ```
 
 ```bash
-python experiments/run_endogenous.py \
-  --game diners \
-  --agents 5 \
-  --trials 20 \
-  --rounds 10 \
-  --model openai/gpt-5.2 \
-  --agent-models-file my_models.json \
-  --use-queue \
-  --round-robin \
-  --run-suffix imposter_4o_mini_pos1
+python -m util.run --model openai/gpt-4o -- \
+  python experiments/run_endogenous.py \
+    --game diners \
+    --agents 5 \
+    --trials 20 \
+    --rounds 10 \
+    --model openai/gpt-4o \
+    --agent-models-file my_models.json \
+    --use-queue \
+    --round-robin \
+    --run-suffix imposter_4o_mini_pos1
 ```
 
 ### Key Flags
@@ -266,7 +288,7 @@ python experiments/run_endogenous.py \
 | `--agents` | Number of agents (default: 5) |
 | `--trials` | Independent trials per round (default: 50) |
 | `--rounds` | Sequential rounds with memory (default: 1) |
-| `--model` | Base model for homogeneous or fallback (e.g., `openai/gpt-5.2`) |
+| `--model` | Base model for homogeneous or fallback (e.g., `openai/gpt-4o-mini`) |
 | `--agent-models-file` | JSON mapping agent names to models (for heterogeneous) |
 | `--use-queue` | **Use async batching** (10–50× faster) |
 | `--round-robin` | Agents see prior announcements before speaking |
@@ -282,7 +304,7 @@ python experiments/run_endogenous.py \
 
 ```bash
 python experiments/plot/plot_trust.py \
-  outputs/experiments/diners/5agents/openai_gpt-5.2_endogenous.json
+  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json
 ```
 
 Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial showing trust scores over 10 rounds)
@@ -303,8 +325,8 @@ them at your own runs.
 
 ```bash
 python -m src.visualization.transcripts \
-  outputs/experiments/diners/5agents/openai_gpt-5.2_endogenous.json \
-  --output-dir outputs/transcripts/diners/gpt-5.2/
+  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json \
+  --output-dir outputs/transcripts/diners/gpt-4o-mini/
 ```
 
 ---
@@ -317,7 +339,7 @@ Each experiment generates a JSON file with this structure:
 {
   "metadata": {
     "game_type": "diners",
-    "model": "openai/gpt-5.2",
+    "model": "openai/gpt-4o-mini",
     "n_agents": 5,
     "n_trials": 20,
     "n_rounds": 10,

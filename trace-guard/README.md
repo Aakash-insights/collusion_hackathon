@@ -120,18 +120,28 @@ Detectors (what happened) → Intent Analyzer (why it's suspicious) → 5-Dim Sc
 > | Python >= 3.10 | — |
 > | `pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
 > | **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
-> | `NEBIUS_API_KEY` | in the repo-root `compute.env` (see `COMPUTE.md`) |
+> | `OPENROUTER_API_KEY` | in the repo-root `compute.env` (see `../COMPUTE.md`) — **required**: the default models are closed GPT-4o |
 > | Smoke test (5 samples, one monitor) | **~10 min**, a few hundred model calls |
 > | Full experiment (all monitors, 50 samples) | **6–8 h**, 2,400 evaluation runs |
 >
-> `scripts/quickstart.sh` checks every prerequisite and stops at the first one missing,
-> before anything expensive starts. Run it first.
+> `scripts/quickstart.sh` does everything in **Install & Run** below (prerequisite checks →
+> model-access test → BashArena image build → smoke test) and stops at the first missing
+> prerequisite, before anything expensive starts. Run it first — or follow the steps manually.
+>
+> **Launch mechanism:** trace-guard is the one exception to the repo's single entry point
+> (`python -m util.run`, see `../COMPUTE.md`). It runs through its own inspect-ai shim
+> (`scripts/run_eval.py` + `scripts/_provider_shim.py`), *not* `util.run`.
 
 ### Install & Run
 
+> `scripts/quickstart.sh` runs all of the steps below for you. Run it, or do them manually:
+
 ```bash
 pip install -e .              # or: uv pip install -e .   (inspect-ai + control-arena)
-cp .env.example .env          # optional per-project overrides; set NEBIUS_API_KEY in repo-root compute.env (COMPUTE.md)
+
+# Keys live at the repo root. Defaults are closed GPT-4o, so OPENROUTER_API_KEY is required.
+cp ../compute.env.example ../compute.env   # at the repo root; then set OPENROUTER_API_KEY (see ../COMPUTE.md)
+cp .env.example .env          # optional: per-project overrides only (e.g. INTENT_MODEL) — not where keys go
 
 # One-off: build the BashArena images (requires Docker running)
 control-arena env setup --env bash_arena
@@ -150,11 +160,19 @@ python scripts/run_eval.py --monitor simple_untrusted --attack-only --limit 20 -
 python scripts/analyze_results.py --log-dir logs/experiments --output figures/ --all-plots
 ```
 
-Inference is configured once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+> **Note:** the key experiment above is `--attack-only`. The ROC curve and confusion matrix need
+> **both** honest and attack logs — with attack-only logs they fail with "Only one class present".
+> Run an honest pass too (drop `--attack-only`, or add `--honest-only`) before `--all-plots`.
+
+Inference keys live once in the repo-root `compute.env` — see `../COMPUTE.md`. Because the default
+models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just
+`NEBIUS_API_KEY`, which only covers open models on Nebius). The local `.env` is for per-project
+overrides (e.g. `INTENT_MODEL`), **not** for keys.
 The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the
 untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with
 `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). The `openrouter/...`
-strings are rewritten to the shared Nebius provider automatically by `scripts/_provider_shim.py`.
+strings are rewritten to the shared provider automatically by `scripts/_provider_shim.py` (Nebius for
+open models; OpenRouter for the closed GPT-4o defaults).
 
 **Intent analyzer (optional).** The original project ran a second-opinion pass by Claude
 Opus 4.6 via AWS Bedrock whenever the heuristic detectors flagged an action. It is

@@ -15,8 +15,10 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 >
 > The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-hosted
 > judge models. For the sprint this repo has a **CPU-only harness** that keeps the same
-> market, prompts and output format but calls the models **through OpenRouter** with one
-> key. **You choose the agent model** (`--models` or `MODEL_NAME`); the script refuses to guess.
+> market, prompts and output format but reaches the models through the shared inference
+> config: set `NEBIUS_API_KEY` once in the repo-root `compute.env` (add `OPENROUTER_API_KEY`
+> for closed models or ones Nebius doesn't serve) — see `../COMPUTE.md`. **You choose the
+> agent model** (`--models` or `MODEL_NAME`); the script refuses to guess.
 > The paper's DeepSeek-R1-Distill-Qwen models are no longer served on OpenRouter. Measured
 > through OpenRouter on 2026-09-15, per call in a duopoly:
 >
@@ -29,9 +31,23 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 > The judge defaults to `qwen/qwen3-14b` (the paper's Qwen judge).
 > The GPU scripts are untouched and documented below; you do not need them.
 >
-> **Install** (< 1 min): `uv sync` (or `pip install -e .`). Configure inference once in the
-> repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`; then `cp .env.example .env` for
-> any per-project overrides.
+> **How to launch.** The native commands below (`uv run python run_game.py ...`) work as-is —
+> they read the repo-root `compute.env` and route automatically. You can equivalently wrap any
+> of them in the repo's one entry point to pin the model and let it pick Nebius → OpenRouter →
+> Modal (see `../COMPUTE.md`):
+> ```bash
+> python -m util.run --model Qwen/Qwen3-14B -- \
+>   bash -c "cd llm-cartel && uv run python run_game.py --rounds 30"
+> ```
+> (`util.run` uses Nebius/HF model casing, e.g. `Qwen/Qwen3-14B`; the native `--models` flag
+> uses OpenRouter ids, e.g. `qwen/qwen3-14b`.) Neither is the only way — pick whichever fits.
+>
+> **Install** (< 1 min): `uv sync` (or `pip install -e .`) — this installs only the CPU
+> harness; the GPU `[gpu]` extra (vllm/torch) is not needed for `run_game.py`. Configure
+> inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`, plus `OPENROUTER_API_KEY`
+> for closed / Nebius-missing models) — see `../COMPUTE.md`. That one file holds your keys for
+> every project; `cp .env.example .env` is optional and only for per-project overrides
+> (e.g. `MODEL_NAME`, `LLM_BASE_URL`).
 > A 300-round duopoly is 600 calls (reasoning models also bill thinking tokens); every
 > script prints the call count and asks before spending.
 >
@@ -53,6 +69,10 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 > profit) over the last 50 rounds and `positive control: PASS/FAIL` (market mean gain > 0.5).
 > Output: `results/jsonl/<name>.jsonl` (paper schema: `round, actions, thoughts, respones,
 > demands, profits, gains, metrics`) + `<name>.config.json`. Runs resume if interrupted.
+> `<name>` defaults to the run settings (pass `--name` to override): e.g.
+> `2agents_prefix_P0_model_qwen-qwen3-14b_win0_temp1p0_seed0` — `<N>agents`, the prefix(es),
+> model(s), `win<window>`, `temp<temperature>`, then `think`/`scale<α>` if set, and `seed<seed>`
+> (`/`, `:`, `.`, `+` in ids become `-`, `-`, `p`, `plus`).
 >
 > **Project 1.4 – is formed collusion robust to replacing participants?** (`branch_game.py`)
 > ```bash
@@ -81,9 +101,10 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 > Reasoning models (R1 distills, Qwen3) return their chain of thought; it is stored in
 > `thoughts` automatically, so `--think` is only needed for non-reasoning models. Model ids
 > are OpenRouter ids (`openai/gpt-4.1`, `google/gemini-2.5-flash`, ...). Two opt-in prefixes
-> exist for running without OpenRouter: `ollama:` (free local model) and `custom:` (any
+> exist for bypassing the shared config: `ollama:` (free local model) and `custom:` (any
 > OpenAI-compatible endpoint via `LLM_BASE_URL`). `chatgpt_duopoly_tester.py` (OpenAI
-> reasoning models via the Responses API) also goes through OpenRouter with the same key.
+> reasoning models via the Responses API) uses the same shared inference config; closed
+> OpenAI models route via OpenRouter when `OPENROUTER_API_KEY` is set.
 
 ---
 
@@ -102,12 +123,20 @@ This repository reproduces experiments from our [ICML 2026 Paper](https://openre
 
 ## Dependencies
 
+The CPU/API harness (`run_game.py`, `branch_game.py`, `judges/api_judge.py`) needs only the
+core deps and **does not require `vllm`/`torch`** — those ship in the optional `[gpu]` extra for
+the original GPU scripts (`r1_*_tester.py`, `steering/`, `partial_steering/`, `judges/*_warden_*.py`).
+Install the extras only if you run those: `uv sync --extra gpu --extra steering`.
+
+**Core (CPU harness):**
+- `numpy`, `scipy`
+- `pandas` — For judge scoring output
+- `openai`, `python-dotenv` — API client + config loading
+
+**GPU extra (`[gpu]`, original scripts only):**
 - `vllm` — Inference engine for local models
 - `transformers` — For behavior steering experiments (direct model access)
 - `torch`
-- `numpy`, `scipy`
-- `pandas` — For judge scoring output
-- `openai`, `python-dotenv` — For ChatGPT tester
 
 ## environment/
 
@@ -217,7 +246,7 @@ python r1_triopoly_tester.py P0,P3,P0 1 14B
 
 ### chatgpt_duopoly_tester.py
 
-2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through the shared inference config (set `NEBIUS_API_KEY` in the repo-root `compute.env` — see `COMPUTE.md`), like everything else here. A bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. Verified 2026-09-16 with gpt-5.4: reasoning summaries land in `thoughts`.
+2-agent Bertrand competition using OpenAI reasoning models (o3, o4-mini, gpt-5.4, etc.) via the Responses API, reached through the shared inference config (set `NEBIUS_API_KEY` in the repo-root `compute.env` — see `../COMPUTE.md`), like everything else here. A bare OpenAI name (`o3`) is prefixed to `openai/o3` automatically. Verified 2026-09-16 with gpt-5.4: reasoning summaries land in `thoughts`.
 
 ```bash
 python chatgpt_duopoly_tester.py [options]

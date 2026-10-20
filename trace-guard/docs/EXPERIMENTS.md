@@ -87,7 +87,7 @@ This produces:
 
 | Error | Fix |
 | --- | --- |
-| "No API key found" / 401 | put `OPENROUTER_API_KEY=...` in this project's `.env` (copy `.env.example`), then `python scripts/test_model_access.py` |
+| "No API key found" / 401 | put `OPENROUTER_API_KEY=...` in the **repo-root** `compute.env` (`cp ../compute.env.example ../compute.env`; see `../COMPUTE.md`) — the default GPT-4o models are closed — then `python scripts/test_model_access.py` |
 | "No logs found" | Run evaluations first, check `ls logs/` |
 | "Docker not running" | Start Docker Desktop, verify with `docker info` |
 | "Only one class present" | Need both honest and attack mode logs for ROC curve |

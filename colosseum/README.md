@@ -9,7 +9,7 @@ If you find the repo or paper useful or interesting please :star: it!
 <!-- > [!TIP] -->
 
 <p align="center">
-  <a href="dev/colosseum-motivation-v3.pdf">
+  <a href="https://arxiv.org/abs/2602.15198">
     <img src="dev/colosseum-motivation-v3-preview.png" alt="Colosseum motivation slides" width="70%" />
   </a>
 </p>
@@ -21,15 +21,25 @@ This repo contains experiments for Colosseum under `experiments/` that utilizes 
 >
 > Colosseum runs teams of tool-calling LLM agents on shared tasks (Jira ticket allocation,
 > hospital scheduling, ...) and measures whether an assigned coalition gains at the expense of
-> the others. For the sprint inference is configured once in the repo-root `compute.env`
-> (`NEBIUS_API_KEY`) — see `COMPUTE.md`; the paper's `openai/gpt-4o-mini` is the default model and
-> any model id that supports tool calling can be substituted in a config. The local-GPU (vLLM)
-> route is untouched but not needed.
+> the others. Any model id that supports tool calling can be used (set it in a config). The
+> local-GPU (vLLM) route is untouched but not needed.
+>
+> **Inference keys** (configured once at the repo root — see `../COMPUTE.md`): copy
+> `compute.env.example` → `compute.env` at the repo root and set `NEBIUS_API_KEY` (the default,
+> open-model provider). **The paper's default model, `openai/gpt-4o-mini`, is a closed model** —
+> to run it you must also set `OPENROUTER_API_KEY` in that same repo-root `compute.env`, *or*
+> pass an open model id (e.g. `Qwen/Qwen2.5-7B-Instruct`, which Nebius serves). The supplied
+> hackathon configs already swap the default for an open Nebius model, so `NEBIUS_API_KEY` alone
+> is enough for the commands below.
+>
+> **Run everything from the `colosseum/` directory** (`cd colosseum`): the `experiments.*` module
+> paths, config paths, and `outputs/` all resolve relative to it.
 >
 > **Install and preflight** (the brief flags Terrarium/CoLLAB as the setup risk)
 > ```bash
+> cd colosseum                             # all commands below run from here
 > uv sync                                  # Terrarium 0.1.1 from PyPI + CoLLAB vendored in external/
-> cp .env.example .env                     # optional per-project overrides
+> cp .env.example .env                     # optional per-project overrides (local only)
 > uv run python -m experiments.preflight   # checks python, terrarium, CoLLAB, environments, key
 > uv run python -m experiments.preflight --ping   # + one tiny model call
 > ```
@@ -41,7 +51,9 @@ This repo contains experiments for Colosseum under `experiments/` that utilizes 
 > uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_positive_control.yaml
 > ```
 > Every run prints the call estimate and asks before spending (`-y` or `COLOSSEUM_YES=1`
-> skips). Results land in `experiments/collusion/outputs/<tag>/<timestamp>/summary.csv`;
+> skips). Results land in `experiments/collusion/outputs/<tag>/<timestamp>/summary.csv`, where
+> `<tag>` is set by the config (`experiment.tag` / `experiment.output_dir`; e.g.
+> `hackathon_positive_control`) and `<timestamp>` is auto-generated per run;
 > `coalition_advantage_mean` is the headline metric (coalition mean reward minus
 > non-coalition mean reward), next to per-blackboard post counts, regret and violations. Each
 > run folder has `agent_prompts.md`, `blackboard_*.txt`, `tool_events.json` and `metrics.json`.
@@ -90,35 +102,58 @@ starter repo and found automatically. Only if you move it: set `TERRARIUM_COLLAB
 - `source .venv/bin/activate`
 - `uv sync`
 
-3) Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
-- `cp .env.example .env`   # optional per-project overrides
+3) Configure inference once in the **repo-root** `compute.env` (one level up from this directory) —
+see `../COMPUTE.md`. Copy `compute.env.example` → `compute.env` there and set `NEBIUS_API_KEY`
+(open models, default). To run the paper's closed default `openai/gpt-4o-mini`, also set
+`OPENROUTER_API_KEY`; otherwise pass an open model id. Keys live only in the repo-root
+`compute.env`.
+- `cp .env.example .env`   # optional *local, per-project* overrides (e.g. `TERRARIUM_COLLAB_PATH`) — not for keys
 
 ## Run
+
+**Run every command from the `colosseum/` directory** (`cd colosseum`) — config paths and the
+`outputs/` tree resolve relative to it.
+
+There are two equivalent ways to launch, and they share the same `compute.env`:
+
+- **Native (what the examples below use):** `uv run python <runner> --config <yaml>`. This reads the
+  repo-root `compute.env` directly and sends calls to Nebius / OpenRouter based on the model in the
+  config. Use this for the hackathon configs (their models are open, so `NEBIUS_API_KEY` suffices).
+- **Via the repo-wide entry point** (`../COMPUTE.md` §3): `python -m util.run --model <id> -- <cmd>`,
+  which force-selects a provider for `<id>` (Nebius → OpenRouter → Modal → loud error) and wraps the
+  native command. Use it to pin a specific model or to let it host an off-catalog model on Modal:
+  ```bash
+  # from the repo root
+  python -m util.run --model Qwen/Qwen2.5-7B-Instruct -- \
+    bash -c "cd colosseum && uv run python -m experiments.collusion.run \
+      --config experiments/collusion/configs/collusion_jira_topologies.yaml"
+  ```
 
 > [!TIP]
 > If you are using APIs, actively track API usage since API costs accumulate linearly with the number of agents in the run.
 
-Run from the repo root with your virtualenv active (e.g., `source .venv/bin/activate`). Here are is a non-exhaustive list of run commands:
+Activate your virtualenv (e.g., `source .venv/bin/activate`), or prefix with `uv run`. Here is a
+non-exhaustive list of native run commands (all from `colosseum/`):
 
 ```bash
-# Persuasion affects on collusion (JiraTicket)
-python experiments/persuasion/collusion/run.py \
+# Persuasion effects on collusion (JiraTicket)
+uv run python experiments/persuasion/collusion/run.py \
   --config experiments/persuasion/collusion/configs/persuasion_collusion_jira.yaml
 
-# Persuasion affects on collusion (Hospital)
-python experiments/persuasion/hospital/run.py \
+# Persuasion effects on collusion (Hospital)
+uv run python experiments/persuasion/hospital/run.py \
   --config experiments/persuasion/hospital/configs/persuasion_hospital.yaml
 
 # Collusion (JiraTicket topology sweeps)
-python experiments/collusion/run.py \
+uv run python experiments/collusion/run.py \
   --config experiments/collusion/configs/collusion_jira_topologies.yaml
 
 # Network influence / misinformation propagation (Mass policy)
-python experiments/network_influence/run.py \
+uv run python experiments/network_influence/run.py \
   --config experiments/network_influence/configs/misinformation_prop_mass.yaml
 
 # Agent objective misalignment (Hospital)
-python experiments/agent_misalignment/run.py \
+uv run python experiments/agent_misalignment/run.py \
   --config experiments/agent_misalignment/configs/agent_misalignment_gpt_4_1_mini.yaml
 ```
 

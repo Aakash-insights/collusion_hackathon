@@ -47,27 +47,41 @@ A sequential social dilemma where agents balance individual rewards with collect
 
 ## Installation
 
-Requires Python 3.9+. Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+Requires Python 3.9+. Inference is configured **once at the repo root** (one level up from this
+directory) — not here. Copy `../compute.env.example` → `../compute.env` and set `NEBIUS_API_KEY`
+(these are open models, so they run on Nebius by default); `OPENROUTER_API_KEY` is optional and only
+needed for models Nebius doesn't serve. See `../COMPUTE.md` for the full story.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env      # optional per-project overrides
+
+# keys live at the repo root (one level up), shared by every project:
+cp ../compute.env.example ../compute.env   # then edit: NEBIUS_API_KEY=...
+
+cp .env.example .env      # optional, local per-project overrides (the committed
+                          # .env.example is comments only — nothing to fill in)
 ```
 
 Inference is routed through the shared config; no GPU or local model weights are needed.
+`../compute.env` holds the **keys** (shared across projects); the local `.env` is only for
+optional per-project **overrides**.
 
 ### Models
 
 The study ran four different safety-aligned instruct models, one per agent, as local
-checkpoints on H100s. Two of them are no longer served on OpenRouter, so this version
-substitutes them with the closest model from the authors' own extended model table:
+checkpoints on H100s. These are all **open models**, so this version runs them through the
+shared config's default provider (**Nebius**); no local weights or GPUs are needed. Two of the
+originals are substituted with the closest model from the authors' own extended model table:
 
-| Seat | Original checkpoint | Runs now (OpenRouter) | Short name in code |
-|---|---|---|---|
-| Lily / agent 1 | Llama-3.1-8B-Instruct | `meta-llama/llama-3.1-8b-instruct` | `llama-3.1-8b` |
-| Quinn / agent 3 | Qwen2.5-7B-Instruct | `qwen/qwen-2.5-7b-instruct` | `qwen2.5-7b` |
-| Luke / agent 0 | Llama-3-8B-Instruct | `meta-llama/llama-3.2-3b-instruct` *(substitute)* | `llama-3.2-3b` |
-| Mike / agent 2 | Mistral-7B-Instruct-v0.3 | `mistralai/ministral-8b-2512` *(substitute)* | `ministral-8b` |
+| Seat | Original checkpoint | Runs now (short name in code) |
+|---|---|---|
+| Lily / agent 1 | Llama-3.1-8B-Instruct | `llama-3.1-8b` |
+| Quinn / agent 3 | Qwen2.5-7B-Instruct | `qwen2.5-7b` |
+| Luke / agent 0 | Llama-3-8B-Instruct | `llama-3.2-3b` *(substitute)* |
+| Mike / agent 2 | Mistral-7B-Instruct-v0.3 | `ministral-8b` *(substitute)* |
+
+The short names map to full model ids in each game's `llm_client.py`. The routed entry point
+(`python -m util.run`, below) sends these open models to Nebius by default.
 
 Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept;
 `llama-3.3-70b`, `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling
@@ -77,6 +91,30 @@ parameters and output caps are the ones the local client used; see each game's
 **Hardware:** any laptop. The original H100 requirement is gone with the local weights.
 
 ## Quick Start
+
+### How to launch (routed vs. bare)
+
+The commands below are shown as bare `python …` invocations. They work as-is, using whatever model
+the shared config resolves (`../compute.env`). The **recommended** way is to wrap the same command
+with the routed entry point, which picks Nebius → OpenRouter → Modal automatically and fails loudly if
+no provider has the model:
+
+```bash
+# routed (recommended): run the normal command under util.run
+python -m util.run --model meta-llama/Llama-3.1-8B-Instruct -- \
+  bash -c "cd Collusion_Liars_Bar && python src/game/game.py"
+
+# bare (also works): uses the model configured in ../compute.env
+cd Collusion_Liars_Bar && python src/game/game.py
+```
+
+Neither is the "only" way — pick whichever fits. See `../COMPUTE.md` for details.
+
+> **Large tournaments → Modal.** The full runs here make thousands of model calls, and `../COMPUTE.md`
+> lists this experiment's compute as **Modal**. To offload a whole run to Modal's machines instead of
+> your laptop, use `util/modal_run.py` (from the repo root):
+> `modal run util/modal_run.py --project llm-agent-collusion-2 --cmd "<command>"`. It injects
+> `../compute.env` into the container so inference still reaches Nebius.
 
 ### Smoke test first
 

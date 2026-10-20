@@ -14,18 +14,43 @@ With the increasing deployment of AI technologies in marketplaces, the study exp
 
 ## Setup ⚙️
 
-Requires Python 3.9+. Configure inference once in the repo-root `compute.env` (`NEBIUS_API_KEY`) — see `COMPUTE.md`.
+Requires Python 3.9+. Inference is configured once in the repo-root `compute.env` — see
+[`../COMPUTE.md`](../COMPUTE.md). **This experiment is the exception to COMPUTE.md's "one entry
+point" rule:** it is made of Jupyter notebooks, so you do *not* wrap them in
+`python -m util.run`. You run the notebooks directly and they read the repo-root `compute.env`
+automatically (via `util/llm_config.py`, which is imported in the first cell).
+
+**These notebooks default to closed models**, so unlike most projects you need an OpenRouter key,
+not just a Nebius one. The paper's originals are `openai/gpt-4o-2024-08-06` (Cournot) and
+`openai/gpt-3.5-turbo` (Bertrand), set in the `MODEL_SPEC` constant near the top of each notebook.
+Pick ONE of:
+
+- **Keep the closed paper models** → set `OPENROUTER_API_KEY` (closed models route via OpenRouter);
+  `NEBIUS_API_KEY` alone is not enough.
+- **Switch to an open model** → change `MODEL_SPEC` to an open id (e.g.
+  `Qwen/Qwen2.5-72B-Instruct`, in Nebius / Hugging Face casing) that supports JSON output
+  (`response_format`); then `NEBIUS_API_KEY` is enough.
 
 ```bash
+# at the repo root (see ../COMPUTE.md): cp compute.env.example compute.env, then set
+#   NEBIUS_API_KEY=...          (base inference key)
+#   OPENROUTER_API_KEY=...      (REQUIRED for the closed default models)
+
+cd collusive-llm-agents
 pip install -r requirements.txt
-cp .env.example .env      # optional per-project overrides
-jupyter notebook          # open cournot.ipynb or bertrand.ipynb
+cp .env.example .env       # see note below — only needed for the early key assert / overrides
+jupyter notebook           # open cournot.ipynb or bertrand.ipynb, run the cells in order
 ```
 
-The notebooks keep the paper's original models —
-`openai/gpt-4o-2024-08-06` for Cournot and `openai/gpt-3.5-turbo` for Bertrand — set in
-the `MODEL_SPEC` constant near the top of each notebook. Adjust the constants and the
-number of rounds as you see fit, and run the cells in order.
+> **Why the local `.env` still matters here:** the first cell of each notebook runs
+> `assert os.getenv('OPENROUTER_API_KEY')` *before* `util/llm_config.py` loads the repo-root
+> `compute.env`. So the key must already be in the process environment when that assert runs —
+> easiest is to also put `OPENROUTER_API_KEY=...` in this directory's local `.env`
+> (copied from `.env.example`), or `export OPENROUTER_API_KEY=...` in your shell before launching
+> Jupyter. The repo-root `compute.env` is what the actual client (`make_client()`) uses; the
+> local `.env` is for per-project overrides and to satisfy that early assert.
+
+Adjust the `MODEL_SPEC` / round-count constants as you see fit, and run the cells in order.
 
 **Cost:** each round is one call per firm. The Cournot notebook defaults to 50 rounds
 (~100 calls on gpt-4o); Bertrand to 5 rounds (~10 calls on gpt-3.5-turbo, ~30 s end to end).

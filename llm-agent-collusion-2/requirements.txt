@@ -1,4 +1,4 @@
-# LLM access (all inference goes through OpenRouter)
+# LLM access (OpenAI-compatible client; inference is routed via the repo-root compute.env — see ../COMPUTE.md)
 openai>=1.0.0
 python-dotenv>=1.0.0
 
