@@ -8,11 +8,12 @@ independent, so start with the question that interests you. The starter gives yo
 not results: the sprint questions are yours to answer.
 
 > **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set
-> `NEBIUS_API_KEY`; every project uses it automatically (inference defaults to **Nebius AI Studio**).
-> **One entry point runs any experiment with a chosen model:**
-> `python -m util.run --model <id> -- <the experiment's command>` — it uses Nebius if it serves the model,
-> otherwise hosts it on **Modal** for the run, otherwise stops with a clear error (nothing is ever
-> substituted). Full guide: **[`COMPUTE.md`](COMPUTE.md)**.
+> `NEBIUS_API_KEY` (and optionally `OPENROUTER_API_KEY`); every project uses it automatically (inference
+> defaults to **Nebius AI Studio**). **One entry point runs any experiment with a chosen model:**
+> `python -m util.run --model <id> -- <the experiment's command>` — it routes **Nebius → OpenRouter →
+> Modal** automatically (OpenRouter covers closed models like GPT/Gemini/Claude; Modal hosts custom /
+> off-catalog models), otherwise stops with a clear error (nothing is ever substituted). Full guide:
+> **[`COMPUTE.md`](COMPUTE.md)**.
 
 ## At a glance
 
