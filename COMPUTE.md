@@ -43,7 +43,10 @@ Run any project exactly as its README says — it picks up `compute.env` automat
 
 ## 2. Inference — Nebius (default) + OpenRouter (fallback)
 
-Put `NEBIUS_API_KEY` in `compute.env` (and optionally `OPENROUTER_API_KEY`). **No model is ever
+Put `NEBIUS_API_KEY` in `compute.env` (and/or `OPENROUTER_API_KEY`). The shared client points at whichever
+you set: Nebius if `NEBIUS_API_KEY` is present, otherwise OpenRouter if only `OPENROUTER_API_KEY` is set —
+so **a project's native commands work with either key** (with an OpenRouter-only key, Hugging-Face-cased
+model ids are translated to OpenRouter's casing automatically). **No model is ever
 silently swapped for a default.** To run an experiment with a specific model, use the **one entry point**
 below (§3) — it sends the model to Nebius if Nebius serves it, otherwise OpenRouter, otherwise hosts it on
 Modal, otherwise stops with a clear error. Write model ids in Nebius (Hugging Face) casing throughout —
@@ -84,10 +87,12 @@ No model is ever silently swapped for a default. If something is misconfigured, 
 tells you how to fix it — it never quietly runs the "wrong" thing.
 
 > **You can also run a project's native command directly** (e.g. `uv run python run_game.py …` from its
-> README). It uses the model configured in `compute.env` (Nebius by default, or whatever `LLM_MODEL` is
-> set to) — but it won't auto-route to OpenRouter/Modal. Use `util.run` when you want to pick a specific
-> model and have routing handled. (A couple of projects run their own way — e.g. `trace-guard` via its
-> inspect-ai shim, and the notebook projects via Jupyter; their READMEs say so.)
+> own directory). It talks to whichever endpoint your `compute.env` key selects — **Nebius or OpenRouter**
+> (with an OpenRouter-only key, model ids are auto-translated to OpenRouter casing) — so a native command
+> works with either key. What it does **not** do is auto-fall-back across providers or spin up Modal; use
+> `util.run` when you want to pin a specific model and have Nebius→OpenRouter→Modal routing handled. (A
+> couple of projects run their own way — `trace-guard` via its inspect-ai shim, the notebook projects via
+> Jupyter; their READMEs say so.)
 
 > **First time using Modal?** You don't paste a Modal key anywhere. Run **`modal setup`** once (opens a
 > browser; stores a token in `~/.modal.toml`); your hackathon Modal **credits attach to that account**

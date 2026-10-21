@@ -85,22 +85,47 @@ def _load():
 
 
 def endpoint_kind():
-    """'custom' if LLM_BASE_URL is set (e.g. a Modal-hosted model), else 'nebius'."""
+    """Which endpoint make_client() will use, by precedence:
+    'custom'    — LLM_BASE_URL is set (e.g. util/run.py routing or a Modal-hosted model);
+    'nebius'    — NEBIUS_API_KEY is set (the default provider);
+    'openrouter'— only OPENROUTER_API_KEY is set (fall back to OpenRouter directly);
+    'nebius'    — nothing set (api_key() will then fail loudly)."""
     _load()
-    return "custom" if os.environ.get("LLM_BASE_URL") else "nebius"
+    if os.environ.get("LLM_BASE_URL"):
+        return "custom"
+    if os.environ.get("NEBIUS_API_KEY"):
+        return "nebius"
+    if os.environ.get("OPENROUTER_API_KEY"):
+        return "openrouter"
+    return "nebius"
 
 
 def base_url():
     _load()
-    return os.environ.get("LLM_BASE_URL") or NEBIUS_BASE_URL
+    if os.environ.get("LLM_BASE_URL"):
+        return os.environ["LLM_BASE_URL"]
+    # No Nebius key but an OpenRouter key -> talk to OpenRouter directly (so native commands and
+    # notebooks work with only an OpenRouter key, not just util/run.py).
+    if not os.environ.get("NEBIUS_API_KEY") and os.environ.get("OPENROUTER_API_KEY"):
+        return OPENROUTER_BASE_URL
+    return NEBIUS_BASE_URL
 
 
 def api_key():
     _load()
-    key = os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY")
+    # Pick the key that matches the endpoint base_url() selected (see endpoint_kind()).
+    if os.environ.get("LLM_BASE_URL"):
+        key = (os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY")
+               or os.environ.get("OPENROUTER_API_KEY"))
+    elif os.environ.get("NEBIUS_API_KEY"):
+        key = os.environ.get("NEBIUS_API_KEY")
+    elif os.environ.get("OPENROUTER_API_KEY"):
+        key = os.environ.get("OPENROUTER_API_KEY")
+    else:
+        key = os.environ.get("LLM_API_KEY")
     if not key:
         raise RuntimeError(
-            "No inference API key set. Put NEBIUS_API_KEY in compute.env "
+            "No inference API key set. Put NEBIUS_API_KEY (or OPENROUTER_API_KEY) in compute.env "
             "(copy compute.env.example -> compute.env). "
             "(For a Modal-hosted model, util/hosted_model.py sets LLM_API_KEY for you.)"
         )
@@ -122,24 +147,30 @@ def resolve_model(requested):
             print(f"[llm_config] NOTE: '{model}' is retired; using its current equivalent "
                   f"'{upgraded}' (explicit version upgrade, not a default substitution).", flush=True)
             _announced_upgrades.add(model)
-        return upgraded
+        model = upgraded
+    # If the active endpoint is OpenRouter (an OpenRouter key and no Nebius/custom endpoint), translate
+    # the id to OpenRouter's casing so Hugging-Face-cased ids resolve there. No-op if it's already an
+    # OpenRouter id or not in the catalog (then it passes through and fails loudly at the call).
+    if endpoint_kind() == "openrouter":
+        return openrouter_serves(model) or model
     return model
 
 
 @functools.lru_cache(maxsize=1)
 def _nebius_catalog():
     """Set of model ids Nebius currently serves (GET /v1/models), or None if it can't be fetched."""
+    key = os.environ.get("NEBIUS_API_KEY")
+    if not key:
+        return None  # no Nebius key configured — can't (and needn't) check; silent, this is expected
     import urllib.request
     import json
     try:
         req = urllib.request.Request(NEBIUS_BASE_URL.rstrip("/") + "/models")
-        key = os.environ.get("NEBIUS_API_KEY")
-        if key:
-            req.add_header("Authorization", f"Bearer {key}")
+        req.add_header("Authorization", f"Bearer {key}")
         with urllib.request.urlopen(req, timeout=15) as r:
             return {m.get("id") for m in json.load(r).get("data", [])}
     except Exception as e:
-        # surface the reason (bad key, network, Nebius down) instead of hiding it; caller decides.
+        # a key IS set but the fetch failed (bad key, network, Nebius down) — surface the reason.
         print(f"[llm_config] WARNING: couldn't fetch the Nebius model catalog "
               f"({type(e).__name__}: {e}) — can't verify model availability.", flush=True)
         return None
@@ -199,7 +230,8 @@ def openrouter_serves(model):
 
 def config():
     _load()  # diagnostic view — checks the key without raising, unlike api_key()
-    has_key = bool(os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY"))
+    has_key = bool(os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY")
+                   or os.environ.get("OPENROUTER_API_KEY"))
     return {"endpoint": endpoint_kind(), "base_url": base_url(),
             "has_key": has_key, "has_openrouter_key": bool(os.environ.get("OPENROUTER_API_KEY")),
             "forced_model": os.environ.get("LLM_MODEL")}
