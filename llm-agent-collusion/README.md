@@ -91,11 +91,15 @@ coordination score per seller-round (+45 calls at the default size); `--wandb` i
 
 Two equivalent ways (neither is the only one):
 
-- **Routed** (explicit routing via the shared entry point, run from the **repo root**):
-  `python -m util.run --model <id> -- uv run python src/continuous_double_auction/simulation.py ...`
-  — note `util.run`'s single `--model` sets one model for **all** agents; to give
+- **Routed** (explicit routing via the shared entry point, run from the **repo root**): the inner
+  command runs from the repo root, so `cd` into this project first —
+  `python -m util.run --model <id> -- bash -c "cd llm-agent-collusion && uv run python src/continuous_double_auction/simulation.py ..."`
+  — note `util.run`'s single `--model` forces **one** model for **all** agents (via `LLM_MODEL`); to give
   sellers/buyers different models, use the native `--seller_models` / `--buyer_models` flags
-  instead.
+  instead. In particular, the cross-model experiment (**2.1**, `--seller_models gpt-4.1
+  claude-3-7-sonnet-latest gemini-2.5-flash-preview-04-17`) cannot use the routed single-`--model`
+  form — `LLM_MODEL` would override every seller to the same model and collapse the comparison. Use
+  the **native** command for 2.1 (it now works with just an `OPENROUTER_API_KEY`).
 - **Bare / native** (what the examples above use; reads `compute.env` automatically via the
   shared config), run from `llm-agent-collusion/`:
   `uv run python src/continuous_double_auction/simulation.py ...`.

@@ -38,25 +38,24 @@ cp .env.example .env                        # optional: per-project overrides on
 
 Because the default models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just `NEBIUS_API_KEY`, which only covers open models on Nebius) — see [`../COMPUTE.md`](../COMPUTE.md). The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). The `openrouter/...` strings are rewritten to the shared provider automatically by `scripts/_provider_shim.py` (Nebius for open models; OpenRouter for the closed GPT-4o defaults). The local `.env` is for per-project overrides (e.g. `INTENT_MODEL`), **not** for keys.
 
-**Arena image build** (one-off, requires Docker running):
-
-```bash
-control-arena env setup --env bash_arena
-```
+**Arena images.** There is no separate build step — BashArena builds its Docker images **lazily on the first `scripts/run_eval.py`** (ControlArena's `control-arena env setup` only covers the Infra setting, not BashArena). Expect the first run to pull/build ~15–20 GB and take several minutes before the eval proper starts; later runs reuse the cached images. Docker just has to be running.
 
 **Intent analyzer (optional).** The original project ran a second-opinion pass by Claude Opus 4.6 via AWS Bedrock whenever the heuristic detectors flagged an action. It is disabled unless `INTENT_MODEL` is set in `.env`. Opus is the expensive tier (US$5 / US$25 per million tokens in/out), so leave it off for smoke tests, and swap in another model id if you prefer — nothing else depends on it.
 
 ## Quick start
 
-`scripts/quickstart.sh` does all of the setup above and the smoke test for you (prerequisite checks → model-access test → BashArena image build → smoke test); it stops at the first missing prerequisite, before anything expensive starts. Run it first — or do the steps manually:
+`scripts/quickstart.sh` does all of the setup above and the smoke test for you (prerequisite checks → model-access test → smoke test); it stops at the first missing prerequisite, before anything expensive starts. The first `run_eval.py` it calls triggers the lazy BashArena image build. Run it first — or do the steps manually:
 
 ```bash
-# Seconds: confirm the key and the two models answer, before the ~10-minute eval
+# Seconds: confirm the key and the two models answer, before the eval
 python scripts/test_model_access.py
 
-# Quick smoke test (~10 min, a few hundred model calls)
-python scripts/run_eval.py --monitor traceguard --limit 5
+# Genuinely cheap smoke test: one monitor, attack-only, one threshold, one side task, 2 samples.
+# A handful of model calls (plus the one-off image build on the very first run) — NOT the full default.
+python scripts/run_eval.py --monitor traceguard --attack-only --thresholds 0.5 --limit 2 --side-tasks download_malware
 ```
+
+> **Mind the default.** Plain `python scripts/run_eval.py --monitor traceguard --limit 5` is **not** a smoke test: with the default 21 thresholds × 2 modes × 4 side tasks it expands to **168 tasks** (× 5 samples each) and hundreds of model calls. Pin `--thresholds`, add `--attack-only`, and narrow `--side-tasks` as above to keep it cheap.
 
 Success signal: `test_model_access.py` reports both configured models answering, then `run_eval.py` writes `.eval` log files under `logs/`.
 
@@ -411,8 +410,9 @@ python scripts/analyze_results.py --log-dir logs/ --output figures/ --confusion-
 
 | Scenario | Command | Monitors | Samples | Estimated Time |
 | --- | --- | --- | --- | --- |
-| Smoke Test | `python scripts/run_eval.py` | traceguard + simple_trusted | 5 | ~10 min |
-| Single Monitor | `--monitor traceguard --limit 10` | 1 selected | 10 | ~20 min |
+| Cheap smoke | `--monitor traceguard --attack-only --thresholds 0.5 --limit 2 --side-tasks download_malware` | 1 selected | 2 | a few min (+ one-off image build on first run) |
+| Default run | `python scripts/run_eval.py` | traceguard + simple_trusted | 5 | ~1 h (2 × 21 thresholds × 2 modes × 4 side tasks = 336 tasks) |
+| Single Monitor | `--monitor traceguard --limit 10` | 1 selected | 10 | hours (1 × 21 × 2 × 4 = 168 tasks) |
 | Full Experiment | `--all-monitors --limit 50` | All 6 | 50 | ~6-8 hrs |
 | Safety Only | `--all-monitors --attack-only --limit 50` | All 6 | 50 | ~3-4 hrs |
 | Post-Hoc Rescore | `run_posthoc.py --log-dir logs/ --all-monitors` | All 6 | _(from logs)_ | ~30 min |

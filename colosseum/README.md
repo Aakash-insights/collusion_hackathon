@@ -48,12 +48,13 @@ CoLLAB (required for the DCOP environments) is vendored in `external/CoLLAB` in 
 and found automatically. Only if you move it: set `TERRARIUM_COLLAB_PATH` in `.env`.
 
 **Inference config:** configured once in the **repo-root** `compute.env` (one level up from this
-directory). Copy `../compute.env.example` → `compute.env` there and set `NEBIUS_API_KEY` (open
-models, the default). **The paper's default model, `openai/gpt-4o-mini`, is closed** — to run it
-you must also set `OPENROUTER_API_KEY` in that same repo-root `compute.env`, *or* pass an open
-model id (e.g. `Qwen/Qwen2.5-7B-Instruct`, which Nebius serves). The shipped hackathon configs
-already swap the default for an open Nebius model, so `NEBIUS_API_KEY` alone is enough for the
-commands below. Keys live only in the repo-root `compute.env`; see
+directory). Copy `../compute.env.example` → `compute.env` there and set **either**
+`OPENROUTER_API_KEY` (serves every model id below, including the paper's default
+`openai/gpt-4o-mini`) **or** `NEBIUS_API_KEY` (open models only). A single `OPENROUTER_API_KEY`
+is enough for all the commands on this page — the shared client falls back to OpenRouter whenever
+that is the only key set, and preflight's key check counts it. (The shipped hackathon configs use
+an open model id, so a `NEBIUS_API_KEY` alone also works.) Keys live only in the repo-root
+`compute.env`; see
 [`../COMPUTE.md`](../COMPUTE.md). Optionally `cp .env.example .env` here for *local, per-project*
 overrides (e.g. `TERRARIUM_COLLAB_PATH`) — not for keys.
 
@@ -63,7 +64,7 @@ First preflight, then run the supplied positive control:
 
 ```bash
 uv run python -m experiments.preflight           # checks python, terrarium, CoLLAB, environments, key
-uv run python -m experiments.preflight --ping    # + one tiny model call
+uv run python -m experiments.preflight --ping --model openai/gpt-4o-mini  # + one tiny model call (--model is required)
 uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_positive_control.yaml
 ```
 
@@ -73,7 +74,11 @@ model calls. Every run prints the call estimate and asks before spending (`-y` o
 `COLOSSEUM_YES=1` skips).
 
 **Success signal:** `coalition_advantage_mean` (coalition mean reward minus non-coalition mean
-reward) is the headline metric and should come out **positive** for the control.
+reward) is the headline metric. Expect it to come out **positive** only after you expand the run
+past this cheap default — the shipped config uses a single seed (`seeds: [1]`) and
+`max_planning_rounds: 2` (paper: 4) to keep calls cheap, and a single cheap seed can land
+negative by chance. Raise `seeds:` to 3–5 and `max_planning_rounds` toward the paper's 4 (per the
+config's own comments) before reading the sign as a real effect.
 
 ## Running experiments
 
@@ -156,9 +161,10 @@ config (`experiment.tag` / `experiment.output_dir`; e.g. `hackathon_positive_con
 `<timestamp>` is auto-generated per run. Each run folder has `summary.csv`, `agent_prompts.md`,
 `blackboard_*.txt`, `tool_events.json`, `metrics.json` and `final_summary.json`.
 
-It worked if `summary.csv` reports `coalition_advantage_mean` (positive for the control) next to
-per-blackboard post counts, regret and violations, and the per-agent rewards appear in
-`final_summary.json`.
+It worked if `summary.csv` reports `coalition_advantage_mean` (positive for the control once you
+expand seeds / planning rounds — see the success-signal note above; a single cheap seed may be
+negative) next to per-blackboard post counts, regret and violations, and the per-agent rewards
+appear in `final_summary.json`.
 
 ## Notes
 

@@ -1,9 +1,10 @@
 """
-Preflight for the hackathon: checks the Terrarium/CoLLAB install, the inference key,
-and (optionally) one live model call through the shared endpoint (Nebius by default).
+Preflight for the hackathon: checks the Terrarium/CoLLAB install, the inference key
+(OPENROUTER_API_KEY or NEBIUS_API_KEY), and (optionally) one live model call through
+the shared endpoint.
 
     uv run python -m experiments.preflight                      # checks only
-    uv run python -m experiments.preflight --ping --model <id>  # + one tiny chat call
+    uv run python -m experiments.preflight --ping --model <id>  # + one tiny chat call (--model required)
 """
 
 from __future__ import annotations
@@ -65,9 +66,11 @@ def main() -> None:
 
     has_key = llm_config.config()["has_key"]
     ok &= check(
-        "inference key set (NEBIUS_API_KEY)",
+        "inference key set (OPENROUTER_API_KEY or NEBIUS_API_KEY)",
         has_key,
-        "" if has_key else "copy compute.env.example to compute.env at the repo root and set NEBIUS_API_KEY",
+        ""
+        if has_key
+        else "copy compute.env.example to compute.env at the repo root and set OPENROUTER_API_KEY (or NEBIUS_API_KEY)",
     )
 
     if args.ping and ok:

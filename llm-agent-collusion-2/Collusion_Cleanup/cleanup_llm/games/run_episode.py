@@ -57,7 +57,9 @@ def run_episode(steps: int, seed: int, csv_path: str = None, roster: str = "rand
 
     # Create environment
     config = DEFAULT_CONFIG
-    config.max_steps = steps
+    # env + prompts read config.MAX_STEPS (uppercase); lowercase max_steps was a no-op
+    # that left the step count at the default 50 regardless of --steps.
+    config.MAX_STEPS = steps
     config.rng_seed = seed
     env = CleanupEnvironment(config)
 

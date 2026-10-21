@@ -52,6 +52,15 @@ This project's local `.env` is only for optional per-project overrides, e.g.:
 MODEL_NAME=mistralai/Mistral-Large-Instruct-2411
 ```
 
+**Which variable sets the model?** These scripts read **`MODEL_NAME`** (project-local, set it in this folder's `.env` or `--model <id>` on the command line). The shared inference config reads **`LLM_MODEL`** (global, set it in the repo-root `compute.env`). Precedence, highest first:
+
+1. `--model <id>` (command line)
+2. `MODEL_NAME` (this project's `.env`)
+3. `LLM_MODEL` (repo-root `compute.env`) — forces one model id across *all* experiments
+4. the thesis default, `mistralai/Mistral-Large-Instruct-2411`
+
+So set `MODEL_NAME` here to change the model for just this project, or `LLM_MODEL` globally to pin the same model everywhere. The pre-run banner prints the model that actually resolves (nothing is silently swapped).
+
 The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights, served by Nebius). See `.env.example` for the available overrides.
 
 ---
@@ -115,8 +124,11 @@ Each run is a folder under `experiments_synthetic/experiments_runs/` named after
 - `results.json` — every answer
 - `environment_history.parquet`
 - `results_plot.svg`
+- `log.txt` — full per-round run log (also useful for debugging a failed run)
 
 **How to tell it worked**: the run completes with a printed summary and `Positive control: PASS/FAIL` against the Nash and monopoly benchmarks. Cost is rounds × firms calls per run; the script prints the total and asks before spending.
+
+**Rough wall-clock** (hosted endpoint, ~1s/call rate limit, 2 firms): the `--rounds 30` smoke test (~60 calls) takes roughly 1–2 minutes; the full 300-round positive control (~600 calls) is on the order of 10–20 minutes. Larger `--firms`, `--seeds`, `--alphas`, or `--prompts` grids multiply this. Timings vary with endpoint latency.
 
 The 216 original runs (203k rows, with the agents' full reasoning) are in `data/results/all_experiments.parquet` for the notebooks (`uv sync --extra analysis`).
 

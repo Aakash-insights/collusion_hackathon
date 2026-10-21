@@ -72,6 +72,14 @@ cp .env.example .env          # optional
 
 ## Quick start
 
+The commands below (and everywhere in this README) call bare `python` / `scripts/*.py`, so activate
+the venv from **Setup** first — otherwise they run against the system interpreter and miss the
+installed dependencies:
+
+```bash
+source .venv/bin/activate     # from the steganographic-collusion/ directory
+```
+
 Run the CI smoke script (compiles Python modules, checks formatting, executes targeted `pytest`
 suites):
 
@@ -139,6 +147,17 @@ scripts/regenerate_results.py
 
 The hosted configs keep the paper's models and route through the shared inference config set up in
 **Setup**.
+
+**Cheapest hosted smoke.** With an `OPENROUTER_API_KEY` set (in the repo-root `compute.env`), the
+single cheapest hosted check runs directly against OpenRouter:
+
+```bash
+python -m auditor.experiments pricing_llm_groq    # ~160 calls on an open model (Llama 3.1 8B)
+```
+
+A hosted label with **no** inference key now fails loud (non-zero exit) instead of silently skipping,
+so an empty `results/experiments/` is never mistaken for a successful run. Run the full hosted set
+with:
 
 ```bash
 python -m auditor.experiments pricing_llm_gemini pricing_llm_groq

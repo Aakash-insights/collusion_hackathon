@@ -15,7 +15,13 @@ competition settings contributed as separate notebooks (`cournot.ipynb`, `bertra
 
 ## Setup
 
-**Install** (Python 3.9+): `pip install -r requirements.txt`.
+**Install** (Python 3.9+) — use a virtual environment so `pip` doesn't trip over an
+externally-managed system Python (PEP 668):
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
 
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy it
 from `../compute.env.example`) — see [`../COMPUTE.md`](../COMPUTE.md). The notebooks read it
@@ -33,13 +39,17 @@ ONE of:
   Nebius / Hugging Face casing) that supports JSON output (`response_format`); then `NEBIUS_API_KEY` is
   enough.
 
-> **IMPORTANT — `OPENROUTER_API_KEY` must be in the process env before you launch Jupyter.** The first
-> cell of each notebook runs `assert os.getenv('OPENROUTER_API_KEY')` *before* `util/llm_config.py`
-> loads the repo-root `compute.env`, so the key must already be in the process environment when that
-> assert runs. Easiest: `cp .env.example .env` here and put `OPENROUTER_API_KEY=...` in this directory's
-> local `.env`, or `export OPENROUTER_API_KEY=...` in your shell before launching Jupyter. The repo-root
-> `compute.env` is what the client uses; the local `.env` is for per-project overrides and to satisfy
-> that early assert.
+> **IMPORTANT — set `OPENROUTER_API_KEY`.** Provider config is resolved by `make_client()` in
+> `util/llm_config.py` (called in a later cell): with the core fix in place, if only
+> `OPENROUTER_API_KEY` is set the client talks to OpenRouter directly — no `LLM_BASE_URL` or other
+> workaround needed. Put `OPENROUTER_API_KEY=...` in the repo-root `compute.env` and the notebook
+> reaches OpenRouter.
+>
+> One caveat: the *first* cell of each notebook still runs `assert os.getenv('OPENROUTER_API_KEY')` as
+> an early sanity check, and it reads the **process** environment. So the key must be visible to the
+> Jupyter process — either `export OPENROUTER_API_KEY=...` in your shell before launching Jupyter, or
+> `cp .env.example .env` here and put `OPENROUTER_API_KEY=...` in this directory's local `.env` (the
+> first cell does `load_dotenv('.env')` before the assert).
 
 ## Quick start
 
@@ -51,6 +61,7 @@ Start with the cheaper **Bertrand** notebook (5 rounds, ~10 calls on gpt-3.5-tur
 
 ```bash
 cd collusive-llm-agents
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # put OPENROUTER_API_KEY here (satisfies the early assert)
 jupyter notebook            # open bertrand.ipynb, run the cells in order

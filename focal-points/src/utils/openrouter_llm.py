@@ -70,6 +70,10 @@ def resolve_model_id(spec: str) -> str:
 
 def cost_note(n_calls: int, model_spec: str) -> str:
     _, model = parse_model_spec(model_spec)
+    # Show the model that will actually run (resolve_model applies the LLM_MODEL override, retired-pin
+    # upgrades, and HF->OpenRouter casing) rather than the raw requested id, so the rate URL matches
+    # the model that is actually billed.
+    model = resolve_model(model)
     return f"≈ {n_calls:,} model calls. Per-token rates: https://openrouter.ai/{model}"
 
 

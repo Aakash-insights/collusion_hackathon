@@ -25,9 +25,11 @@ heterogeneous-group exploitation dynamics.
 
 ## Setup
 
-Requires Python 3.9+ (verified on 3.12). Install deps:
+Requires Python 3.9+ (verified on 3.12). Create a virtual environment first, then install deps
+(installing with a bare `pip` can hit a mismatched interpreter):
 
 ```bash
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -145,9 +147,15 @@ there.
 ## Outputs
 
 Each experiment writes a JSON file to
-`outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{model}` is the model name
-with `/` replaced by `_` (e.g. `openai_gpt-4o-mini_endogenous.json`). Heterogeneous runs append the
+`outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{n}` is the actual `--agents`
+value you passed and `{model}` is the model name with `/` replaced by `_` (e.g.
+`openai_gpt-4o-mini_endogenous.json`). Heterogeneous runs append the
 suffix: `{model}_endogenous_imposter_{pos}.json`.
+
+> **Note on `{n}agents`:** the directory reflects whatever `--agents` you ran with. The smoke test
+> (`--agents 2`) writes under `2agents/`; the full examples (`--agents 5`) write under `5agents/`.
+> The `5agents/` paths in the Analysis examples below assume a 5-agent run — substitute your own
+> agent count accordingly.
 
 **How to tell it worked:** each stage / reflection object carries a `_parse_ok` flag — `true` means
 the model's structured output parsed cleanly. If you see `_parse_ok: false` (or empty decisions),

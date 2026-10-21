@@ -74,6 +74,10 @@ class CleanupSecretHint:
 
         # Initialize environment
         self.config = CleanupConfig()
+        # Honor the configured step count so env termination and agent prompts
+        # (which read config.MAX_STEPS via obs params) reflect --steps instead of
+        # the hardcoded default.
+        self.config.MAX_STEPS = max_steps
         self.env = CleanupEnvironment(self.config)
         self.max_steps = max_steps
         self.current_step = 0

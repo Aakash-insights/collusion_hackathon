@@ -201,8 +201,19 @@ def make_provider(
     return OpenAICompatibleProvider(preset=kind, model=model, api_key=api_key)
 
 
+def resolve_effective_model(model: Optional[str] = None) -> str:
+    """The model id a run will actually use, via the same path as ``make_provider``.
+
+    Mirrors ``OpenAICompatibleProvider.__init__``: an explicit ``--model`` / ``MODEL_NAME``
+    wins, otherwise the provider default is passed through ``resolve_model`` so ``LLM_MODEL``
+    overrides and OpenRouter id-translation are reflected. This keeps the pre-run cost banner
+    honest about the resolved model (no silent swap).
+    """
+    return model or os.getenv("MODEL_NAME") or resolve_model(THESIS_MODEL)
+
+
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
-    model = model or os.getenv("MODEL_NAME") or THESIS_MODEL
+    model = resolve_effective_model(model)
     return (
         f"≈ {n_calls:,} model calls with {model}. Per-token rates: Nebius AI Studio "
         f"(https://studio.nebius.com)."

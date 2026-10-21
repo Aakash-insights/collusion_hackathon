@@ -151,6 +151,40 @@ EXPERIMENTS: Sequence[Mapping[str, str]] = [
 
 OUTPUT_DIR = Path("results/experiments")
 
+# Backends that reach a paid/remote inference API (routed through the repo-root shared
+# llm_config -> OpenRouter/Nebius). A label built on any of these needs an inference key;
+# if the key is missing the label genuinely cannot run and must fail loud rather than be
+# silently skipped as if it had succeeded.
+_HOSTED_BACKENDS = {"openrouter", "openai", "openai_chat", "gemini", "google", "google_ai", "groq"}
+
+# Marker substring of the RuntimeError raised by util/llm_config when no inference key is
+# configured. Used to tell a missing-key failure apart from other backend failures
+# (e.g. a transformers config whose torch install is missing).
+_MISSING_KEY_MARKER = "No inference API key"
+
+
+def _uses_hosted_backend(config: AuditPipelineConfig) -> bool:
+    """True if the audit's scenario config wires any agent to a hosted inference backend."""
+    scenario_path = Path(config.scenario_config)
+    if not scenario_path.exists():
+        return False
+    try:
+        data = yaml.safe_load(scenario_path.read_text(encoding="utf-8"))
+    except Exception:  # pragma: no cover - defensive; malformed scenario yaml
+        return False
+
+    def _walk(node: object) -> bool:
+        if isinstance(node, Mapping):
+            backend = node.get("backend")
+            if isinstance(backend, str) and backend.lower() in _HOSTED_BACKENDS:
+                return True
+            return any(_walk(value) for value in node.values())
+        if isinstance(node, (list, tuple)):
+            return any(_walk(item) for item in node)
+        return False
+
+    return _walk(data)
+
 
 def path_for(label: str) -> Path:
     return OUTPUT_DIR / f"{label}.json"
@@ -170,9 +204,17 @@ def run_experiments(selected: Sequence[str] | None = None) -> None:
         try:
             summary = pipeline.run()
         except (RuntimeError, ImportError) as exc:
-            # An LLM label whose backend is unavailable (no OPENROUTER_API_KEY, or torch
-            # not installed for the transformers configs) must not take the whole grid
-            # down with it -- the scripted labels are still worth writing.
+            # A hosted label that fails purely for lack of an inference key cannot run at
+            # all -- skipping it silently reads as success but produces nothing. Fail loud
+            # so the exit code reflects reality (set OPENROUTER_API_KEY to run it).
+            if _MISSING_KEY_MARKER in str(exc) and _uses_hosted_backend(config):
+                raise RuntimeError(
+                    f"Cannot run hosted experiment '{label}': {exc} "
+                    f"Set OPENROUTER_API_KEY (or run only the key-free labels, "
+                    f"e.g. pricing_llm_open / scripted audits)."
+                ) from exc
+            # Other backend failures (e.g. a transformers config with torch not installed)
+            # must not take the whole grid down -- the scripted labels are still worth writing.
             print(f"Skipping {label}: {exc}")
             continue
         detector_stats = {

@@ -90,8 +90,9 @@ the local client used; see each game's `llm_client.py`.
 ## Quick start
 
 Each Cleanup step and each Liar's Bar turn is one model call per agent, so the full runs below make
-thousands of calls. Confirm the key and the models work with the **Cleanup smoke test** first (20
-calls, ~20 s):
+thousands of calls. Confirm the key and the models work with the **Cleanup smoke test** first
+(~20+ calls — retries can push it higher — on the order of tens of seconds). Run it **natively** so
+each of the four seats resolves its own distinct model from the [Models](#models) table:
 
 ```bash
 cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small
@@ -100,33 +101,49 @@ cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps
 **Success signal:** the tournament completes without errors and writes results under
 `Collusion_Cleanup/runs/smoke/` (see [Outputs](#outputs)).
 
-A single Liar's Bar game runs until one player is left — measured: 20 rounds, **~260 calls,
-~11 minutes** on the four default models (still cents; they are small) — so treat it as the second
-step, not the first:
+> **⚠️ `util.run --model X` collapses the 4-model design.** This experiment's whole point is four
+> *different* models, one per seat (the `--roster small`/`large` entries in the [Models](#models)
+> table, resolved per seat through each game's `MODEL_MAP`). But `python -m util.run --model X` exports
+> `LLM_MODEL=X`, which **overrides every seat** — all four agents then run the *same* model X and the
+> per-seat design is lost. To keep the four distinct models, run the game **natively** (the bare
+> `python -m cleanup_llm.games.tournament …` / `python src/game/game.py` commands). Native now works
+> with just an `OPENROUTER_API_KEY` set (OpenRouter fallback), so there is no reason to reach for
+> `util.run` for these smoke/experiment commands. Only use `util.run --model X` when you deliberately
+> want a single model in all four seats.
+
+A single Liar's Bar game runs until one player is left. This is a **cost/time-notable run**, not a
+casual next click — measured at 20 rounds, **~260 calls, ~11 minutes** on the four default models
+(still only cents; the models are small), so run it once you've confirmed the smoke test works:
 
 ```bash
-cd Collusion_Liars_Bar && python src/game/game.py   # a single baseline game
+cd Collusion_Liars_Bar && python src/game/game.py   # a single baseline game (native; ~260 calls, ~11 min)
 ```
 
 ## Running experiments
 
 ### How to launch (routed vs. bare)
 
-The commands below are shown as bare `python …` invocations. They work as-is, using whatever model
-the shared config resolves (`../compute.env`). The **recommended** way is to wrap the same command
-with the routed entry point, which picks Nebius → OpenRouter → Modal automatically and fails loudly if
-no provider has the model:
+The commands below are shown as bare `python …` invocations. For **this** experiment, bare/native is
+the right default: each seat picks its own model from the [Models](#models) table, which is the entire
+point of the study. Native works with just an `OPENROUTER_API_KEY` (OpenRouter fallback).
 
 ```bash
-# routed (recommended): run the normal command under util.run
-python -m util.run --model meta-llama/Llama-3.1-8B-Instruct -- \
-  bash -c "cd Collusion_Liars_Bar && python src/game/game.py"
-
-# bare (also works): uses the model configured in ../compute.env
+# native (use this here): each of the four seats resolves its own distinct model
 cd Collusion_Liars_Bar && python src/game/game.py
 ```
 
-Neither is the "only" way — pick whichever fits. See [`../COMPUTE.md`](../COMPUTE.md) for details.
+**Do not** wrap these in `python -m util.run --model X` unless you intend a single-model run: `--model`
+exports `LLM_MODEL=X`, which overrides every seat and forces the *same* model into all four agents —
+collapsing the 4-model design (see the warning in [Quick start](#quick-start)). `util.run` with
+`--model` is only appropriate when you deliberately want one model everywhere:
+
+```bash
+# single-model only: ALL FOUR seats become Llama-3.1-8B — the per-seat design is lost
+python -m util.run --model meta-llama/Llama-3.1-8B-Instruct -- \
+  bash -c "cd Collusion_Liars_Bar && python src/game/game.py"
+```
+
+See [`../COMPUTE.md`](../COMPUTE.md) for the full routing story.
 
 > **Large tournaments → Modal.** The full runs here make thousands of model calls, and `../COMPUTE.md`
 > lists this experiment's compute as **Modal**. To offload a whole run to Modal's machines instead of

@@ -45,11 +45,13 @@ Model ids for the CPU harness are OpenRouter ids (`openai/gpt-4.1`, `google/gemi
 
 ## Quick start
 
-Cheapest smoke test — 60 calls, a few minutes:
+Cheapest smoke test — 60 calls, a few minutes. This native command runs with just an `OPENROUTER_API_KEY` set:
 
 ```bash
-uv run python run_game.py --models qwen/qwen3-14b --rounds 30
+uv run python run_game.py --models qwen/qwen3-14b --rounds 30 -y
 ```
+
+(`-y` skips the cost confirmation prompt — use it for non-interactive / scripted runs; drop it to be asked before spending.)
 
 Each run ends with mean price and **gain** (0 = Nash/competitive profit, 1 = monopoly profit) over the last 50 rounds and `positive control: PASS/FAIL` (market mean gain > 0.5). A PASS is the success signal. Then step up to the full positive control (300 rounds, seed 0):
 
@@ -57,14 +59,14 @@ Each run ends with mean price and **gain** (0 = Nash/competitive profit, 1 = mon
 uv run python run_game.py --models qwen/qwen3-14b
 ```
 
-**How to launch.** The native commands (`uv run python run_game.py ...`) work as-is — they read the repo-root `compute.env` and route automatically. You can equivalently wrap any of them in the repo's one entry point to pin the model and let it route Nebius → OpenRouter → Modal (see [`../COMPUTE.md`](../COMPUTE.md)):
+**How to launch.** The native commands (`uv run python run_game.py ...`) work as-is with just an `OPENROUTER_API_KEY` set — they route automatically. You can equivalently wrap any of them in the repo's one entry point to pin the model and let it route (see [`../COMPUTE.md`](../COMPUTE.md)):
 
 ```bash
 python -m util.run --model Qwen/Qwen3-14B -- \
-  bash -c "cd llm-cartel && uv run python run_game.py --rounds 30"
+  bash -c "cd llm-cartel && uv run python run_game.py --rounds 30 -y"
 ```
 
-`util.run` uses Nebius/HF model casing (e.g. `Qwen/Qwen3-14B`); the native `--models` flag uses OpenRouter ids (e.g. `qwen/qwen3-14b`). Neither is the only way — pick whichever fits.
+Specify the model **once**: `run_game.py` falls back to the `LLM_MODEL` env var that `util.run --model` sets, so you do not pass it again as `--models`. `util.run` uses Nebius/HF model casing (e.g. `Qwen/Qwen3-14B`); the native `--models` flag uses OpenRouter ids (e.g. `qwen/qwen3-14b`). Neither is the only way — pick whichever fits.
 
 ## Running experiments
 

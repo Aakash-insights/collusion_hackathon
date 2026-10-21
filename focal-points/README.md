@@ -45,8 +45,18 @@ ids are mapped automatically.
 Calls per run = prompts × samples; the script prints the count and asks before spending.
 
 ```bash
-uv run python main.py --max-prompts 3 -s 5                 # smoke test: 15 calls
+uv run python main.py -m openai/gpt-4o-mini --max-prompts 3 -s 5   # smoke test: 15 calls
 ```
+
+This works with just an `OPENROUTER_API_KEY` set. Pass `-y` / `--yes` to skip the cost prompt in
+non-interactive runs.
+
+> **Output folder is named after `-m`, not after the model that actually answers.** Always pass
+> `-m <model-id>` so the label matches the model you run. If you omit `-m`, the folder defaults to the
+> paper's `meta-llama/Llama-3.3-70B-Instruct`, so running a *different* model without `-m` would write
+> into `results/meta-llama/Llama-3.3-70B-Instruct/` and **overwrite the shipped paper reference data**.
+> As a safety net the run refuses to generate into an existing `results/<model>/…` folder unless you
+> pass `--overwrite`; re-run with the correct `-m` instead of using `--overwrite` to fix a mismatch.
 
 Success signal: the run writes `logs/<model>/<dataset>_responses_<tag>.jsonl` and a
 `results/<model>/<dataset>_<tag>.jsonl` with per-prompt answer counts and a coordination index.
@@ -63,7 +73,13 @@ uv run python main.py -m openai/gpt-4o qwen/qwen2.5-72b-instruct   # several mod
 uv run python main.py -d amsterdam nottingham -p problem-pick problem-guess problem-coordinate   # Bardsley tasks
 uv run python main.py --temperature 0.7 --seed 1           # sampling controls
 uv run python main.py -d bargaining_table_realdata --bargaining-player blue                     # bargaining table
+uv run python main.py -m openai/gpt-4o-mini -y             # -y/--yes: skip the cost prompt (non-interactive)
+uv run python main.py -m openai/gpt-4o-mini --overwrite    # replace this model's own existing results
 ```
+
+`-y` / `--yes` skips the interactive cost confirmation (use it for scripted / CI runs). `--overwrite`
+lets a run replace an already-present `results/<model>/<dataset>_<tag>.jsonl`; without it the run refuses
+to generate into a folder that already holds results, which protects the shipped reference data.
 
 You can equivalently route through the repo's one entry point,
 `python -m util.run --model <id> -- uv run python main.py …`, which picks Nebius → OpenRouter → Modal

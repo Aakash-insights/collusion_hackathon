@@ -38,8 +38,9 @@ python scripts/analyze_results.py --log-dir logs/ --output figures/ --all-plots 
 
 | Scenario | Command | Monitors | Samples | Estimated Time |
 | --- | --- | --- | --- | --- |
-| Smoke Test | `python scripts/run_eval.py` | traceguard + simple_trusted | 5 | ~10 min |
-| Single Monitor | `--monitor traceguard --limit 10` | 1 selected | 10 | ~20 min |
+| Cheap smoke | `--monitor traceguard --attack-only --thresholds 0.5 --limit 2 --side-tasks download_malware` | 1 selected | 2 | a few min (+ one-off image build on first run) |
+| Default run | `python scripts/run_eval.py` | traceguard + simple_trusted | 5 | ~1 h (2 × 21 thresholds × 2 modes × 4 side tasks = 336 tasks) |
+| Single Monitor | `--monitor traceguard --limit 10` | 1 selected | 10 | hours (1 × 21 × 2 × 4 = 168 tasks) |
 | Full Experiment | `--all-monitors --limit 50` | All 6 | 50 | ~6-8 hrs |
 | Safety Only | `--all-monitors --attack-only --limit 50` | All 6 | 50 | ~3-4 hrs |
 | Post-Hoc Rescore | `run_posthoc.py --log-dir logs/ --all-monitors` | All 6 | (from logs) | ~30 min |

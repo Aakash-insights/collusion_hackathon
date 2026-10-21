@@ -34,7 +34,7 @@ from typing import List, Optional
 
 from environment.oligopoly import OligopolyGame
 from harness.io import append_jsonl, format_summary, read_jsonl, save_config, summarize
-from harness.providers import ChatProvider, cost_note, split_thoughts_and_price
+from harness.providers import ChatProvider, FatalProviderError, cost_note, split_thoughts_and_price
 
 MODEL_CHOICE_HELP = """\
 ❌ No agent model chosen. Pick one with --models <openrouter id> (or MODEL_NAME in .env).
@@ -281,10 +281,13 @@ def run_episode(args, seed: int, prefixes, model_specs) -> str:
 
 def main() -> None:
     args = build_parser().parse_args()
-    if args.models is None and not os.getenv("MODEL_NAME"):
-        sys.exit(MODEL_CHOICE_HELP)
+    # Model resolution order: explicit --models, then MODEL_NAME (.env override),
+    # then LLM_MODEL (what `python -m util.run --model X` sets), so a util.run
+    # wrapper does not need to re-specify the model as a --models flag.
     if args.models is None:
-        args.models = os.getenv("MODEL_NAME")
+        args.models = os.getenv("MODEL_NAME") or os.getenv("LLM_MODEL")
+    if args.models is None:
+        sys.exit(MODEL_CHOICE_HELP)
     prefixes = per_agent(args.prefix, args.agents, "prefix")
     model_specs = per_agent(args.models, args.agents, "models")
     n_calls = len(args.seeds) * args.rounds * args.agents

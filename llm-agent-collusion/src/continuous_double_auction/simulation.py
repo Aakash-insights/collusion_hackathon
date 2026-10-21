@@ -50,6 +50,25 @@ from src.continuous_double_auction.market.market import Market
 from src.continuous_double_auction.util.logging_util import ExperimentLogger
 from src.continuous_double_auction.util.misc import get_client, initialize_market
 
+# Pull in the repo-root llm_config.resolve_model so the cost banner and recorded metadata report the
+# model ACTUALLY used (it honors the LLM_MODEL override that util.run --model sets, and translates ids to
+# the active endpoint's casing). cda_types.resolve_model only expands the paper aliases.
+import sys as _sys
+from pathlib import Path as _Path
+_root = _Path(__file__).resolve()
+while _root != _root.parent and not (_root / "util" / "llm_config.py").exists():
+    _root = _root.parent
+_sys.path.insert(0, str(_root / "util"))
+from llm_config import resolve_model as _cfg_resolve_model
+
+
+def effective_model(name: str) -> str:
+    """The model id actually used for `name`: expand the paper alias (cda_types.resolve_model) and then
+    apply the repo-level resolution (llm_config.resolve_model) — which honors the LLM_MODEL override
+    set by `util.run --model` and maps ids to the active endpoint's casing."""
+    return _cfg_resolve_model(resolve_model(name))
+
+
 load_dotenv()
 
 
@@ -115,9 +134,9 @@ def run_simulation(params: ExperimentParams, log_dir: Optional[str] = None, use_
     logger.metadata["buyer_ids"] = [buyer.id for buyer in buyers]
     logger.metadata["seller_ids"] = [seller.id for seller in sellers]
     logger.metadata["resolved_models"] = {
-        "sellers": [resolve_model(m) for m in params.seller_models],
-        "buyers": [resolve_model(m) if m else ZIP_BUYER for m in params.buyer_models],
-        "overseer": resolve_model(params.overseer_model) if params.oversight_enabled else None,
+        "sellers": [effective_model(m) for m in params.seller_models],
+        "buyers": [effective_model(m) if m else ZIP_BUYER for m in params.buyer_models],
+        "overseer": effective_model(params.overseer_model) if params.oversight_enabled else None,
     }
 
     overseer = None
@@ -332,7 +351,7 @@ def main() -> None:
     if args.llm_eval:
         calls_per_run += args.rounds * args.sellers
     n_calls = calls_per_run * len(args.seeds)
-    models = sorted({resolve_model(m) for m in seller_models + [b for b in buyer_models if b not in (ZIP_BUYER,)]})
+    models = sorted({effective_model(m) for m in seller_models + [b for b in buyer_models if b not in (ZIP_BUYER,)]})
     print(
         f"{len(args.seeds)} run(s) × {args.rounds} rounds × ({args.sellers} sellers + {n_lm_buyers} LLM buyers"
         f"{' + overseer' if args.oversight_enabled else ''}{' + judge' if args.llm_eval else ''}) "

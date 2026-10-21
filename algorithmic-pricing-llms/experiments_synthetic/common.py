@@ -40,7 +40,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from dotenv import load_dotenv  # noqa: E402
 
 from src.agents.LLM_agent import LLMAgent  # noqa: E402
-from src.agents.llm_providers import PRESETS, estimate_cost_note, make_provider  # noqa: E402
+from src.agents.llm_providers import (  # noqa: E402
+    PRESETS,
+    estimate_cost_note,
+    make_provider,
+    resolve_effective_model,
+)
 from src.environment.calvano import CalvanoDemandEnvironment  # noqa: E402
 from src.experiment.experiment import Experiment  # noqa: E402
 from src.prompts.prompts import GENERAL_PROMPT, GENERAL_PROMPT_NO_NOTES, P1, P2  # noqa: E402
@@ -197,7 +202,9 @@ def main_from_cli(n_firms_default: int, description: str) -> None:
     n_runs = len(args.seeds) * len(args.alphas) * len(args.prompts)
     n_calls = n_runs * args.rounds * args.firms
     provider = args.provider or os.getenv("LLM_PROVIDER", "openrouter")
-    model = args.model or os.getenv("MODEL_NAME") or "(provider default)"
+    # Show the model the run will actually resolve to (respects LLM_MODEL / OpenRouter
+    # id-translation), matching estimate_cost_note below — no silent swap.
+    model = resolve_effective_model(args.model)
     print(
         f"{n_runs} run(s) × {args.rounds} rounds × {args.firms} firms via {provider}/{model}\n"
         f"{estimate_cost_note(n_calls, args.model)}"
