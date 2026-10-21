@@ -1,241 +1,79 @@
-## Overview
+# llm-trust-breaking (hackathon edition)
 
-This research framework measures how large language models engage in **strategic deception** (promise-breaking) and how **trust evolves** when models repeatedly deceive each other across 10 rounds of strategic games.
+Measures how LLMs engage in **strategic deception** (promise-breaking) and how **trust evolves**
+when models repeatedly deceive each other across 10 rounds of strategic games.
+
+**Paper:** Shi, Zhang, Schölkopf, Conitzer & Jin, *When Agents Lie: Premeditation, Persistence, and Exploitation in Repeated Games* ([arXiv:2607.05132](https://arxiv.org/abs/2607.05132))
+
+Official upstream code: [github.com/Jerick-1380/LLM-Trust-Breaking](https://github.com/Jerick-1380/LLM-Trust-Breaking).
 
 ![Methodology](methodology.png)
 
-[Original Repo](https://github.com/Jerick-1380/LLM-Trust-Breaking)
+## Overview
 
----
+This framework runs a **3-stage endogenous-promise protocol** (plan → announce → act) plus a
+per-round **trust reflection**, so it can tell *premeditated* deception from *impulsive* deviation.
+Each round, every agent privately plans an action, publicly announces one (round-robin, possibly a
+lie), then makes a binding choice (possibly breaking the announcement); afterwards it scores every
+other agent's trustworthiness. Comparing the three stages yields a **deception typology** (fully
+honest / intended-deception-complied / impulsive deviation / premeditated deception). Trust and
+deception are tracked over 10 memory-carrying rounds, including heterogeneous (mixed-model) groups.
 
-## Quick Start
+In the Collusion Research Sprint this is the **trust / deception-dynamics** project: it supplies the
+premeditation and persistence signals (do agents plan to defect, and does trust recover?) and the
+heterogeneous-group exploitation dynamics.
 
-Requires Python 3.9+ (verified on 3.12). Inference is configured **once, centrally**, in the
-repo-root `compute.env` — not in this project. See `../COMPUTE.md` for the full story.
+## Setup
+
+Requires Python 3.9+ (verified on 3.12). Install deps:
 
 ```bash
 pip install -r requirements.txt
+```
 
-# 1. Configure inference once, at the REPO ROOT (one level up). See ../COMPUTE.md.
+Inference is configured **once, centrally**, in the repo-root `compute.env` — not in this project.
+Copy it from the example and fill in your keys (see [`../COMPUTE.md`](../COMPUTE.md) for the full story):
+
+```bash
+# at the repo ROOT (one level up):
 cp ../compute.env.example ../compute.env
 # Edit ../compute.env:
 #   NEBIUS_API_KEY=...        # default inference (open models)
-#   OPENROUTER_API_KEY=...    # needed only if you run a closed model (GPT / Claude / Gemini)
+#   OPENROUTER_API_KEY=...    # REQUIRED for the GPT / Claude example models (and other closed ids)
+```
 
-# 2. (Optional) per-project overrides live in a LOCAL .env (temperature, reasoning effort, agent count).
-cp .env.example .env
+Routing is **Nebius → OpenRouter → Modal** automatically. This experiment reads agent decisions
+back as structured JSON (`response_format`), **so pick a model that supports it** — GPT / Claude via
+OpenRouter qualify, as do many Nebius models. A non-OpenAI model is accepted (a warning prints)
+rather than rejected; the old OpenAI-only gate is now advisory, not a hard error. If a model cannot
+honor `response_format`, decisions may parse as empty, so check the output before trusting it.
 
-# Models: this experiment reads agent decisions back as structured JSON (response_format),
-# so pick a model that supports it. GPT / Claude via OpenRouter qualify, as do many Nebius
-# models. Non-OpenAI models are accepted (a warning prints) — the old OpenAI-only gate is
-# now advisory, not a hard error.
+Optionally, `cp .env.example .env` here for per-project overrides only (temperature, reasoning
+effort, agent count). The local `.env` does **not** hold API keys.
 
-# 3. Smoke test -- ~10 API calls, under a minute. Confirms the key and the model work.
-#    Recommended launcher: the one entry point routes Nebius -> OpenRouter -> Modal for you.
+## Quick start
+
+Smoke test — ~10 API calls, under a minute. Confirms the key and the model work.
+
+```bash
 python -m util.run --model openai/gpt-4o-mini -- \
   python experiments/run_endogenous.py \
     --game diners --agents 2 --trials 1 --rounds 1 \
     --model openai/gpt-4o-mini --use-queue
-
-# (`python -m util.run` is run from the repo root; the native command below also works
-#  directly from this directory since it reads the repo-root compute.env.)
-
-# 4. Full 10-round experiment -- ~8,000 API calls, see "Cost" below.
-python -m util.run --model openai/gpt-4o-mini -- \
-  python experiments/run_endogenous.py \
-    --game diners \
-    --agents 5 \
-    --trials 20 \
-    --rounds 10 \
-    --model openai/gpt-4o-mini \
-    --use-queue \
-    --round-robin
 ```
 
-Either launch path works: the recommended `python -m util.run --model <id> -- <native cmd>`
-routes the model across providers automatically, and the plain
-`python experiments/run_endogenous.py …` command also works because it reads the repo-root
-`compute.env` directly. Neither is the only way to run it.
+**Success signal:** the run completes and the output JSON's stage fields show `_parse_ok: true`
+(see [Outputs](#outputs)). If the key or model is wrong, the run aborts at the first stage instead
+of burning the whole budget.
 
-**Output:** JSON with all stages + deception classifications →
-`outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{model}` is the
-model name with `/` replaced by `_` (e.g. `openai_gpt-4o-mini_endogenous.json`).
+`python -m util.run` is the recommended one entry point — it routes the model across providers for
+you (Nebius → OpenRouter → Modal). It is run from the repo root, but the native
+`python experiments/run_endogenous.py …` command below also works directly from this directory
+because it reads the repo-root `compute.env`. Neither is the only way to run it.
 
-### Cost
+## Running experiments
 
-Each trial-round makes 4 calls per agent (three stages + judge) plus a pairwise
-reflection step that grows as N×(N−1). With 5 agents that is 40 calls per trial-round,
-so the full example above is 20 × 10 × 40 ≈ **8,000 calls**, each allowed up to 2,000
-output tokens. Run the smoke test first, note what one call costs for your model, and
-scale `--trials` and `--rounds` from there. If the key or model is wrong, the run
-aborts at the first stage instead of burning the whole budget.
-
----
-
-## Research Questions
-
-### 1. Do LLMs engage in strategic deception?
-**Yes.** Commitment-breaking rates: 15–98% depending on model and game.
-
-### 2. Is deception premeditated or impulsive?
-**Premeditated.** 75–99% of commitment-breakers planned the deception in Stage 1 (private planning).
-
-### 3. Does trust evolve over repeated interactions?
-**Partially.** Trust scores shift by 0.5–1.0 points over 10 rounds but remain low (2.0–3.5 out of 5). Deception rates persist.
-
-### 4. Do heterogeneous model groups show different dynamics?
-**Yes.** Asymmetric exploitation emerges:
-- **Claude + GPT:** Both defect 100%, mutual distrust, payoff parity
-- **Llama + GPT:** Llama trusts GPT (82% compliance), GPT ignores Llama (4% compliance) → systematic payoff gaps
-
----
-
-## Key Findings
-
-### Deception Rates by Model (Diners Game, 10 rounds)
-
-| Model | Commitment Breaking | Premeditation Rate | Trust Score (Final) |
-|-------|-------------------|-------------------|-------------------|
-| **GPT-5.2** | 96.7% | 99.9% | 2.80/5 |
-| **Claude Opus 4.6** | 26.7% | 98.1% | 4.60/5 |
-| **Llama 4 Maverick** | 98.4% | 99.8% | 2.09/5 |
-
-### Heterogeneous Groups: Payoff Asymmetries
-
-**Diners (pos1, all rounds average):**
-
-| Configuration | Minority Mean Payoff | Majority Mean Payoff | Gap |
-|--------------|---------------------|---------------------|-----|
-| GPT minority + Llama majority | **4.15** | 2.60 | **+1.55** |
-| Llama minority + GPT majority | **0.82** | 2.37 | **-1.55** |
-
-**Interpretation:** When GPT is the numerical minority (1 agent vs 4), it exploits the Llama majority. When Llama is the minority, it gets exploited by GPT.
-
-### Model-Specific Behavioral Patterns
-
-- **GPT-5.2:** Always defects (96–100%), ignores announcements (0–10% compliance), low trust in others
-- **Claude Opus 4.6:** Cooperates initially (70% honest in R0), learns to defect by R9 (51% breaking), maintains high outgoing trust
-- **Llama 4 Maverick:** Always defects in homogeneous settings (98%), but complies with GPT announcements (82%) in heterogeneous settings → exploited
-
----
-
-## Experimental Protocol
-
-### Three-Stage Endogenous Promises
-
-Each trial has 3 sequential stages that isolate strategic intent:
-
-**Stage 1 — Private Planning** *(not shared)*
-- Agent privately states intended action + strategic reasoning
-- In rounds 2–10: sees trust assessments from prior rounds
-
-**Stage 2 — Public Announcement** *(round-robin)*
-- Agent publicly announces intended action + persuasive message
-- Sees announcements from agents who spoke earlier (positions 1→5)
-- Can lie: announcement ≠ private plan
-
-**Stage 3 — Final Decision** *(sees all announcements)*
-- Agent makes binding choice after seeing all public messages
-- Can break commitment: choice ≠ announcement
-
-**Reflection — Trust Update** *(after each round)*
-- Agent observes all announcements, choices, and payoffs
-- Updates trust score (1–5) for each other agent
-- Writes 1–2 sentence assessment
-
-### Deception Classification
-
-By comparing stages, we classify each agent:
-
-| Private Plan → Announcement | Announcement → Choice | Label |
-|---|---|---|
-| Same → Same | — | **Fully Honest** |
-| Different → Same | Complied | **Intended Deception (Complied)** |
-| Same → Different | Broke | **Impulsive Deviation** |
-| Different → Different | Broke | **Premeditated Deception** |
-
-**Premeditation Rate** = (Premeditated Deceivers) / (All Commitment Breakers)
-
----
-
-## Games Tested
-
-Six symmetric social dilemmas with varying strategic structures:
-
-| Game | Actions | Key Mechanic | Payoff Range |
-|------|---------|-------------|-------------|
-| **Diners** | EXPENSIVE/CHEAP | Cost-sharing temptation | [1.8, 6.8] |
-| **El Farol** | GO/STAY | Anti-coordination (capacity limit) | [-5.0, 10.0] |
-| **Fishing** | 0–5 fish | Tragedy of commons (collapse at 15 total) | [0.0, 5.0] |
-| **Volunteer** | YES/NO | Volunteer's dilemma | [-5.0, 1.0] |
-| **Public Goods** | 0–5 tokens | Contribution game (1.5× multiplier) | [5.0, 12.5] |
-| **Weakest Link** | 0–5 effort | Minimum coordination | [-10.0, 5.0] |
-
-**Best signal:** Diners (binary, simple payoffs) shows clearest trust/deception patterns.
-
----
-
-## Repository Structure
-
-```
-LLM-Strategic-Deception/
-├── README.md                    # This file
-├── methodology.png              # Visual protocol diagram
-├── requirements.txt
-├── .env.example
-│
-├── src/                         # Core library code
-│   ├── games/                   # 6 game implementations
-│   │   ├── diners.py
-│   │   ├── elfarol.py
-│   │   ├── fishing.py
-│   │   ├── volunteer.py
-│   │   ├── publicgoods.py
-│   │   └── weakestlink.py
-│   ├── endogenous/
-│   │   ├── core/
-│   │   │   ├── trial_runner.py       # 3-stage orchestration + multi-round
-│   │   │   └── prompt_builders.py    # Stage prompts + trust injection
-│   │   └── analysis/
-│   │       └── endogenous_analyzer.py # Deception typology classifier
-│   ├── llm/
-│   │   ├── capabilities.py           # Per-model capability table (single source)
-│   │   ├── client_factory.py         # Client construction + model guard
-│   │   └── providers/
-│   │       ├── openrouter_client.py  # Synchronous client
-│   │       ├── queued_openrouter.py  # Async batching (producer-consumer)
-│   │       └── parallel_openrouter_async.py  # Async batching (wave)
-│   ├── visualization/
-│   │   └── transcripts.py            # Human-readable trial transcripts
-│   └── scenario_enumeration/         # Alternative protocol (exhaustive)
-│
-├── experiments/                 # Executable scripts
-│   ├── run_endogenous.py             # Main runner
-│   ├── run_scenario_enumeration.py
-│   ├── run_scenario_enumeration_resume.py
-│   ├── run_all_games.sh
-│   ├── analysis/                     # Analysis scripts (10 files)
-│   │   ├── announcement_compliance_analysis.py
-│   │   ├── endogenous_comprehensive_analysis.py
-│   │   ├── homogeneous_trust_analysis.py
-│   │   ├── round_by_round_analysis.py
-│   │   └── ...
-│   └── plot/                         # Visualization scripts
-│       ├── plot_trust.py             # Trust evolution over rounds
-│       ├── plot_all.py
-│       └── plot_judge.py
-│
-└── outputs/                     # Generated data (gitignored)
-    └── experiments/{game}/5agents/
-        ├── {model}_endogenous.json              # Homogeneous experiments
-        └── {model}_endogenous_imposter_{pos}.json # Heterogeneous experiments
-```
-
----
-
-## Running Experiments
-
-### Homogeneous Groups (All Same Model)
+### Homogeneous groups (all same model)
 
 ```bash
 python -m util.run --model openai/gpt-4o-mini -- \
@@ -249,11 +87,11 @@ python -m util.run --model openai/gpt-4o-mini -- \
     --round-robin
 ```
 
-### Heterogeneous Groups (Mixed Models)
+### Heterogeneous groups (mixed models)
 
 Agents can run different models. Each should support structured output (`response_format`);
-GPT / Claude via OpenRouter qualify, as do many Nebius models. The agent names are
-deterministic, so for `--agents 5` they are always `J M Q T Z`.
+GPT / Claude via OpenRouter qualify, as do many Nebius models. The agent names are deterministic,
+so for `--agents 5` they are always `J M Q T Z`.
 
 Create `my_models.json`:
 ```json
@@ -280,7 +118,7 @@ python -m util.run --model openai/gpt-4o -- \
     --run-suffix imposter_4o_mini_pos1
 ```
 
-### Key Flags
+### Key flags
 
 | Flag | Description |
 |------|-------------|
@@ -296,44 +134,24 @@ python -m util.run --model openai/gpt-4o -- \
 
 **Tip:** Always use `--use-queue` for experiments with >10 trials.
 
----
+### Cost
 
-## Analysis & Visualization
+Each trial-round makes 4 calls per agent (three stages + judge) plus a pairwise reflection step
+that grows as N×(N−1). With 5 agents that is 40 calls per trial-round, so the full example above
+(20 trials × 10 rounds × 40) is ≈ **8,000 calls**, each allowed up to 2,000 output tokens. Run the
+smoke test first, note what one call costs for your model, and scale `--trials` and `--rounds` from
+there.
 
-### Generate Trust Evolution Plots
+## Outputs
 
-```bash
-python experiments/plot/plot_trust.py \
-  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json
-```
+Each experiment writes a JSON file to
+`outputs/experiments/{game}/{n}agents/{model}_endogenous.json`, where `{model}` is the model name
+with `/` replaced by `_` (e.g. `openai_gpt-4o-mini_endogenous.json`). Heterogeneous runs append the
+suffix: `{model}_endogenous_imposter_{pos}.json`.
 
-Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial showing trust scores over 10 rounds)
-
-### Comprehensive Analysis
-
-```bash
-# Cross-experiment summary over everything under outputs/experiments/
-python experiments/analysis/endogenous_comprehensive_analysis.py
-```
-
-The other scripts in `experiments/analysis/` were written against the result files of
-the original study (specific model names and imposter configurations). They exit with
-a message if those files are not present; edit the paths at the top of each one to point
-them at your own runs.
-
-### Generate Human-Readable Transcripts
-
-```bash
-python -m src.visualization.transcripts \
-  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json \
-  --output-dir outputs/transcripts/diners/gpt-4o-mini/
-```
-
----
-
-## Output Format
-
-Each experiment generates a JSON file with this structure:
+**How to tell it worked:** each stage / reflection object carries a `_parse_ok` flag — `true` means
+the model's structured output parsed cleanly. If you see `_parse_ok: false` (or empty decisions),
+the model is not honoring `response_format`; pick a JSON-capable model.
 
 ```json
 {
@@ -390,4 +208,174 @@ Each experiment generates a JSON file with this structure:
     }
   ]
 }
+```
+
+## Analysis
+
+### Generate trust-evolution plots
+
+```bash
+python experiments/plot/plot_trust.py \
+  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json
+```
+
+Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial showing trust scores
+over 10 rounds).
+
+### Comprehensive analysis
+
+```bash
+# Cross-experiment summary over everything under outputs/experiments/
+python experiments/analysis/endogenous_comprehensive_analysis.py
+```
+
+The other scripts in `experiments/analysis/` were written against the result files of the original
+study (specific model names and imposter configurations). They exit with a message if those files
+are not present; edit the paths at the top of each one to point them at your own runs.
+
+### Human-readable transcripts
+
+```bash
+python -m src.visualization.transcripts \
+  outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json \
+  --output-dir outputs/transcripts/diners/gpt-4o-mini/
+```
+
+## Notes
+
+### Experimental protocol
+
+**Three-stage endogenous promises** — each trial has 3 sequential stages that isolate strategic intent:
+
+- **Stage 1 — Private Planning** *(not shared):* agent privately states intended action + strategic
+  reasoning; in rounds 2–10 it sees trust assessments from prior rounds.
+- **Stage 2 — Public Announcement** *(round-robin):* agent publicly announces intended action +
+  persuasive message; sees announcements from agents who spoke earlier (positions 1→5); can lie
+  (announcement ≠ private plan).
+- **Stage 3 — Final Decision** *(sees all announcements):* agent makes a binding choice; can break
+  commitment (choice ≠ announcement).
+- **Reflection — Trust Update** *(after each round):* agent observes all announcements, choices, and
+  payoffs; updates a trust score (1–5) for each other agent and writes a 1–2 sentence assessment.
+
+**Deception typology** — comparing stages classifies each agent:
+
+| Private Plan → Announcement | Announcement → Choice | Label |
+|---|---|---|
+| Same → Same | — | **Fully Honest** |
+| Different → Same | Complied | **Intended Deception (Complied)** |
+| Same → Different | Broke | **Impulsive Deviation** |
+| Different → Different | Broke | **Premeditated Deception** |
+
+**Premeditation Rate** = (Premeditated Deceivers) / (All Commitment Breakers).
+
+### Games tested
+
+Six symmetric social dilemmas with varying strategic structures:
+
+| Game | Actions | Key Mechanic | Payoff Range |
+|------|---------|-------------|-------------|
+| **Diners** | EXPENSIVE/CHEAP | Cost-sharing temptation | [1.8, 6.8] |
+| **El Farol** | GO/STAY | Anti-coordination (capacity limit) | [-5.0, 10.0] |
+| **Fishing** | 0–5 fish | Tragedy of commons (collapse at 15 total) | [0.0, 5.0] |
+| **Volunteer** | YES/NO | Volunteer's dilemma | [-5.0, 1.0] |
+| **Public Goods** | 0–5 tokens | Contribution game (1.5× multiplier) | [5.0, 12.5] |
+| **Weakest Link** | 0–5 effort | Minimum coordination | [-10.0, 5.0] |
+
+**Best signal:** Diners (binary, simple payoffs) shows the clearest trust/deception patterns.
+
+### Research questions
+
+1. **Do LLMs engage in strategic deception?** Yes — commitment-breaking rates 15–98% depending on
+   model and game.
+2. **Is deception premeditated or impulsive?** Premeditated — 75–99% of commitment-breakers planned
+   the deception in Stage 1 (private planning).
+3. **Does trust evolve over repeated interactions?** Partially — trust scores shift by 0.5–1.0 points
+   over 10 rounds but stay low (2.0–3.5 / 5); deception rates persist.
+4. **Do heterogeneous model groups show different dynamics?** Yes — asymmetric exploitation emerges:
+   - **Claude + GPT:** both defect 100%, mutual distrust, payoff parity.
+   - **Llama + GPT:** Llama trusts GPT (82% compliance), GPT ignores Llama (4% compliance) →
+     systematic payoff gaps.
+
+### Key findings
+
+**Deception rates by model (Diners game, 10 rounds):**
+
+| Model | Commitment Breaking | Premeditation Rate | Trust Score (Final) |
+|-------|-------------------|-------------------|-------------------|
+| **GPT-5.2** | 96.7% | 99.9% | 2.80/5 |
+| **Claude Opus 4.6** | 26.7% | 98.1% | 4.60/5 |
+| **Llama 4 Maverick** | 98.4% | 99.8% | 2.09/5 |
+
+**Heterogeneous groups — payoff asymmetries (Diners, pos1, all-rounds average):**
+
+| Configuration | Minority Mean Payoff | Majority Mean Payoff | Gap |
+|--------------|---------------------|---------------------|-----|
+| GPT minority + Llama majority | **4.15** | 2.60 | **+1.55** |
+| Llama minority + GPT majority | **0.82** | 2.37 | **-1.55** |
+
+*Interpretation:* when GPT is the numerical minority (1 vs 4) it exploits the Llama majority; when
+Llama is the minority it gets exploited by GPT.
+
+**Model-specific behavioral patterns:**
+
+- **GPT-5.2:** always defects (96–100%), ignores announcements (0–10% compliance), low trust in others.
+- **Claude Opus 4.6:** cooperates initially (70% honest in R0), learns to defect by R9 (51% breaking),
+  maintains high outgoing trust.
+- **Llama 4 Maverick:** always defects in homogeneous settings (98%), but complies with GPT
+  announcements (82%) in heterogeneous settings → exploited.
+
+### Repository structure
+
+```
+llm-trust-breaking/
+├── README.md                    # This file
+├── methodology.png              # Visual protocol diagram
+├── requirements.txt
+├── .env.example                 # Per-project overrides only (no keys)
+│
+├── src/                         # Core library code
+│   ├── games/                   # 6 game implementations
+│   │   ├── diners.py
+│   │   ├── elfarol.py
+│   │   ├── fishing.py
+│   │   ├── volunteer.py
+│   │   ├── publicgoods.py
+│   │   └── weakestlink.py
+│   ├── endogenous/
+│   │   ├── core/
+│   │   │   ├── trial_runner.py       # 3-stage orchestration + multi-round
+│   │   │   └── prompt_builders.py    # Stage prompts + trust injection
+│   │   └── analysis/
+│   │       └── endogenous_analyzer.py # Deception typology classifier
+│   ├── llm/
+│   │   ├── capabilities.py           # Per-model capability table (single source)
+│   │   ├── client_factory.py         # Client construction + model guard
+│   │   └── providers/
+│   │       ├── openrouter_client.py  # Synchronous client
+│   │       ├── queued_openrouter.py  # Async batching (producer-consumer)
+│   │       └── parallel_openrouter_async.py  # Async batching (wave)
+│   ├── visualization/
+│   │   └── transcripts.py            # Human-readable trial transcripts
+│   └── scenario_enumeration/         # Alternative protocol (exhaustive)
+│
+├── experiments/                 # Executable scripts
+│   ├── run_endogenous.py             # Main runner
+│   ├── run_scenario_enumeration.py
+│   ├── run_scenario_enumeration_resume.py
+│   ├── run_all_games.sh
+│   ├── analysis/                     # Analysis scripts (10 files)
+│   │   ├── announcement_compliance_analysis.py
+│   │   ├── endogenous_comprehensive_analysis.py
+│   │   ├── homogeneous_trust_analysis.py
+│   │   ├── round_by_round_analysis.py
+│   │   └── ...
+│   └── plot/                         # Visualization scripts
+│       ├── plot_trust.py             # Trust evolution over rounds
+│       ├── plot_all.py
+│       └── plot_judge.py
+│
+└── outputs/                     # Generated data (gitignored)
+    └── experiments/{game}/5agents/
+        ├── {model}_endogenous.json              # Homogeneous experiments
+        └── {model}_endogenous_imposter_{pos}.json # Heterogeneous experiments
 ```

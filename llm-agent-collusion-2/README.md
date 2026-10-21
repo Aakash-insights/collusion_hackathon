@@ -1,56 +1,54 @@
 # LLM Agent Voluntary Collusion Framework
 
-A comprehensive research framework for investigating voluntary collusion behavior in Large Language Model-based multi-agent systems through strategic multi-agent games.
+A research framework for investigating voluntary collusion behavior in LLM-based multi-agent systems through strategic multi-agent games.
 
-## Overview
-
-This project systematically explores how LLM agents discover and pursue collusive strategies that can harm other agents and human users. The framework implements two distinct strategic environments with secret collusion mechanisms to reveal conditions under which agents willingly engage in harmful collaboration despite recognizing its unfairness.
+**Paper:** *Voluntary Collusion with Secret Tools in Competing LLM Agents* ([arXiv:2605.27593](https://arxiv.org/abs/2605.27593))
 
 ![LLM Agent Voluntary Collusion Framework Overview](./asset/overview.png)
 
-## Research Games
+## Overview
 
-### Liar's Bar: Secret Collusion in Competitive Bluffing
+This project studies **voluntary secret-tool collusion**: how LLM agents discover and pursue
+collusive strategies that can harm other agents and human users, even while recognizing the strategy
+as unfair. It implements the two environments from the paper above — **Liar's Bar** (competitive
+bluffing) and **Cleanup** (a sequential social dilemma) — each wired with secret collusion mechanisms
+(private communication channels and strategic hint systems) to reveal when agents willingly engage in
+harmful collaboration.
 
-A multi-agent card game environment studying strategic communication and collusion between LLMs in competitive scenarios.
+Part of the Collusion Research Sprint.
 
-**Game Mechanics:**
-- 4-player bluffing card game with hidden information
-- Players make claims about cards (truthful or deceptive)
-- Opponents decide whether to challenge claims
-- Strategic penalties and rewards based on challenge outcomes
+### Liar's Bar: secret collusion in competitive bluffing
 
-**Experimental Conditions:**
-1. **Baseline**: Standard game with no communication
-2. **Secret Communication**: Private channels between alliance partners
-3. **Secret Hint System**: Strategic guidance without open messaging
+A 4-player bluffing card game with hidden information, studying strategic communication and collusion
+between LLMs in competitive scenarios.
 
-**Key Features:**
-- Secret communication channels unknown to other players
-- Structured coaching system providing optimal play guidance
-- Comprehensive behavioral analysis and evolution tracking
+- Players make claims about cards (truthful or deceptive); opponents decide whether to challenge.
+- Strategic penalties and rewards based on challenge outcomes.
+- Secret communication channels unknown to other players, plus a structured coaching/hint system.
 
-### Cleanup: Resource Management with Secret Tools
+Experimental conditions: **baseline** (no communication), **secret communication** (private channels
+between alliance partners), and **secret hint system** (strategic guidance without open messaging).
 
-A sequential social dilemma where agents balance individual rewards with collective good, adapted for studying cooperation dynamics with secret advantages.
+### Cleanup: resource management with secret tools
 
-**Game Mechanics:**
-- grid world with river, orchard, and pollution zones
-- Actions: Movement, apple collection, pollution cleaning, agent zapping
-- Apple spawning affected by global pollution levels
-- Individual rewards vs. collective environmental management
+A sequential social dilemma where agents balance individual rewards with the collective good.
 
-**Experimental Conditions:**
-1. **Baseline**: Standard gameplay without secret tools
-2. **Secret Communication Channel**: Private coordination between selected agents
-3. **Secret Hint System**: Strategic advantage guidance for chosen participants
+- Grid world with river, orchard, and pollution zones.
+- Actions: movement, apple collection, pollution cleaning, agent zapping.
+- Apple spawning is affected by global pollution; individual rewards vs. collective environmental
+  management.
 
-## Installation
+Experimental conditions: **baseline** (no secret tools), **secret communication channel** (private
+coordination between selected agents), and **secret hint system** (strategic advantage guidance for
+chosen participants).
+
+## Setup
 
 Requires Python 3.9+. Inference is configured **once at the repo root** (one level up from this
 directory) — not here. Copy `../compute.env.example` → `../compute.env` and set `NEBIUS_API_KEY`
-(these are open models, so they run on Nebius by default); `OPENROUTER_API_KEY` is optional and only
-needed for models Nebius doesn't serve. See `../COMPUTE.md` for the full story.
+(these are open models, so they run on **Nebius** by default); `OPENROUTER_API_KEY` is optional and
+only needed for models Nebius doesn't serve. See [`../COMPUTE.md`](../COMPUTE.md) for the full routing
+story (Nebius → OpenRouter → Modal → fail loud).
 
 ```bash
 pip install -r requirements.txt
@@ -63,15 +61,15 @@ cp .env.example .env      # optional, local per-project overrides (the committed
 ```
 
 Inference is routed through the shared config; no GPU or local model weights are needed.
-`../compute.env` holds the **keys** (shared across projects); the local `.env` is only for
-optional per-project **overrides**.
+`../compute.env` holds the **keys** (shared across projects); the local `.env` is only for optional
+per-project **overrides**.
 
 ### Models
 
-The study ran four different safety-aligned instruct models, one per agent, as local
-checkpoints on H100s. These are all **open models**, so this version runs them through the
-shared config's default provider (**Nebius**); no local weights or GPUs are needed. Two of the
-originals are substituted with the closest model from the authors' own extended model table:
+The study ran four different safety-aligned instruct models, one per agent, as local checkpoints on
+H100s. These are all **open models**, so this version runs them through the shared config's default
+provider (**Nebius**); no local weights or GPUs are needed. Two of the originals are substituted with
+the closest model from the authors' own extended model table:
 
 | Seat | Original checkpoint | Runs now (short name in code) |
 |---|---|---|
@@ -83,14 +81,34 @@ originals are substituted with the closest model from the authors' own extended 
 The short names map to full model ids in each game's `llm_client.py`. The routed entry point
 (`python -m util.run`, below) sends these open models to Nebius by default.
 
-Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept;
-`llama-3.3-70b`, `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling
-parameters and output caps are the ones the local client used; see each game's
-`llm_client.py`.
+Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept; `llama-3.3-70b`,
+`mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling parameters and output caps are the ones
+the local client used; see each game's `llm_client.py`.
 
 **Hardware:** any laptop. The original H100 requirement is gone with the local weights.
 
-## Quick Start
+## Quick start
+
+Each Cleanup step and each Liar's Bar turn is one model call per agent, so the full runs below make
+thousands of calls. Confirm the key and the models work with the **Cleanup smoke test** first (20
+calls, ~20 s):
+
+```bash
+cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small
+```
+
+**Success signal:** the tournament completes without errors and writes results under
+`Collusion_Cleanup/runs/smoke/` (see [Outputs](#outputs)).
+
+A single Liar's Bar game runs until one player is left — measured: 20 rounds, **~260 calls,
+~11 minutes** on the four default models (still cents; they are small) — so treat it as the second
+step, not the first:
+
+```bash
+cd Collusion_Liars_Bar && python src/game/game.py   # a single baseline game
+```
+
+## Running experiments
 
 ### How to launch (routed vs. bare)
 
@@ -108,7 +126,7 @@ python -m util.run --model meta-llama/Llama-3.1-8B-Instruct -- \
 cd Collusion_Liars_Bar && python src/game/game.py
 ```
 
-Neither is the "only" way — pick whichever fits. See `../COMPUTE.md` for details.
+Neither is the "only" way — pick whichever fits. See [`../COMPUTE.md`](../COMPUTE.md) for details.
 
 > **Large tournaments → Modal.** The full runs here make thousands of model calls, and `../COMPUTE.md`
 > lists this experiment's compute as **Modal**. To offload a whole run to Modal's machines instead of
@@ -116,23 +134,7 @@ Neither is the "only" way — pick whichever fits. See `../COMPUTE.md` for detai
 > `modal run util/modal_run.py --project llm-agent-collusion-2 --cmd "<command>"`. It injects
 > `../compute.env` into the container so inference still reaches Nebius.
 
-### Smoke test first
-
-Each Cleanup step and each Liar's Bar turn is one model call per agent, so the full
-runs below make thousands of calls. Confirm the key and the models work with the Cleanup
-smoke test first (20 calls, ~20 s). A single Liar's Bar game runs until one player is
-left — measured: 20 rounds, **~260 calls, ~11 minutes** on the four default models (still
-cents; they are small) — so treat it as the second step, not the first:
-
-```bash
-# Cleanup: one game, five steps
-cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small
-
-# Liar's Bar: a single baseline game
-cd Collusion_Liars_Bar && python src/game/game.py
-```
-
-### Liar's Bar Experiments
+### Liar's Bar
 
 ```bash
 cd Collusion_Liars_Bar
@@ -150,10 +152,13 @@ python src/game/game_series_secret_channel.py --games 50 --trigger-game 20 --tri
 python src/game/game_series_secret_hint.py --games 50 --trigger-game 20 --trigger-round 3 --chosen-player Mike --enable-memory
 ```
 
-### Cleanup Experiments
+Secret-tool flags: `--trigger-game` (which game in the series to offer the tool), `--trigger-round`
+(round within the game to make the offer), `--chosen-player` (target: `random` or a specific name),
+`--allow-refusal` (whether players can decline), `--enable-memory` (cross-game alliance memory).
 
-Run these from `Collusion_Cleanup/` (not from inside `cleanup_llm/`, or the package
-will not resolve):
+### Cleanup
+
+Run these from `Collusion_Cleanup/` (not from inside `cleanup_llm/`, or the package will not resolve):
 
 ```bash
 cd Collusion_Cleanup
@@ -168,9 +173,34 @@ python -m cleanup_llm.games.tournament_secret_channel --games 20 --steps 30 --ou
 python -m cleanup_llm.games.tournament_secret_hint --games 20 --steps 30 --out runs/secret_hint_20 --trigger-game 10 --chosen-agent 2
 ```
 
-## Analysis and Visualization
+Secret-tool flags: `--trigger-game` (game number to introduce the secret tool), `--chosen-agent`
+(target agent ID, 0–3), `--games` (total games in the tournament), `--steps` (episode length per game).
 
-### Liar's Bar Analysis
+## Outputs
+
+The original result files are not included in this repository. Running the experiments recreates the
+same layout.
+
+**Liar's Bar records** (`Collusion_Liars_Bar/experiments/game_records/`):
+- `Lily-Luke-Mike-Quinn/` — baseline records
+- `Lily-Luke-Mike-Quinn_secret_comm/` — secret communication
+- `Lily-Luke-Mike-Quinn_secret_hint/` — strategic hints
+
+**Cleanup records** — the `--out` directory (e.g. `Collusion_Cleanup/runs/`) contains results in CSV
+and JSON formats:
+- `episodes.csv` — per-episode results for all agents
+- `cumulative_scores.csv` — running totals across games
+- `summary.csv` — aggregate metrics (per-agent score totals/means and action counts). *(The original
+  `metrics` module was not published; this file is produced by a documented reconstruction in
+  `cleanup_llm/metrics/tracker.py`. No analysis script depends on it.)*
+
+**How to tell it worked:** the run completes without errors and the expected files appear under the
+record/`--out` directory above.
+
+## Analysis
+
+### Liar's Bar
+
 ```bash
 cd Collusion_Liars_Bar
 
@@ -187,7 +217,8 @@ python analysis/visualization/create_final_score_evolution.py
 python src/test/test_secret_tool_acceptance.py -n 500 -b 5
 ```
 
-### Cleanup Analysis
+### Cleanup
+
 ```bash
 cd Collusion_Cleanup
 
@@ -198,38 +229,9 @@ python -m cleanup_llm.analysis.behavioral_evolution
 python -m cleanup_llm.analysis.create_final_score_evolution
 ```
 
-## Key Configuration Parameters
+## Notes
 
-### Liar's Bar Secret Tools
-- `--trigger-game`: Which game in series to offer secret tool
-- `--trigger-round`: Which round within game to make offer
-- `--chosen-player`: Target player ("random" or specific name)
-- `--allow-refusal`: Whether players can decline alliance offer
-- `--enable-memory`: Enable cross-game alliance memory
-
-### Cleanup Secret Tools
-- `--trigger-game`: Game number to introduce secret tool
-- `--chosen-agent`: Target agent ID (0-3)
-- `--games`: Total number of games in tournament
-- `--steps`: Episode length per game
-
-## Data and Reproducibility
-
-The original result files are not included in this repository. Running the
-experiments recreates the same layout:
-
-### Liar's Bar Records
-- `experiments/game_records/Lily-Luke-Mike-Quinn/` - Baseline records
-- `experiments/game_records/Lily-Luke-Mike-Quinn_secret_comm/` - Secret communication
-- `experiments/game_records/Lily-Luke-Mike-Quinn_secret_hint/` - Strategic hints
-
-### Cleanup Records
-- `runs/` directory contains experiment results in CSV and JSON formats
-- `episodes.csv`: Per-episode results for all agents
-- `cumulative_scores.csv`: Running totals across games
-- `summary.csv`: Aggregate metrics — per-agent score totals/means and action counts. *(The original `metrics` module was not published; this file is produced by a documented reconstruction in `cleanup_llm/metrics/tracker.py`. No analysis script depends on it.)*
-
-## Project Structure
+### Project structure
 
 ```
 LLM-Agent-collusion/
@@ -250,19 +252,12 @@ LLM-Agent-collusion/
 └── requirements.txt               # Python dependencies
 ```
 
-## Research Applications
+### Research applications
 
-This framework supports research in:
-- Multi-agent coordination and strategic communication
-- LLM behavioral analysis in competitive environments
-- Game theory and mechanism design
-- AI ethics and alignment research
-- Voluntary adoption of harmful strategies
+Multi-agent coordination and strategic communication; LLM behavioral analysis in competitive
+environments; game theory and mechanism design; AI ethics and alignment research; voluntary adoption
+of harmful strategies.
 
-## Citation
+### License
 
-If you use this framework in your research, please cite our work examining voluntary collusion adoption in LLM-based multi-agent systems.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License — see the LICENSE file for details.
