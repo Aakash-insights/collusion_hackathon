@@ -371,6 +371,28 @@ def run_single_job(
 ) -> LLM | None:
     start = time.time()
 
+    # Case-fold onto an existing results folder: the folder name is the model string verbatim, so a
+    # casing-only mismatch (e.g. `-m meta-llama/llama-3.3-70b-instruct` vs the shipped
+    # `results/meta-llama/Llama-3.3-70B-Instruct/`) would otherwise create a confusing duplicate folder
+    # AND (on a case-sensitive filesystem) silently bypass the overwrite-guard on the shipped reference
+    # data. Walk the org/model path component-by-component and adopt the existing casing at each level, so
+    # the same model maps to the same folder regardless of how `-m` was typed.
+    _cur = Path("./results")
+    _resolved: list[str] = []
+    for _part in model_name.split("/"):
+        _match = (
+            next((d.name for d in _cur.iterdir() if d.is_dir() and d.name.lower() == _part.lower()), None)
+            if _cur.is_dir()
+            else None
+        )
+        if _match is None:
+            _resolved = []  # no existing folder for this model — keep the id as typed
+            break
+        _resolved.append(_match)
+        _cur = _cur / _match
+    if _resolved:
+        model_name = "/".join(_resolved)
+
     # filesystem prep
     dataset_dir, logs_dir = prepare_directories(model_name)
     log_suffix = problem_tag

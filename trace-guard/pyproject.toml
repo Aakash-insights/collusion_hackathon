@@ -7,11 +7,15 @@ name = "traceguard"
 version = "0.1.0"
 description = "Structured Cognitive Trace Monitoring as a Control Protocol"
 readme = "README.md"
-requires-python = ">=3.12"  # control-arena==1.0.0 requires >=3.12 (was >=3.10, which couldn't resolve)
+requires-python = ">=3.12"  # control-arena requires >=3.12 (was >=3.10, which couldn't resolve)
 dependencies = [
     "poseidon-compute",
-    "inspect-ai>=0.3",
-    "control-arena",
+    # Pinned: control-arena 14.2.0's text_editor tool calls execute(insert_text=...), which a newer
+    # inspect-ai renamed to insert_line — so >=0.3.200 breaks every sample ("unexpected keyword argument
+    # 'insert_text'"). 0.3.159 (control-arena's own floor) is validated to complete samples. Bump both
+    # together only after re-running scripts/run_eval.py confirms the text_editor path still works.
+    "inspect-ai==0.3.159",
+    "control-arena>=14.2.0",
     "matplotlib>=3.8",
     "pandas>=2.0",
     "numpy>=1.24",

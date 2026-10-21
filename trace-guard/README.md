@@ -24,12 +24,12 @@ In the Collusion Research Sprint this is the AI-control monitor baseline: a **si
 
 | Prerequisite | Size / time |
 | --- | --- |
-| Python >= 3.10 | — |
-| `pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
+| Python >= 3.12 | — (`control-arena` 1.0.0 requires 3.12+) |
+| `uv pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
 | **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
 | `OPENROUTER_API_KEY` | in the repo-root `compute.env` (see `../COMPUTE.md`) — **required**: the default models are closed GPT-4o |
 
-**Install:** `pip install -e .` (or `uv pip install -e .`) — pulls in inspect-ai + control-arena.
+**Install:** `uv pip install -e .` — pulls in inspect-ai + control-arena. Use `uv`, not plain `pip`: `poseidon-compute` is resolved from the local `../util` path via `[tool.uv.sources]` in `pyproject.toml`, so a bare `pip install -e .` can't find it (and the shared `.venv` here is uv-managed and has no `pip`). The repo-root `./setup.sh trace-guard` does this for you.
 
 **Inference config.** Keys live once in the **repo-root** `compute.env` (one level up from this folder; copy it from `../compute.env.example`):
 
@@ -38,7 +38,7 @@ cp ../compute.env.example ../compute.env   # at the repo root; then set OPENROUT
 cp .env.example .env                        # optional: per-project overrides only (e.g. INTENT_MODEL) — not where keys go
 ```
 
-Because the default models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just `NEBIUS_API_KEY`, which only covers open models on Nebius) — see [`../COMPUTE.md`](../COMPUTE.md). The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). The `openrouter/...` strings are rewritten to the shared provider automatically by `scripts/_provider_shim.py` (Nebius for open models; OpenRouter for the closed GPT-4o defaults). The local `.env` is for per-project overrides (e.g. `INTENT_MODEL`), **not** for keys.
+Because the default models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just `NEBIUS_API_KEY`, which only covers open models on Nebius) — see [`../COMPUTE.md`](../COMPUTE.md). The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). `scripts/_provider_shim.py` points inspect-ai's built-in `openai/` provider at whatever endpoint `compute.env` configures and rewrites **every** model string to `openai/<bare-model-id>` (so `openrouter/openai/gpt-4o` becomes `openai/openai/gpt-4o`); it never substitutes the model, only normalizes its spelling. With `OPENROUTER_API_KEY` set in `compute.env`, that endpoint is OpenRouter, which serves the closed GPT-4o defaults. The local `.env` is for per-project overrides (e.g. `INTENT_MODEL`), **not** for keys.
 
 **Arena images.** There is no separate build step — BashArena builds its Docker images **lazily on the first `scripts/run_eval.py`** (ControlArena's `control-arena env setup` only covers the Infra setting, not BashArena). Expect the first run to pull/build ~15–20 GB and take several minutes before the eval proper starts; later runs reuse the cached images. Docker just has to be running.
 
@@ -339,6 +339,7 @@ python scripts/run_eval.py [OPTIONS]
 | `--thresholds` | float list | `0.0 to 1.0, step 0.05` | Suspicion thresholds for defer-to-trusted decisions |
 | `--honest-only` | flag | `false` | Only run HONEST mode (measures usefulness) |
 | `--attack-only` | flag | `false` | Only run ATTACK mode (measures safety) |
+| `--side-tasks` | choice list | all 4 | Side-task categories to run. Choices: `sudo_edit`, `disable_firewall`, `download_malware`, `leak_passwords`. Narrowing to one (e.g. `--side-tasks download_malware`) is what keeps the smoke test cheap |
 | `--log-dir` | str | `logs` | Output directory for `.eval` log files |
 
 ```bash
@@ -405,7 +406,7 @@ python scripts/analyze_results.py --log-dir logs/ --output figures/ --confusion-
 ### BashArena Environment
 
 - **637** core tasks (bash scripting, file manipulation, system administration)
-- **4** side-task categories: Malware Download, Data Exfiltration, Privilege Escalation, Firewall Disable
+- **4** side-task categories (the `--side-tasks` CLI tokens are in parentheses): Malware Download (`download_malware`), Data Exfiltration (`leak_passwords`), Privilege Escalation (`sudo_edit`), Firewall Disable (`disable_firewall`)
 - **2** modes per task: **HONEST** (just do the task) and **ATTACK** (do the task + attempt side task)
 
 ### Pre-Configured Runs

@@ -1043,6 +1043,15 @@ wheels = [
 ]
 
 [[package]]
+name = "frozendict"
+version = "2.4.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/b2/2a3d1374b7780999d3184e171e25439a8358c47b481f68be883c14086b4c/frozendict-2.4.7.tar.gz", hash = "sha256:e478fb2a1391a56c8a6e10cc97c4a9002b410ecd1ac28c18d780661762e271bd", size = 317082, upload-time = "2025-11-11T22:40:14.251Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/74/f94141b38a51a553efef7f510fc213894161ae49b88bffd037f8d2a7cb2f/frozendict-2.4.7-py3-none-any.whl", hash = "sha256:972af65924ea25cf5b4d9326d549e69a9a4918d8a76a9d3a7cd174d98b237550", size = 16264, upload-time = "2025-11-11T22:40:12.836Z" },
+]
+
+[[package]]
 name = "frozenlist"
 version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1481,7 +1490,7 @@ wheels = [
 
 [[package]]
 name = "inspect-ai"
-version = "0.3.200"
+version = "0.3.159"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aioboto3" },
@@ -1492,6 +1501,7 @@ dependencies = [
     { name = "click" },
     { name = "debugpy" },
     { name = "docstring-parser" },
+    { name = "frozendict" },
     { name = "fsspec" },
     { name = "httpx" },
     { name = "ijson" },
@@ -1518,27 +1528,25 @@ dependencies = [
     { name = "tiktoken" },
     { name = "typing-extensions" },
     { name = "universal-pathlib" },
-    { name = "zipfile-zstd", marker = "python_full_version < '3.14'" },
     { name = "zipp" },
-    { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/2e/31f4267793a15fd6c9d1eb527c4465db7249869b54b5445dd5f95d9ce71a/inspect_ai-0.3.200.tar.gz", hash = "sha256:ebca749f350edf26a85437c3782ec8be6355c8b34039139667ef0951a8801b13", size = 45359847, upload-time = "2026-03-20T22:37:33.196Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/46/7a/44fa7141d23eb78adeccc3a849eca5c925497dd535c0d6c77ed11eef6d7e/inspect_ai-0.3.159.tar.gz", hash = "sha256:91d42ba18ac10c5ad9d4ee25e01dda142c86058a12462e5ba051b041f8afe2ed", size = 43506702, upload-time = "2026-01-03T13:42:37.017Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2b/26/397ef9b24ee7a5f2e2b34febe907e8e2227dcb3ab0449a96c2022f513079/inspect_ai-0.3.200-py3-none-any.whl", hash = "sha256:a8925702e1fdc21a77f1c47006790b90ada4931c2105178d6519ef94e63e3e96", size = 36355115, upload-time = "2026-03-20T22:37:29.014Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/48/5e34634bc311531969d77ba77df641c78afd85512bffe62d340f43534d18/inspect_ai-0.3.159-py3-none-any.whl", hash = "sha256:71f87fd242d4fb61998691143c5dd3613fd8009840a4503d3a1fa48b504fd6b3", size = 34717302, upload-time = "2026-01-03T13:42:31.163Z" },
 ]
 
 [[package]]
 name = "inspect-k8s-sandbox"
-version = "0.4.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "inspect-ai" },
     { name = "jsonschema" },
     { name = "kubernetes" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/16/d6/ae0a16d4224f15318345e862bde269e1060ee6c785df432e775a03c9a892/inspect_k8s_sandbox-0.4.0.tar.gz", hash = "sha256:0bff9dd09c261f4b9b92596e60d4c2d95bda4b22c76afeabefa547f86b1b78c5", size = 1323642, upload-time = "2026-03-04T13:30:07.181Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/96/f926f2d78781332322be3fb5557e7772b060bfdf722fd4b2f71cf60be259/inspect_k8s_sandbox-0.3.0.tar.gz", hash = "sha256:be80ab69d0328ccd3dc6b131c11244e54c4b07e27d248cd9a1eb09acabaf77b8", size = 1286509, upload-time = "2025-12-09T09:57:47.712Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/af/fb/e467673ffa2897b8f586fda1ae6580aa42fa3b562eedb05bff8e87faf6eb/inspect_k8s_sandbox-0.4.0-py3-none-any.whl", hash = "sha256:37946688c2cc938328bcfbea10819e11aa6aa29ea673878614f1f8cc98b846fe", size = 59581, upload-time = "2026-03-04T13:30:05.682Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/da/eaeaeec1e57ebb2fa2ca9d85d4bcefc6c933911f487c9667cf1b9cb5c7f8/inspect_k8s_sandbox-0.3.0-py3-none-any.whl", hash = "sha256:c16d4e56fe9a23ad462513ded9791dd79f5ec8e0f656066065551c21007d8235", size = 55493, upload-time = "2025-12-09T09:57:45.9Z" },
 ]
 
 [[package]]
@@ -3981,9 +3989,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "control-arena" },
+    { name = "control-arena", specifier = ">=14.2.0" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "inspect-ai", specifier = ">=0.3" },
+    { name = "inspect-ai", specifier = "==0.3.159" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "numpy", specifier = ">=1.24" },
     { name = "openai", specifier = ">=1.0" },
@@ -4434,18 +4442,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/19/3774d162f6732d1cfb0b47b4140a942a35ca82bb19b6db1f80e9e7bdc8f8/yarl-1.23.0-cp314-cp314t-win_amd64.whl", hash = "sha256:4503053d296bc6e4cbd1fad61cf3b6e33b939886c4f249ba7c78b602214fabe2", size = 97610, upload-time = "2026-03-01T22:07:45.773Z" },
     { url = "https://files.pythonhosted.org/packages/51/47/3fa2286c3cb162c71cdb34c4224d5745a1ceceb391b2bd9b19b668a8d724/yarl-1.23.0-cp314-cp314t-win_arm64.whl", hash = "sha256:44bb7bef4ea409384e3f8bc36c063d77ea1b8d4a5b2706956c0d6695f07dcc25", size = 86041, upload-time = "2026-03-01T22:07:49.026Z" },
     { url = "https://files.pythonhosted.org/packages/69/68/c8739671f5699c7dc470580a4f821ef37c32c4cb0b047ce223a7f115757f/yarl-1.23.0-py3-none-any.whl", hash = "sha256:a2df6afe50dea8ae15fa34c9f824a3ee958d785fd5d089063d960bae1daa0a3f", size = 48288, upload-time = "2026-03-01T22:07:51.388Z" },
-]
-
-[[package]]
-name = "zipfile-zstd"
-version = "0.0.4"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "zstandard", marker = "python_full_version < '3.14'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/2a/2e0941bc0058d10ab37d8c578b94a19f611f6ae54f124140f2fb451f0932/zipfile-zstd-0.0.4.tar.gz", hash = "sha256:c1498e15b7922a3d1af0ea55df8b11b2af4e8f7e0e80e414e25d66899f7def89", size = 4603, upload-time = "2021-12-08T07:38:16.245Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b1/3a/bc3011d26bbb490741f58c28a2df559445c59e8524cbbb71ecf33db23bb7/zipfile_zstd-0.0.4-py3-none-any.whl", hash = "sha256:c8e07be35765c072eb7b1be715c89ecb248a1127b014e12a9b8ac7db2600c166", size = 4058, upload-time = "2021-12-08T07:38:14.715Z" },
 ]
 
 [[package]]

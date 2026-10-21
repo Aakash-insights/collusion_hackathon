@@ -82,8 +82,8 @@ installed dependencies:
 source .venv/bin/activate     # from the steganographic-collusion/ directory
 ```
 
-Run the CI smoke script (compiles Python modules, checks formatting, executes targeted `pytest`
-suites):
+Run the CI smoke script (compiles the `auditor` and `colludebench` modules with `compileall`, then
+executes targeted `pytest` suites):
 
 ```bash
 scripts/ci_check.sh
@@ -156,6 +156,13 @@ single cheapest hosted check runs directly against OpenRouter:
 ```bash
 python -m auditor.experiments pricing_llm_groq    # ~160 calls on an open model (Llama 3.1 8B)
 ```
+
+> **Heads up — this rewrites tracked files.** Running any `auditor.experiments` label overwrites its
+> `results/experiments/<label>.json` and the per-seed transcripts under
+> `results/experiments/<scenario>/` (for `pricing_llm_groq` that is `results/experiments/pricing_duopoly/`,
+> ~40 git-tracked files). `git status` will show them as modified afterwards — this is expected. The
+> new transcripts are non-deterministic (hosted sampling), so `git restore results/experiments/` to
+> get the shipped data back if you only wanted a smoke test.
 
 A hosted label with **no** inference key now fails loud (non-zero exit) instead of silently skipping,
 so an empty `results/experiments/` is never mistaken for a successful run. Run the full hosted set

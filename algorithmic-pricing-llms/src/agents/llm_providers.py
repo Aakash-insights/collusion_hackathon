@@ -17,7 +17,7 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from poseidon_compute import make_client, resolve_model
+from poseidon_compute import make_client, resolve_model, endpoint_kind, base_url
 
 Message = Dict[str, str]
 
@@ -210,7 +210,13 @@ def resolve_effective_model(model: Optional[str] = None) -> str:
 
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
     model = resolve_effective_model(model)
-    return (
-        f"≈ {n_calls:,} model calls with {model}. Per-token rates: Nebius AI Studio "
-        f"(https://studio.nebius.com)."
-    )
+    # Show the rates page for the endpoint the call will ACTUALLY use (Nebius by default, OpenRouter when
+    # that's the configured key), not a hardcoded provider — otherwise the banner misleads OpenRouter users.
+    kind = endpoint_kind()
+    if kind == "openrouter":
+        rates = f"https://openrouter.ai/{model}"
+    elif kind == "nebius":
+        rates = "Nebius AI Studio (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = base_url()
+    return f"≈ {n_calls:,} model calls with {model}. Per-token rates: {rates}."

@@ -48,6 +48,8 @@ cp ../compute.env.example ../compute.env   # at the repo root
 
 Set `NEBIUS_API_KEY` (default inference). Add `OPENROUTER_API_KEY` **only** if you use closed models or models Nebius doesn't serve (routing is Nebius → OpenRouter → Modal). See [`../COMPUTE.md`](../COMPUTE.md) for details.
 
+> **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in this folder's `.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
+
 This project's local `.env` is only for optional per-project overrides, e.g.:
 
 ```bash
@@ -75,6 +77,12 @@ Run the smoke test (positive control, ~60 calls):
 uv run python experiments_synthetic/duopoly.py --rounds 30
 ```
 
+If you are running OpenRouter-only (see the note under **Inference config**), add an OpenRouter-served model id, e.g.:
+
+```bash
+uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.1-mini
+```
+
 **Success signal**: the run ends with a summary of mean price over the last rounds against the Nash (competitive) and monopoly (collusive) prices, plus `Positive control: PASS/FAIL`. Only move on once it passes. The script prints the total call count and asks before spending (skip the prompt with `-y`).
 
 ---
@@ -92,10 +100,10 @@ uv run python experiments_synthetic/duopoly.py               # 300 rounds, ~600 
 **Other market structures / baseline:**
 
 ```bash
-python experiments_synthetic/oligopoly_3.py
-python experiments_synthetic/oligopoly_4.py
-python experiments_synthetic/oligopoly_5.py
-python experiments_synthetic/monopoly.py    # baseline monopoly experiment
+uv run python experiments_synthetic/oligopoly_3.py
+uv run python experiments_synthetic/oligopoly_4.py
+uv run python experiments_synthetic/oligopoly_5.py
+uv run python experiments_synthetic/monopoly.py    # baseline monopoly experiment
 ```
 
 **Vary exactly one feature, hold the economics fixed** (one-variable ablations):

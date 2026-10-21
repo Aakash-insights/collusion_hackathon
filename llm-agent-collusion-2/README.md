@@ -87,6 +87,16 @@ Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept; `ll
 `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling parameters and output caps are the ones
 the local client used; see each game's `llm_client.py`.
 
+> **⚠️ OpenRouter-only setups: one `small`-roster model id is not served by OpenRouter.** The
+> `MODEL_MAP` ids in `llm_client.py` are Nebius ids and are sent to the provider unchanged. If you have
+> only an `OPENROUTER_API_KEY` (no Nebius key), the `ministral-8b` seat's id
+> (`mistralai/Ministral-8B-Instruct-2410`) returns **HTTP 400 "is not a valid model ID"** — OpenRouter
+> serves it as `mistralai/ministral-8b-2512` instead. The run does **not** crash: that seat's calls are
+> swallowed and the agent falls back to a default action, so three of the four seats use a real model
+> and one does not. With a Nebius key this seat works as written. To make all four seats run on
+> OpenRouter, update that `MODEL_MAP` entry to an OpenRouter-served id (e.g. `mistralai/ministral-8b-2512`).
+> (The `large` roster has not been verified against OpenRouter and may have the same gap.)
+
 **Hardware:** any laptop. The original H100 requirement is gone with the local weights.
 
 ## Quick start
@@ -100,8 +110,13 @@ each of the four seats resolves its own distinct model from the [Models](#models
 cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small
 ```
 
-**Success signal:** the tournament completes without errors and writes results under
-`Collusion_Cleanup/runs/smoke/` (see [Outputs](#outputs)).
+**Success signal:** the tournament prints `Tournament completed in … seconds` / `Results saved to
+runs/smoke` and writes `episodes.csv`, `cumulative_scores.csv`, `summary.csv`, and a `game_record/`
+directory under `Collusion_Cleanup/runs/smoke/` (see [Outputs](#outputs)). A few per-call
+`WARNING:agents.llm_agent:LLM agent N failed to generate action` lines are tolerated (the agent falls
+back to a default action) and do not abort the run — but if **every** call for one seat warns with
+`is not a valid model ID`, that seat is not reaching a real model; see the OpenRouter caveat under
+[Models](#models).
 
 > **⚠️ `poseidon-run --model X` collapses the 4-model design.** This experiment's whole point is four
 > *different* models, one per seat (the `--roster small`/`large` entries in the [Models](#models)

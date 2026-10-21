@@ -66,9 +66,10 @@ poseidon-run --model openai/gpt-4o-mini -- \
     --model openai/gpt-4o-mini --use-queue
 ```
 
-**Success signal:** the run completes and the output JSON's stage fields show `_parse_ok: true`
-(see [Outputs](#outputs)). If the key or model is wrong, the run aborts at the first stage instead
-of burning the whole budget.
+**Success signal:** the run completes and prints a `Parse errors: 0 agent-stage(s) with missing
+actions` line plus a `RESULTS SUMMARY` block; the output JSON's stage fields show `_parse_ok: true`
+(see [Outputs](#outputs)). The output path is printed on the last line (`Results saved to: ...`). If
+the key or model is wrong, the run aborts at the first stage instead of burning the whole budget.
 
 `poseidon-run` is the recommended one entry point — it routes the model across providers for
 you (Nebius → OpenRouter → Modal). It is run from the repo root, but the native
@@ -94,8 +95,11 @@ poseidon-run --model openai/gpt-4o-mini -- \
 ### Heterogeneous groups (mixed models)
 
 Agents can run different models. Each should support structured output (`response_format`);
-GPT / Claude via OpenRouter qualify, as do many Nebius models. The agent names are deterministic,
-so for `--agents 5` they are always `J M Q T Z`.
+GPT / Claude via OpenRouter qualify, as do many Nebius models. The agent names are deterministic
+(a fixed-seed shuffle of the alphabet, so they are **not** the first N letters), so for `--agents 5`
+they are always `J M Q T Z`. Other agent counts produce a different set — e.g. `--agents 2` yields
+`M Q`. The runner prints `Agent names: [...]` at startup; the keys in your `--agent-models-file`
+must match that printed list for the agent count you run.
 
 Create `my_models.json`:
 ```json
@@ -231,6 +235,11 @@ python experiments/plot/plot_trust.py \
 
 Output: `outputs/plots/trust/{game}/{model}/trial_XX.png` (one plot per trial showing trust scores
 over 10 rounds).
+
+> **Needs a multi-round run.** Trust plots are built from per-round reflection data, which only
+> exists when `--rounds > 1` (with `--rounds 1` — including the smoke test — takeaways are always
+> empty). Point this script at a result file from a run with `--rounds 10`; against a 1-round file
+> it reports `no reflection data — skipping` and writes no plot.
 
 ### Comprehensive analysis
 

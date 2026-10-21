@@ -39,8 +39,10 @@ overrides, it does **not** hold your API keys.
 
 The paper ran open models locally on GPUs (transformers) plus OpenAI / Gemini batch jobs. Here every
 model call goes through the shared inference config, so it runs on any laptop. The default model is the
-paper's default, `meta-llama/llama-3.3-70b-instruct`; any model id works and the paper's HuggingFace
-ids are mapped automatically.
+paper's default, `meta-llama/Llama-3.3-70B-Instruct` (the value baked into the code and used to name the
+shipped reference folder); any model id works and the paper's HuggingFace ids are mapped automatically.
+The output folder is the model string **verbatim**, so keep this exact casing if you want a run to line
+up with (or be guarded against overwriting) the shipped `results/meta-llama/Llama-3.3-70B-Instruct/`.
 
 ## Quick start
 
@@ -50,8 +52,9 @@ Calls per run = prompts × samples; the script prints the count and asks before 
 uv run python main.py -m openai/gpt-4o-mini --max-prompts 3 -s 5   # smoke test: 15 calls
 ```
 
-This works with just an `OPENROUTER_API_KEY` set. Pass `-y` / `--yes` to skip the cost prompt in
-non-interactive runs.
+This works with just an `OPENROUTER_API_KEY` set. The cost prompt only blocks on an interactive
+terminal; in a non-interactive shell (pipes, CI) the run auto-proceeds, so the command above runs as-is.
+Pass `-y` / `--yes` to skip the prompt explicitly.
 
 > **Output folder is named after `-m`, not after the model that actually answers.** Always pass
 > `-m <model-id>` so the label matches the model you run. If you omit `-m`, the folder defaults to the
@@ -70,7 +73,7 @@ Success signal: the run writes `logs/<model>/<dataset>_responses_<tag>.jsonl` an
 ```bash
 uv run python main.py                                      # schelling: 18 prompts × 10 samples = 180 calls
 uv run python main.py -s 30                                # paper's 30 samples per prompt
-uv run python main.py -m meta-llama/llama-3.1-8b-instruct  # a cheaper open model
+uv run python main.py -m meta-llama/Llama-3.1-8B-Instruct  # a cheaper open model
 uv run python main.py -m openai/gpt-4o qwen/qwen2.5-72b-instruct   # several models (needs OPENROUTER_API_KEY for gpt-4o)
 uv run python main.py -d amsterdam nottingham -p problem-pick problem-guess problem-coordinate   # Bardsley tasks
 uv run python main.py --temperature 0.7 --seed 1           # sampling controls

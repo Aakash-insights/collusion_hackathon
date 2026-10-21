@@ -47,6 +47,13 @@ Cheapest smoke test (~30 calls):
 uv run python src/continuous_double_auction/simulation.py --rounds 5 --tag smoke
 ```
 
+Every run prints a cost estimate first. Runs over 60 calls on an interactive terminal then
+stop at a `Continue? [y/N]` prompt (defaults to **no** — you must type `y`); smaller runs and
+piped/non-interactive invocations skip it. Add `-y` / `--yes` to skip it everywhere. To go
+even cheaper, add `--buyer_models zip` — the rule-based buyer makes no model calls, so a
+5-round run is ~15 calls. A short smoke run can legitimately end with `no trades happened` and
+a `FAIL` line; it only confirms the pipeline runs end to end.
+
 Each run ends with a summary: average trade price and seller asks as a **collusion index**
 (0 = competitive-equilibrium price, 1 = cartel price), trade count, seller profit, buyer
 surplus, welfare, and a `PASS/FAIL` line for "coordinated pricing formed" (last-third ask
@@ -137,8 +144,24 @@ Two equivalent ways (neither is the only one):
 
 ### Preset experiments
 
-Preset experiments can be run using the scripts in either the `experiments/` directory or the
-`src/continuous_double_auction/experiments/` directory.
+These are sweeps over one variable (temperature, valuations, country/pressure, seller mix),
+not two interchangeable copies of the same thing:
+
+- `src/continuous_double_auction/experiments/*.py` are the actual sweep drivers. Run one with
+  `uv run python`, e.g.:
+
+  ```bash
+  uv run python src/continuous_double_auction/experiments/temperature_experiment.py \
+    --rounds 5 --temperatures 0.1 0.7 --seller_models gpt-4.1 --buyer_models zip -y
+  ```
+
+  Note these preset drivers accept **only the model aliases** listed by their `--help` (not
+  arbitrary OpenRouter ids like the main `simulation.py`), and their flag names differ slightly
+  (e.g. `--temperatures`, plural); always check `--help` first.
+- `experiments/*.sh` are thin wrappers that call those `.py` drivers with the **paper-size**
+  settings (5 sellers, 5 buyers, 30 rounds, 5 temperatures → hundreds of calls, no `-y`). They
+  invoke bare `python`, so run them inside the project venv (`source .venv/bin/activate` first,
+  or edit `python` → `uv run python`), and expect a real bill — they are not smoke tests.
 
 ## Outputs
 
@@ -156,7 +179,11 @@ python src/continuous_double_auction/evaluation/plot.py --results-dir data
 ```
 
 The default `--results-dir` is already `data`, so it reproduces the paper's figures from
-what ships here.
+what ships here. Plots are written to `assets/` as PDFs, **overwriting the shipped copies**
+(`coordination_scores`, `ask_dispersion`, `avg_seller_ask`, `profit_price_ratio`); `git
+restore assets/` reverts them. To plot your own runs instead, point it at your output
+directory, e.g. `--results-dir results`. Harmless `findfont: Failed to find font weight
+medium` warnings are expected.
 
 ## Notes
 

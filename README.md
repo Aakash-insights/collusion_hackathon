@@ -17,8 +17,28 @@ not results: the sprint questions are yours to answer.
 
 ## Setup — one command
 
+### Prerequisites
+
+Install these once before running `./setup.sh`:
+
+- **[uv](https://docs.astral.sh/uv/)** — the Python package manager the setup uses. Install it with
+  `curl -LsSf https://astral.sh/uv/install.sh | sh` (macOS/Linux; see the uv docs for Windows), then
+  restart your shell. uv also fetches the exact Python each project needs (e.g. trace-guard wants 3.12),
+  so you don't manage interpreters yourself.
+- **Python 3.10+** on your PATH (`python3`) — used to create the venvs for the pip-based projects.
+- **Docker** — only for **trace-guard** (it runs its agent inside a container). Everything else is
+  Python-only. Install Docker Desktop (macOS/Windows) or Docker Engine (Linux) and start it.
+- A **model API key** for the next step: a **Nebius** key (default inference) and/or an **OpenRouter**
+  key (needed for closed models like GPT/Gemini/Claude). Hackathon participants get these from the event
+  Slack/Luma; otherwise sign up at [Nebius AI Studio](https://studio.nebius.com/) /
+  [OpenRouter](https://openrouter.ai/). Details in [`COMPUTE.md`](COMPUTE.md).
+- *(Optional)* a **Modal** account (`pip install modal && modal setup`) — only if you want to offload
+  compute to the cloud or host an off-catalog model. See [`COMPUTE.md`](COMPUTE.md).
+
+### Run it
+
 ```bash
-cp compute.env.example compute.env     # add NEBIUS_API_KEY and/or OPENROUTER_API_KEY
+cp compute.env.example compute.env     # then edit the file: add NEBIUS_API_KEY and/or OPENROUTER_API_KEY
 ./setup.sh                             # sets up ALL experiments (uv sync / pip venv), one go
 ```
 
@@ -35,7 +55,7 @@ directly with `from poseidon_compute import make_client, resolve_model` (no path
 |---|---|---|
 | [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer, Peist (2025), extends Fish et al. (2025) | LLM firms in a 300-round Calvano pricing game: tacit collusion, and how it erodes with more firms |
 | [`llm-cartel/`](llm-cartel/) | Riemer et al., ICML 2026 position paper | Reasoning models in a Bertrand duopoly/triopoly under 19 prompt variants, monitoring notices, LLM judges; the paper's activation-steering scripts ship untouched as an optional extra |
-| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors. **Requires Docker** |
+| [`focal-points/`](focal-points/) | Focal-point / Schelling coordination study | Do LLMs pick the same "obvious" answers humans do? Coordination index vs. human data; benign control for detectors. (Runs on the shared endpoint, no GPU; Docker only for the optional local-GPU reproduction.) |
 | [`llm-agent-collusion/`](llm-agent-collusion/) | Agrawal et al. (2025), double auctions | LLM sellers and buyers in a continuous double auction with seller chat, an overseer, pressure and message caps |
 | [`colosseum/`](colosseum/) | UMass AI Safety, Colosseum on Terrarium | Tool-calling agent teams in Jira / hospital environments; topologies, private channels, persuasion, misinformation |
 | [`llm-trust-breaking/`](llm-trust-breaking/) | Shi et al., LLM Trust Breaking | Promise-breaking and trust dynamics over 10 rounds of strategic games with private plans and public commitments |
@@ -61,6 +81,9 @@ thesis model `mistralai/Mistral-Large-Instruct-2411`.
 
 ```bash
 cd algorithmic-pricing-llms && uv sync && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+# The default model (Mistral-Large-Instruct-2411) is served by Nebius, so this needs NEBIUS_API_KEY.
+# With only an OpenRouter key, that exact version isn't on OpenRouter — pass an OpenRouter-served
+# model instead, e.g.  --model openai/gpt-4.1-mini
 uv run python experiments_synthetic/duopoly.py --rounds 30          # ~60 calls
 ```
 
@@ -104,7 +127,10 @@ from this copy; prompt datasets, human baselines and the paper's aggregated resu
 
 ```bash
 cd focal-points && uv sync && cp .env.example .env     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
-uv run python main.py --max-prompts 3 -s 5             # 15 calls
+# Smoke test writes to results/<model>/. The default model (Llama-3.3-70B) already has the paper's
+# reference results checked in and the run refuses to clobber them, so smoke-test with another model
+# — it writes to its own folder:
+uv run python main.py -m openai/gpt-4o-mini --max-prompts 3 -s 5   # ~15 cheap calls
 ```
 
 ### 4. [`llm-agent-collusion/`](llm-agent-collusion/)
@@ -253,6 +279,6 @@ Budget for it: the 5-sample smoke test takes ~10 minutes; the full experiment 6�
 and stops at the first one missing, before anything expensive starts.
 
 ```bash
-cd trace-guard && pip install -e .     # inference set centrally in repo-root compute.env (OPENROUTER_API_KEY — defaults are closed GPT-4o; see COMPUTE.md)
+cd trace-guard && uv pip install -e .     # inference set centrally in repo-root compute.env (OPENROUTER_API_KEY — defaults are closed GPT-4o; see COMPUTE.md)
 bash scripts/quickstart.sh             # checks prereqs (Docker, key, model access), builds BashArena images on first run, then a 5-sample smoke test (~10 min)
 ```

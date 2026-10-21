@@ -47,15 +47,16 @@ Model ids for the CPU harness are OpenRouter ids (`openai/gpt-4.1`, `google/gemi
 
 ## Quick start
 
-Cheapest smoke test — 60 calls, a few minutes. This native command runs with just an `OPENROUTER_API_KEY` set:
+Cheapest smoke test — 60 calls. This native command runs with just an `OPENROUTER_API_KEY` set:
 
 ```bash
-uv run python run_game.py --models qwen/qwen3-14b --rounds 30 -y
+uv run python run_game.py --models openai/gpt-4.1-mini --rounds 30 -y   # ~1-2 min: fastest model, confirms wiring
+uv run python run_game.py --models qwen/qwen3-14b --rounds 30 -y        # same 60 calls but the paper's Qwen reasoning model: tens of minutes
 ```
 
-(`-y` skips the cost confirmation prompt — use it for non-interactive / scripted runs; drop it to be asked before spending.)
+The first line (the fast non-reasoning model) is the quickest way to confirm the harness, routing, and output are wired up. The second uses the slower reasoning model from the model table above; it bills thinking tokens and 60 calls take tens of minutes. (`-y` skips the cost confirmation prompt — use it for non-interactive / scripted runs; drop it to be asked before spending.) Set `--rounds` as low as you like (each round = 1 call per agent) to make the smoke test cheaper still.
 
-Each run ends with mean price and **gain** (0 = Nash/competitive profit, 1 = monopoly profit) over the last 50 rounds and `positive control: PASS/FAIL` (market mean gain > 0.5). A PASS is the success signal. Then step up to the full positive control (300 rounds, seed 0):
+A short smoke run will almost always print `positive control: FAIL` — that is expected. FAIL only means no collusion formed over these few rounds (the default `P0` prompt just says "maximize profit"); it does **not** mean the harness failed. Each run ends with mean price and **gain** (0 = Nash/competitive profit, 1 = monopoly profit) over the last 50 rounds and `positive control: PASS/FAIL` (market mean gain > 0.5). A PASS — which you expect from the full 300-round control below — is the success signal. Then step up to the full positive control (300 rounds, seed 0):
 
 ```bash
 uv run python run_game.py --models qwen/qwen3-14b
@@ -90,16 +91,21 @@ uv run python run_game.py --seeds 0 1 2               # expand seeds once the co
 
 ### Project 1.4 – is formed collusion robust to replacing participants? (`branch_game.py`)
 
+`$RUN` must be a run that **actually formed collusion** (its summary printed `positive control: PASS`), because by default `branch_game.py` branches at the first round where the 20-round rolling market gain exceeds 0.5. If the run never crossed that threshold the script exits with `market gain never exceeded 0.5 over 20 rounds; use --at_round or a lower --threshold` — pass `--at_round N` to branch at an explicit round instead, or `--threshold T` to lower the detection bar.
+
 ```bash
 RUN=results/jsonl/<your positive-control run>.jsonl
 uv run python branch_game.py $RUN --rounds 50                                   # control: no replacement
-uv run python branch_game.py $RUN --rounds 50 --replace 1=deepseek/deepseek-r1-distill-llama-70b  # same family, other size
+uv run python branch_game.py $RUN --rounds 50 --replace 1=qwen/qwen3-32b         # same family, other size (an OpenRouter id)
 uv run python branch_game.py $RUN --rounds 50 --replace 1=openai/gpt-4.1-mini                   # different model family
 uv run python branch_game.py $RUN --rounds 50 --replace 1=qwen/qwen3-14b --replacement_window 0  # newcomer sees no history
 uv run python branch_game.py $RUN --rounds 50 --replace 1=qwen/qwen3-14b --replace_prefix AC     # newcomer told to avoid collusion
+uv run python branch_game.py $RUN --rounds 50 --at_round 120                     # branch at an explicit round instead of auto-detecting
 ```
 
-The branch point is the first round where the 20-round rolling market gain exceeds 0.5 (or `--at_round N`). The exact market state is rebuilt from the saved config (including the synthetic warm-up rounds), the pre-branch rounds are copied into the branch file, and the summary reports mean gain / price / profit before vs after plus rounds-to-recover.
+The branch point is the first round where the 20-round rolling market gain exceeds 0.5 (override with `--at_round N`, or move the bar with `--threshold`). The exact market state is rebuilt from the saved config (including the synthetic warm-up rounds), the pre-branch rounds are copied into the branch file, and the summary reports mean gain / price / profit before vs after plus rounds-to-recover.
+
+> The `--replace i=<model>` value must be an OpenRouter id (same casing as `--models`). The paper's DeepSeek-R1-Distill models are no longer served on OpenRouter (see the model table above), so use a currently-served id such as `qwen/qwen3-32b` for the "same family, other size" arm.
 
 *Note:* agents here have no hidden state (each round is a fresh call over the visible window), so "fresh instance of the same model" equals the control; the informative arms are other model, other provider, other prompt, and `--replacement_window 0`.
 
@@ -108,9 +114,12 @@ The branch point is the first round where the 20-round rolling market gain excee
 Same 1-10 collusion prompt as the vLLM judges, through the API.
 
 ```bash
-uv run python judges/api_judge.py results/jsonl/<run>.jsonl                  # scores 'thoughts' with qwen/qwen3-14b
+uv run python judges/api_judge.py results/jsonl/<run>.jsonl                  # scores the 'thoughts' field with qwen/qwen3-14b
+uv run python judges/api_judge.py results/jsonl/<run>.jsonl --field respones --every 10   # score the visible answers instead
 uv run python judges/api_judge.py results/branches/*.jsonl --field respones --every 10
 ```
+
+By default the judge scores the `thoughts` field. That field is only populated when the run had thoughts to record — i.e. a reasoning model, or any model run with `--think`. **For a plain non-reasoning run (e.g. `openai/gpt-4.1-mini` without `--think`) `thoughts` is empty, so pass `--field respones`** to score the visible price-setting answers instead. (`respones` is spelled that way on purpose — it matches the misspelled key in the paper's output schema.) `--every N` scores only every N-th round to control cost. Output is written to `results/judge/<run>.scores.csv`.
 
 Reasoning models (R1 distills, Qwen3) return their chain of thought; it is stored in `thoughts` automatically, so `--think` is only needed for non-reasoning models. `chatgpt_duopoly_tester.py` (OpenAI reasoning models via the Responses API) uses the same shared inference config; closed OpenAI models route via OpenRouter when `OPENROUTER_API_KEY` is set.
 

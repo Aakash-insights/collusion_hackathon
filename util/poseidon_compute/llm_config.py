@@ -52,6 +52,19 @@ _RETIRED_MODEL_UPGRADES = {
 }
 _announced_upgrades = set()  # so we print each upgrade once, not per call
 
+# Cross-provider same-lineage aliases, applied ONLY when routing to OpenRouter (never on Nebius).
+# A model Nebius serves under its Hugging Face id may be absent from OpenRouter, which instead carries
+# a current same-lineage snapshot. Mapping HF-id -> the OpenRouter id lets an OpenRouter-only user run
+# the intended model family instead of a hard 400. This is the same "explicit, announced version upgrade"
+# exception used above (printed once), NOT a silent default swap — and it does not affect Nebius routing,
+# where the exact requested id is used.
+_OPENROUTER_ALIASES = {
+    # Ministral-8B-Instruct-2410 (on Nebius) is not on OpenRouter; OpenRouter carries the current
+    # Ministral 8B snapshot (2512). Used by llm-agent-collusion-2's `small`/`large` rosters.
+    "mistralai/Ministral-8B-Instruct-2410": "mistralai/ministral-8b-2512",
+}
+_announced_or_aliases = set()
+
 
 def _find_root_env():
     """Walk up from this file and the CWD to find the repo-root compute.env."""
@@ -226,7 +239,21 @@ def openrouter_serves(model):
     cat = _openrouter_catalog()
     if cat is None:
         return None
-    return cat.get(_norm_model(model))
+    hit = cat.get(_norm_model(model))
+    if hit:
+        return hit
+    # Not found by normalized name — try an explicit same-lineage OpenRouter alias (announced once).
+    alias = _OPENROUTER_ALIASES.get(model)
+    if alias:
+        aliased = cat.get(_norm_model(alias))
+        if aliased:
+            if model not in _announced_or_aliases:
+                print(f"[llm_config] NOTE: '{model}' isn't served by OpenRouter; using its current "
+                      f"same-lineage snapshot there, '{aliased}' (explicit version upgrade, not a default "
+                      f"substitution; Nebius still uses the exact id).", flush=True)
+                _announced_or_aliases.add(model)
+            return aliased
+    return None
 
 
 def config():

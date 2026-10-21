@@ -41,6 +41,10 @@ ONE of:
   Nebius / Hugging Face casing) that supports JSON output (`response_format`); then `NEBIUS_API_KEY` is
   enough.
 
+`MODEL_SPEC` is built with `resolve_model(...)`, which lets you override the id **without editing the
+notebook**: set `LLM_MODEL=<id>` in the environment and it wins over the hard-coded value (handy for
+headless runs and for pointing the closed defaults at an OpenRouter-served id you prefer).
+
 > **IMPORTANT — set `OPENROUTER_API_KEY`.** Provider config is resolved by `make_client()` in
 > `poseidon_compute` (called in a later cell): with the core fix in place, if only
 > `OPENROUTER_API_KEY` is set the client talks to OpenRouter directly — no `LLM_BASE_URL` or other
@@ -69,8 +73,40 @@ cp .env.example .env        # put OPENROUTER_API_KEY here (satisfies the early a
 jupyter notebook            # open bertrand.ipynb, run the cells in order
 ```
 
-Success signal: the run creates `bertrand_data/run-NNN/` with a folder per round, the two firms'
-history JSONs and a `run_metadata.csv`; the plotting cells at the end render price / profit charts.
+Success signal: the run creates `bertrand_data/runs/run-NNN/` with a folder per round, the two firms'
+history JSONs and a `run_metadata.csv` (the latter lives one level up in `bertrand_data/`); the
+plotting cells at the end render price / profit charts.
+
+### Run it headless (no GUI)
+
+To smoke-test the whole path without opening Jupyter — for CI, an agent, or a quick sanity check —
+execute a notebook non-interactively with `nbconvert`, writing the executed copy to `/tmp` so it
+never lands in the repo:
+
+```bash
+cd collusive-llm-agents
+source .venv/bin/activate                    # the venv created in Setup
+export OPENROUTER_API_KEY=...                # must be in the process env for the first-cell assert
+jupyter nbconvert --to notebook --execute bertrand.ipynb --output /tmp/bertrand.out.ipynb \
+  --ExecutePreprocessor.timeout=360
+```
+
+Note: `nbconvert` runs the kernel with its working directory set to the **notebook's** directory, so
+`bertrand_data/` and the local `.env` are resolved relative to `collusive-llm-agents/`. The command
+above is non-interactive, so keep `ENABLE_MANUAL_PARSE_ASSIST` in mind — if a reply can't be parsed
+the notebook would block on `input()` (it did not in our smoke runs).
+
+**Make it cheap / swap the model without editing the notebook.** `NUM_ROUNDS = 1` is the smallest
+useful smoke value (one call per firm = 2 model calls total); it's the `NUM_ROUNDS` constant in the
+"Number of rounds + model" cell near the top. `MODEL_SPEC` is set via `resolve_model(...)` in that
+same cell, and `resolve_model` honors an `LLM_MODEL` environment variable that **overrides** the
+hard-coded id — so to point the run at an OpenRouter-served model without touching the notebook:
+
+```bash
+export LLM_MODEL="openai/gpt-4.1-mini"        # any OpenRouter-served, JSON-capable id
+```
+
+(`openai/gpt-4.1-mini` was verified end-to-end against OpenRouter for this experiment.)
 
 ## Running experiments
 
@@ -83,17 +119,18 @@ Open `bertrand.ipynb` or `cournot.ipynb` and run the cells in order. Knobs near 
 
 ## Outputs
 
-Each run writes to `bertrand_data/` / `cournot_data/` (created on first run, git-ignored): one
-`run-NNN/` folder per run with a sub-folder per round (prompts and the model's structured reply), the
-two firms' history JSONs (`firm_1_history.json`, `firm_2_history.json`) and a `run_metadata.csv`.
+Each run writes to `bertrand_data/` / `cournot_data/` (created on first run, git-ignored). Runs land
+under a `runs/` sub-folder: one `runs/run-NNN/` folder per run with a sub-folder per round (prompts and
+the model's structured reply) plus the two firms' history JSONs (`firm_1_history.json`,
+`firm_2_history.json`); the `run_metadata.csv` is written at the top level (`bertrand_data/run_metadata.csv`).
 
 The plotting cells at the end read the latest run by default — `RUN_TO_PLOT_FOLDER` in Bertrand,
 `RUN_TO_PLOT` in Cournot; point these at another `run-NNN` to compare runs. Bertrand plots firm prices
 and profits per product; Cournot plots quantities (with Nash / monopoly reference lines) and
 coefficient-of-variation curves.
 
-**How to tell it worked:** a `run-NNN/` folder appears with per-round sub-folders and the firm history
-JSONs, and the plotting cells render charts. A price below marginal cost is recorded as
+**How to tell it worked:** a `runs/run-NNN/` folder appears with per-round sub-folders and the firm
+history JSONs, and the plotting cells render charts. A price below marginal cost is recorded as
 `Invalid Price: <p>` with zero sales — this is **expected** (gpt-3.5-turbo does it regularly) and is
 part of the experiment, not an error. The notebooks only prompt for keyboard input ("Manual Assist")
 when a reply cannot be parsed at all, which did not happen in the paper's runs.

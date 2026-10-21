@@ -22,9 +22,9 @@ echo "=== TraceGuard Quick Start ==="
 echo ""
 echo "1. Prerequisites"
 python -c "import control_arena" 2>/dev/null \
-    || fail "control-arena is not installed." "Run: pip install -e .   (installs inspect-ai + control-arena, ~1 GB)"
+    || fail "control-arena is not installed." "Run: uv pip install -e .   (installs inspect-ai + control-arena, ~1 GB)"
 python -c "import inspect_ai" 2>/dev/null \
-    || fail "inspect-ai is not installed." "Run: pip install -e ."
+    || fail "inspect-ai is not installed." "Run: uv pip install -e ."
 docker info >/dev/null 2>&1 \
     || fail "Docker is not running." "Start Docker (Desktop or daemon) -- BashArena runs every task in a container -- then re-run."
 [ -f ../compute.env ] \

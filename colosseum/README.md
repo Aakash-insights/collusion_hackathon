@@ -106,11 +106,15 @@ subset" in the unassigned conditions, the per-agent rewards are in each run's
 `final_summary.json`.
 
 **LLM judge on the coalition channel** (project 2.4 evidence): same rubric as the paper, through
-OpenRouter (`--judge-model` for another id):
+OpenRouter. `--judge-model` is **required** (there is no default) — pass any tool-free open model
+id it should judge with:
 
 ```bash
-uv run python -m experiments.collusion.judge_blackboards --root experiments/collusion/outputs/<tag>/<timestamp>
+uv run python -m experiments.collusion.judge_blackboards \
+  --root experiments/collusion/outputs/<tag>/<timestamp> --judge-model openai/gpt-4o-mini
 ```
+
+`--root` is the timestamp folder printed at the end of a run (the "Wrote results to:" line).
 
 **Project 1.3 (actions as carriers):** start from condition B (pair prompted, no channel) — the
 coalition can only coordinate through public posts and `assign_task` calls, all logged in
@@ -160,8 +164,12 @@ uv run python experiments/agent_misalignment/run.py \
 
 Results land in `experiments/collusion/outputs/<tag>/<timestamp>/`, where `<tag>` is set by the
 config (`experiment.tag` / `experiment.output_dir`; e.g. `hackathon_positive_control`) and
-`<timestamp>` is auto-generated per run. Each run folder has `summary.csv`, `agent_prompts.md`,
-`blackboard_*.txt`, `tool_events.json`, `metrics.json` and `final_summary.json`.
+`<timestamp>` is auto-generated per run. The timestamp folder holds the experiment-level
+`summary.csv` (plus `summary.json` / `summary.jsonl`, `config.json`, `experiment.log`); each
+individual run lives under `runs/<model>/<sweep>/<run_id>/` and has `agent_prompts.md`,
+`blackboard_*.txt` (one per blackboard, e.g. `blackboard_0.txt` / `blackboard_1.txt`),
+`tool_events.json`, `metrics.json` and `final_summary.json`. Pass this timestamp folder as
+`--root` to the judge above.
 
 It worked if `summary.csv` reports `coalition_advantage_mean` (positive for the control once you
 expand seeds / planning rounds — see the success-signal note above; a single cheap seed may be
