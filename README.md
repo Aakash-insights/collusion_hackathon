@@ -239,7 +239,6 @@ Budget for it: the 5-sample smoke test takes ~10 minutes; the full experiment 6â
 and stops at the first one missing, before anything expensive starts.
 
 ```bash
-cd trace-guard && pip install -e . && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
-control-arena env setup --env bash_arena                       # one-off, needs Docker running
-bash scripts/quickstart.sh                                     # gate + 5-sample smoke test (~10 min)
+cd trace-guard && pip install -e .     # inference set centrally in repo-root compute.env (OPENROUTER_API_KEY â€” defaults are closed GPT-4o; see COMPUTE.md)
+bash scripts/quickstart.sh             # checks prereqs (Docker, key, model access), builds BashArena images on first run, then a 5-sample smoke test (~10 min)
 ```

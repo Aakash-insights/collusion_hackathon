@@ -23,15 +23,14 @@ while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
 _sys.path.insert(0, str(_r / "util"))
 from llm_config import api_key as _llm_api_key, resolve_model as _resolve_model
 
-# No default model: choose an (open, JSON-capable) model. LLM_MODEL in the shared compute.env wins (via
-# resolve_model); otherwise set OPENROUTER_MODEL in this project's .env. Fail loudly if neither is set.
+# No default model. The primary way to choose one is the CLI `--model` flag; this module-level MODEL is
+# only the fallback when `--model` is omitted (LLM_MODEL in the repo-root compute.env wins via
+# resolve_model, else OPENROUTER_MODEL in this project's .env). Do NOT raise at import — the experiments
+# take `--model`, which is applied after this module loads — so leave MODEL empty if nothing is set and let
+# the entry point fail loudly only if a run actually proceeds with no model from either source.
 _requested_model = os.getenv('OPENROUTER_MODEL')
-MODEL = _resolve_model(_requested_model) if _requested_model else _resolve_model('__unset__')
-if MODEL in ('', '__unset__'):
-    raise RuntimeError(
-        "No model configured for llm-trust-breaking. Set LLM_MODEL in the repo-root compute.env "
-        "(or OPENROUTER_MODEL in this project's .env) to a JSON-capable open model — there is no default."
-    )
+_resolved_model = _resolve_model(_requested_model) if _requested_model else _resolve_model('__unset__')
+MODEL = '' if _resolved_model in ('', '__unset__') else _resolved_model
 TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
 # OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;
