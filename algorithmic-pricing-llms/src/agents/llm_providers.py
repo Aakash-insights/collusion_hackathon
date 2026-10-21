@@ -2,9 +2,9 @@
 LLM provider clients for the pricing agents.
 
 Hackathon standard: all model calls go through the shared endpoint (**Nebius AI Studio** by default; see
-the repo-root ``compute.env`` / ``util/llm_config.py``). The default model is the thesis model,
+the repo-root ``compute.env`` / ``poseidon_compute``). The default model is the thesis model,
 ``mistralai/Mistral-Large-Instruct-2411``; pass any other model id with ``MODEL_NAME`` / ``--model``.
-To run with a model Nebius doesn't serve, use the one entry point ``python -m util.run`` (it hosts it on
+To run with a model Nebius doesn't serve, use the one entry point ``poseidon-run`` (it hosts it on
 Modal or fails loudly). No model is ever substituted.
 
 The thesis's direct Mistral-SDK path (``LLM_PROVIDER=mistral``) and other OpenAI-compatible endpoints are
@@ -17,11 +17,7 @@ import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-import sys as _sys, pathlib as _pl
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-from llm_config import make_client, resolve_model
+from poseidon_compute import make_client, resolve_model
 
 Message = Dict[str, str]
 
@@ -162,7 +158,7 @@ class OpenAICompatibleProvider(Provider):
         except fatal as e:
             raise FatalProviderError(
                 f"{self.model_name}: {e}. Check the model id and your NEBIUS_API_KEY in the repo-root "
-                f"compute.env. If the model isn't on Nebius, run via `python -m util.run --model "
+                f"compute.env. If the model isn't on Nebius, run via `poseidon-run --model "
                 f"{self.model_name} -- <cmd>` to host it on Modal (or fail with a clear reason)."
             ) from e
         except BadRequestError as e:

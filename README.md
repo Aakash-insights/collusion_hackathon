@@ -10,10 +10,24 @@ not results: the sprint questions are yours to answer.
 > **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set
 > `NEBIUS_API_KEY` (and optionally `OPENROUTER_API_KEY`); every project uses it automatically (inference
 > defaults to **Nebius AI Studio**). **One entry point runs any experiment with a chosen model:**
-> `python -m util.run --model <id> -- <the experiment's command>` — it routes **Nebius → OpenRouter →
+> `poseidon-run --model <id> -- <the experiment's command>` — it routes **Nebius → OpenRouter →
 > Modal** automatically (OpenRouter covers closed models like GPT/Gemini/Claude; Modal hosts custom /
 > off-catalog models), otherwise stops with a clear error (nothing is ever substituted). Full guide:
 > **[`COMPUTE.md`](COMPUTE.md)**.
+
+## Setup — one command
+
+```bash
+cp compute.env.example compute.env     # add NEBIUS_API_KEY and/or OPENROUTER_API_KEY
+./setup.sh                             # sets up ALL experiments (uv sync / pip venv), one go
+```
+
+`./setup.sh` installs the shared compute layer (**`poseidon_compute`**, in [`util/`](util/)) and every
+experiment's dependencies, and drops the `poseidon-run` entry point into a repo-root `./.venv`. Pass
+names to set up a subset (`./setup.sh focal-points llm-cartel`). Prefer to do one project by hand? Use
+the command in its section below — each is self-contained. Every experiment imports the shared layer
+directly with `from poseidon_compute import make_client, resolve_model` (no path hacks); details in
+[`util/README.md`](util/README.md) and [`COMPUTE.md`](COMPUTE.md).
 
 ## At a glance
 

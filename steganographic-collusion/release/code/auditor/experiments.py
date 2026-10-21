@@ -157,7 +157,7 @@ OUTPUT_DIR = Path("results/experiments")
 # silently skipped as if it had succeeded.
 _HOSTED_BACKENDS = {"openrouter", "openai", "openai_chat", "gemini", "google", "google_ai", "groq"}
 
-# Marker substring of the RuntimeError raised by util/llm_config when no inference key is
+# Marker substring of the RuntimeError raised by poseidon_compute when no inference key is
 # configured. Used to tell a missing-key failure apart from other backend failures
 # (e.g. a transformers config whose torch install is missing).
 _MISSING_KEY_MARKER = "No inference API key"

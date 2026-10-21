@@ -14,3 +14,8 @@ tqdm>=4.65.0
 # Data analysis and visualization
 numpy>=1.24.0
 matplotlib>=3.7.0
+
+# Shared compute/inference layer (Nebius -> OpenRouter -> Modal; poseidon_compute).
+# Editable path dep, resolved relative to this experiment dir — install from HERE
+# (the repo-root ./setup.sh does this for you).
+-e ../util

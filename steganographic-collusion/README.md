@@ -42,6 +42,8 @@ collusion detectors and the ColludeBench benchmark that other sprint scenarios c
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh steganographic-collusion` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 This experiment ships inside the starter repo. From the repo root, enter the experiment directory and
 create an environment:
 
@@ -61,7 +63,7 @@ install the CPU build of torch first (see the note in `requirements.txt`).
 `compute.env.example` → `compute.env` (one level up from this folder; `cp ../compute.env.example
 ../compute.env`) and set `NEBIUS_API_KEY` (the open default). Models Nebius doesn't serve — including
 closed ones (GPT / Gemini / Claude) — route through the optional `OPENROUTER_API_KEY`. The hosted
-clients pick up `base_url` + key automatically from that shared config via `util/llm_config.py`. See
+clients pick up `base_url` + key automatically from that shared config via `poseidon_compute`. See
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal → fail loud).
 The scripted configs and the `distilgpt2` paths run locally and need **no key**.
 
@@ -177,7 +179,7 @@ The `backend:` label inside a config (`openrouter`, `gemini`, `groq`, …) **doe
 provider — the central router does; it is a no-op for provider selection.
 
 To force a specific model for a run instead of the config's default, route the command through the
-shared entry point: `python -m util.run --model <id> -- python -m auditor.experiments <label>`.
+shared entry point: `poseidon-run --model <id> -- python -m auditor.experiments <label>`.
 
 Each hosted audit is 20 seeds × 8 rounds = **160 calls** (~4 min on Gemini 2.5 Flash, a few cents) and
 each honest calibration 10 × 8 = 80; the whole hosted suite is ~500 calls, about a dollar. Everything

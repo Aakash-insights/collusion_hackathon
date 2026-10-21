@@ -41,12 +41,7 @@ class QueuedOpenRouterClient:
         if base_url is None:
             # follow the central compute.env provider (OpenRouter/Nebius); fall back to OpenRouter
             try:
-                import sys as _sys, pathlib as _pl
-                _r = _pl.Path(__file__).resolve()
-                while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
-                    _r = _r.parent
-                _sys.path.insert(0, str(_r / "util"))
-                import llm_config
+                from poseidon_compute import llm_config
                 base_url = llm_config.base_url().rstrip("/") + "/chat/completions"
             except Exception:
                 base_url = "https://openrouter.ai/api/v1/chat/completions"

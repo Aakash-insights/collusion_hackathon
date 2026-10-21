@@ -2,7 +2,7 @@
 LLM backend for the focal-point experiments (hackathon standard).
 
 Every model call goes through the shared endpoint (**Nebius AI Studio** by default; see the repo-root
-``compute.env`` / ``util/llm_config.py``), so the experiments run on any laptop with no GPU. The paper's
+``compute.env`` / ``poseidon_compute``), so the experiments run on any laptop with no GPU. The paper's
 default model (``meta-llama/Llama-3.3-70B-Instruct`` in ``experiments.sh`` / the Dockerfile) is the
 default here too — model ids are used as-is, in Nebius / Hugging Face casing (the same ids the paper
 used); nothing is rewritten or substituted.
@@ -30,11 +30,7 @@ from .llm import APIBaseLLM
 
 load_dotenv()
 
-import sys as _sys, pathlib as _pl
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-from llm_config import make_client, resolve_model
+from poseidon_compute import make_client, resolve_model
 
 DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct"  # paper default (experiments.sh / Dockerfile)
 

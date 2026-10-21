@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 # Core: run simulations through OpenRouter, compute metrics, make plots. CPU only.
 dependencies = [
+    "poseidon-compute",
     "numpy>=1.26",
     "pandas>=2.0",
     "pydantic>=2.6",
@@ -38,3 +39,6 @@ include = ["src*"]
 
 [tool.ruff]
 line-length = 120
+
+[tool.uv.sources]
+poseidon-compute = { path = "../util", editable = true }

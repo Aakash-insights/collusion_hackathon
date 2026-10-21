@@ -51,21 +51,15 @@ from src.continuous_double_auction.util.logging_util import ExperimentLogger
 from src.continuous_double_auction.util.misc import get_client, initialize_market
 
 # Pull in the repo-root llm_config.resolve_model so the cost banner and recorded metadata report the
-# model ACTUALLY used (it honors the LLM_MODEL override that util.run --model sets, and translates ids to
+# model ACTUALLY used (it honors the LLM_MODEL override that poseidon-run --model sets, and translates ids to
 # the active endpoint's casing). cda_types.resolve_model only expands the paper aliases.
-import sys as _sys
-from pathlib import Path as _Path
-_root = _Path(__file__).resolve()
-while _root != _root.parent and not (_root / "util" / "llm_config.py").exists():
-    _root = _root.parent
-_sys.path.insert(0, str(_root / "util"))
-from llm_config import resolve_model as _cfg_resolve_model
+from poseidon_compute import resolve_model as _cfg_resolve_model
 
 
 def effective_model(name: str) -> str:
     """The model id actually used for `name`: expand the paper alias (cda_types.resolve_model) and then
     apply the repo-level resolution (llm_config.resolve_model) — which honors the LLM_MODEL override
-    set by `util.run --model` and maps ids to the active endpoint's casing."""
+    set by `poseidon-run --model` and maps ids to the active endpoint's casing."""
     return _cfg_resolve_model(resolve_model(name))
 
 

@@ -1,15 +1,15 @@
 """vLLM model server on Modal — an OpenAI-compatible endpoint for experiments Nebius can't serve.
 
-You don't run this directly. `util/hosted_model.py` runs it ephemerally around an experiment (boots a
+You don't run this directly. `poseidon_compute.hosted_model` runs it ephemerally around an experiment (boots a
 model, wires the endpoint into `llm_config`, tears it down):
 
-    python -m util.hosted_model --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- <your experiment command>
+    poseidon-host --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- <your experiment command>
 
 SETUP (one-time): `pip install modal && modal setup` (browser auth). Gated models (e.g. Llama) need a
 HF token: `modal secret create huggingface HF_TOKEN=hf_...`. Pick a GPU that fits the model: A10G (24GB)
 ~ up to 8B · A100-40GB ~ up to 32B · H100 for 70B (pass `--gpu` to hosted_model).
 
-Advanced: `modal deploy util/modal_serve.py` gives a persistent shared endpoint; most teams won't need
+Advanced: `modal deploy poseidon_compute.modal_serve` gives a persistent shared endpoint; most teams won't need
 it (the ephemeral hosted_model flow is simpler and leaves nothing running). Scaffolding ahead of live
 credits — validate once your Modal account is funded.
 """

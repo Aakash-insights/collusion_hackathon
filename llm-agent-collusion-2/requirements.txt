@@ -11,3 +11,8 @@ pytest>=7.0.0
 # Optional for visualization
 seaborn>=0.11.0
 pandas>=1.3.0
+
+# Shared compute/inference layer (Nebius -> OpenRouter -> Modal; poseidon_compute).
+# Editable path dep, resolved relative to this experiment dir — install from HERE
+# (the repo-root ./setup.sh does this for you).
+-e ../util

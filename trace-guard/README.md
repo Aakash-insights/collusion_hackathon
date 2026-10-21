@@ -18,6 +18,8 @@ In the Collusion Research Sprint this is the AI-control monitor baseline: a **si
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh trace-guard` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 > **Advanced project — read this first.** TraceGuard evaluates agents inside ControlArena's **BashArena**, which runs every task in a **Docker** container. Unlike the other projects in this repository it needs infrastructure, not just a key.
 
 | Prerequisite | Size / time |
@@ -61,7 +63,7 @@ Success signal: `test_model_access.py` reports both configured models answering,
 
 ## Running experiments
 
-> **Launch mechanism:** trace-guard is the one exception to the repo's single entry point (`python -m util.run`, see `../COMPUTE.md`). It runs through its own inspect-ai shim (`scripts/run_eval.py` + `scripts/_provider_shim.py`), *not* `util.run`.
+> **Launch mechanism:** trace-guard is the one exception to the repo's single entry point (`poseidon-run`, see `../COMPUTE.md`). It runs through its own inspect-ai shim (`scripts/run_eval.py` + `scripts/_provider_shim.py`), *not* `poseidon-run`.
 
 The key experiment is the collusion-resistance comparison — the structured untrusted monitor vs. the single-score untrusted baseline:
 

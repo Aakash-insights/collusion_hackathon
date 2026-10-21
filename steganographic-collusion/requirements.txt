@@ -19,3 +19,8 @@ torch>=2.1.0
 # Optional convenience libraries used in scripts/notebooks
 tqdm>=4.66.0
 pydantic>=2.6
+
+# Shared compute/inference layer (Nebius -> OpenRouter -> Modal; poseidon_compute).
+# Editable path dep, resolved relative to this experiment dir — install from HERE
+# (the repo-root ./setup.sh does this for you).
+-e ../util

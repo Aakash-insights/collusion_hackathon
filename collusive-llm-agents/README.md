@@ -15,6 +15,8 @@ competition settings contributed as separate notebooks (`cournot.ipynb`, `bertra
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh collusive-llm-agents` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 **Install** (Python 3.9+) — use a virtual environment so `pip` doesn't trip over an
 externally-managed system Python (PEP 668):
 
@@ -25,7 +27,7 @@ pip install -r requirements.txt
 
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy it
 from `../compute.env.example`) — see [`../COMPUTE.md`](../COMPUTE.md). The notebooks read it
-automatically via `util/llm_config.py`, imported in the first cell; `make_client()` is what actually
+automatically via `poseidon_compute`, imported in the first cell; `make_client()` is what actually
 uses it.
 
 **These notebooks default to CLOSED models**, so unlike most projects you need an OpenRouter key, not
@@ -40,7 +42,7 @@ ONE of:
   enough.
 
 > **IMPORTANT — set `OPENROUTER_API_KEY`.** Provider config is resolved by `make_client()` in
-> `util/llm_config.py` (called in a later cell): with the core fix in place, if only
+> `poseidon_compute` (called in a later cell): with the core fix in place, if only
 > `OPENROUTER_API_KEY` is set the client talks to OpenRouter directly — no `LLM_BASE_URL` or other
 > workaround needed. Put `OPENROUTER_API_KEY=...` in the repo-root `compute.env` and the notebook
 > reaches OpenRouter.
@@ -54,7 +56,7 @@ ONE of:
 ## Quick start
 
 **This is a notebook project — run the notebooks directly.** It is the documented exception to
-COMPUTE.md's "one entry point" rule: you do *not* wrap these in `python -m util.run`; the notebooks read
+COMPUTE.md's "one entry point" rule: you do *not* wrap these in `poseidon-run`; the notebooks read
 the repo-root `compute.env` themselves.
 
 Start with the cheaper **Bertrand** notebook (5 rounds, ~10 calls on gpt-3.5-turbo, ~30 s end to end):

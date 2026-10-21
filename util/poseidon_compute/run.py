@@ -13,20 +13,19 @@ Identification is a catalog lookup: `nebius_serves()` (GET Nebius /models) and `
 (GET OpenRouter /models, public). Retired model pins are upgraded to their current version first
 (resolve_model), announced — see llm_config.
 
-    python -m util.run --model <id> -- <experiment command>
+    poseidon-run --model <id> -- <experiment command>          # console script (after setup)
+    python -m poseidon_compute.run --model <id> -- <command>    # equivalent
 
 e.g.
-    python -m util.run --model Qwen/Qwen2.5-7B-Instruct -- \
+    poseidon-run --model Qwen/Qwen2.5-7B-Instruct -- \
         bash -c "cd colosseum && uv run python -m experiments.collusion.run --config ..."
 """
 import os
 import sys
 import argparse
 import subprocess
-import pathlib
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))  # util/ on path
-import llm_config
+from . import llm_config
 
 # Closed / provider-only families we can't self-host on Modal (vLLM serves open weights only).
 _CLOSED_PREFIXES = ("openai/", "gpt-", "o1", "o3", "o4", "gemini", "google/", "anthropic/", "claude")
@@ -58,7 +57,7 @@ def _run_openrouter(or_id, cmd):
 def _run_modal(model, gpu, cmd):
     print(f"[run] Not on Nebius or OpenRouter — hosting '{model}' on Modal for this run, then tearing "
           f"it down.", flush=True)
-    import hosted_model
+    from . import hosted_model
     try:
         with hosted_model.hosted_model(model=model, gpu=gpu):
             sys.exit(subprocess.run(cmd, env=os.environ).returncode)

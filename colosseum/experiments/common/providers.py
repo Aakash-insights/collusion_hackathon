@@ -2,7 +2,7 @@
 LLM provider resolution for the Colosseum experiments (hackathon edition).
 
 Hackathon standard: model calls go through the **shared OpenAI-compatible endpoint**
-(Nebius by default; see repo-root ``compute.env`` / ``util/llm_config.py``). Terrarium (0.1.1)
+(Nebius by default; see repo-root ``compute.env`` / ``poseidon_compute``). Terrarium (0.1.1)
 has no notion of this endpoint, but its ``TogetherClient`` is a plain OpenAI-compatible
 chat-completions client with tool calling and a configurable ``base_url``, so the
 ``provider: openrouter`` config label is routed through that client pointed at the shared
@@ -34,12 +34,7 @@ from dotenv import load_dotenv
 
 import terrarium.utils as _tu
 
-import sys as _sys, pathlib as _pl
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-import llm_config
-from llm_config import resolve_model
+from poseidon_compute import llm_config, resolve_model
 
 load_dotenv()
 

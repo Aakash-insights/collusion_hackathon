@@ -57,12 +57,7 @@ class OpenAIChatClient(LLMClient):
         default_max_tokens: Optional[int] = None,
     ) -> None:
         # Route hosted traffic through the repo-root shared LLM config (OpenRouter/Nebius).
-        import sys as _sys, pathlib as _pl
-        _r = _pl.Path(__file__).resolve()
-        while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
-            _r = _r.parent
-        _sys.path.insert(0, str(_r / "util"))
-        from llm_config import make_client, resolve_model
+        from poseidon_compute import make_client, resolve_model
 
         # make_client() already picks base_url+api_key from the shared config; honor any
         # explicit overrides passed by the caller (e.g. per-config `api_key`/`base_url`).

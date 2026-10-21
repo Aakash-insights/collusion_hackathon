@@ -2,26 +2,20 @@
 
 inspect-ai selects a provider from the PREFIX of a model string and reads that provider's creds from
 provider-specific env vars. Inference here is always our OpenAI-compatible endpoint (Nebius by default,
-or a Modal-hosted model when util/hosted_model.py is active), so we point inspect-ai's built-in
+or a Modal-hosted model when poseidon_compute.hosted_model is active), so we point inspect-ai's built-in
 ``openai/`` provider at it (OPENAI_BASE_URL / OPENAI_API_KEY) and rewrite model strings to
 ``openai/<model>``.
 
 No model is ever substituted: `map_model` only normalizes same-model id-spelling (via
 llm_config.resolve_model); an unavailable model fails loudly at the API call. Set `LLM_MODEL` (or the
 project's INTENT_MODEL / INSPECT_EVAL_MODEL) to an open model Nebius serves, or host it with
-`python -m util.run`.
+`poseidon-run`.
 
 Call ``apply()`` once at startup; call ``map_model(s)`` on each inspect-ai model string.
 """
 import os
-import sys as _sys
-import pathlib as _pl
 
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
-    _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-import llm_config  # noqa: E402
+from poseidon_compute import llm_config
 
 
 def apply() -> str:

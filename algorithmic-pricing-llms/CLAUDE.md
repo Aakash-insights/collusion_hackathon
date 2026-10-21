@@ -46,7 +46,7 @@ This is an academic research project (repackaged as a hackathon starter, see the
 ### Core Components
 
 **`/src/agents/`** - LLM Agent Implementation
-- `LLMAgent` builds the chat request and validates the JSON answer; the call goes through `llm_providers.py`, which uses the shared inference config (Nebius default → OpenRouter fallback → Modal → fail loud; see `util/llm_config.py`). The default model is `mistralai/Mistral-Large-Instruct-2411` (open); direct Mistral SDK / other OpenAI-compatible endpoints are opt-in. Exposes `temperature` and `seed`.
+- `LLMAgent` builds the chat request and validates the JSON answer; the call goes through `llm_providers.py`, which uses the shared inference config (Nebius default → OpenRouter fallback → Modal → fail loud; see `poseidon_compute`). The default model is `mistralai/Mistral-Large-Instruct-2411` (open); direct Mistral SDK / other OpenAI-compatible endpoints are opt-in. Exposes `temperature` and `seed`.
 - Maintains 100-period rolling memory for strategic learning
 - Implements prompt-based pricing decisions with structured responses
 

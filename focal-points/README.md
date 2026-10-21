@@ -26,6 +26,8 @@ same answer **without** any communication or agreement. Use it as:
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh focal-points` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 **Install** (< 1 min): `uv sync` (or `pip install -e .`).
 
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy
@@ -82,7 +84,7 @@ lets a run replace an already-present `results/<model>/<dataset>_<tag>.jsonl`; w
 to generate into a folder that already holds results, which protects the shipped reference data.
 
 You can equivalently route through the repo's one entry point,
-`python -m util.run --model <id> -- uv run python main.py …`, which picks Nebius → OpenRouter → Modal
+`poseidon-run --model <id> -- uv run python main.py …`, which picks Nebius → OpenRouter → Modal
 automatically (see [`../COMPUTE.md`](../COMPUTE.md)); neither is the "only" way.
 
 Prompts live in `data/amsterdam_nottingham_schelling/*.jsonl` and `data/bargaining_table_llms/*.json`;

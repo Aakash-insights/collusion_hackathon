@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 
 # Bridge the repo-root compute.env into the provider config, exactly as run_eval.py does,
 # so a key placed there (not just in a local .env) is seen -- the two scripts must agree.
-# _provider_shim imports util/llm_config, which walks up to find and load compute.env.
+# _provider_shim imports poseidon_compute, which walks up to find and load compute.env.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import _provider_shim
 

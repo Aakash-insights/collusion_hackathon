@@ -1,7 +1,7 @@
 """
 LLM providers for the laptop-scale harness (run_game.py, branch_game.py, api_judge.py).
 
-Model calls follow the shared inference config (util/llm_config.py): **Nebius** by
+Model calls follow the shared inference config (poseidon_compute): **Nebius** by
 default, with **OpenRouter** as the fallback for closed models
 (``NEBIUS_API_KEY`` / optional ``OPENROUTER_API_KEY`` in compute.env). The paper ran
 DeepSeek-R1 distills (7B/14B/32B) through vLLM on GPUs; those distills are no longer
@@ -32,11 +32,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-import sys as _sys, pathlib as _pl
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-from llm_config import make_client, resolve_model
+from poseidon_compute import make_client, resolve_model
 
 Message = Dict[str, str]
 

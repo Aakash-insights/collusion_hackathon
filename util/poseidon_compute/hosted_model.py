@@ -1,7 +1,7 @@
 """Bring a Modal-hosted model UP for the duration of an experiment, then tear it DOWN.
 
 This wraps the manual "deploy a model, paste its URL into compute.env, remember to stop it" flow into
-one lifecycle. It runs `util/modal_serve.py` as an **ephemeral** Modal app (`app.run()`), points
+one lifecycle. It runs `modal_serve` as an **ephemeral** Modal app (`app.run()`), points
 `llm_config` at the temporary endpoint, waits until the model is ready, runs your experiment, and
 stops the app on exit — so you never leave a GPU (and credits) running.
 
@@ -9,11 +9,11 @@ Use when an experiment can't use Nebius inference and you want a model on Modal 
 
 ----------------------------------------------------------------------------------------------------
 CLI — wrap any command:
-    python -m util.hosted_model --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- \
+    poseidon-host --model Qwen/Qwen2.5-7B-Instruct --gpu A10G -- \
         bash -c "cd llm-trust-breaking && python experiments/run_endogenous.py --game diners ..."
 
 In your own Python:
-    from hosted_model import hosted_model            # (util/ on sys.path via the usual bootstrap)
+    from poseidon_compute import hosted_model
     with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
         ...  # llm_config now points at the Modal endpoint; run your code
     # endpoint is torn down here
@@ -31,9 +31,6 @@ import subprocess
 import urllib.request
 import urllib.error
 import pathlib
-
-# make util/ importable whether run as `python -m util.hosted_model` or `python util/hosted_model.py`
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 
 class ModelAccessError(RuntimeError):
@@ -124,7 +121,7 @@ def hosted_model(model=None, gpu=None, api_key=None, ready_timeout=900):
         os.environ["MODAL_SERVE_API_KEY"] = api_key
 
     import modal
-    import modal_serve  # util/modal_serve.py (util/ is on sys.path above)
+    from . import modal_serve
 
     served_model = os.environ.get("MODAL_SERVE_MODEL", modal_serve.MODEL)
     # Fail fast with an actionable message if the model is gated and we lack access, before booting Modal.

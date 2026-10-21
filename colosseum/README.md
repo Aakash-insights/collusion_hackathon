@@ -32,6 +32,8 @@ In the Collusion Research Sprint this covers:
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh colosseum` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 **Working dir:** run every command from `colosseum/` (`cd colosseum`) — the `experiments.*`
 module paths, config paths, and the `outputs/` tree all resolve relative to it.
 
@@ -117,14 +119,14 @@ by editing `experiments/collusion/prompts.py` / the environment's `format_blackb
 
 **Entry point:** each runner is a runnable module, so `uv run python -m experiments.collusion.run`
 and `uv run python experiments/collusion/run.py` are equivalent. You can also route through the
-repo's one entry point, `python -m util.run --model <id> -- <cmd>` (from the repo root), which
+repo's one entry point, `poseidon-run --model <id> -- <cmd>` (from the repo root), which
 force-selects a provider for `<id>` (Nebius → OpenRouter → Modal → loud error) and wraps the
 native command — use it to pin a specific model or to host an off-catalog model on Modal (see
 [`../COMPUTE.md`](../COMPUTE.md) §3):
 
 ```bash
 # from the repo root
-python -m util.run --model Qwen/Qwen2.5-7B-Instruct -- \
+poseidon-run --model Qwen/Qwen2.5-7B-Instruct -- \
   bash -c "cd colosseum && uv run python -m experiments.collusion.run \
     --config experiments/collusion/configs/collusion_jira_topologies.yaml"
 ```

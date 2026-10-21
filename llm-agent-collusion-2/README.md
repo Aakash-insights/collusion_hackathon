@@ -44,6 +44,8 @@ chosen participants).
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh llm-agent-collusion-2` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 Requires Python 3.9+. Inference is configured **once at the repo root** (one level up from this
 directory) — not here. Copy `../compute.env.example` → `../compute.env` and set `NEBIUS_API_KEY`
 (these are open models, so they run on **Nebius** by default); `OPENROUTER_API_KEY` is optional and
@@ -79,7 +81,7 @@ the closest model from the authors' own extended model table:
 | Mike / agent 2 | Mistral-7B-Instruct-v0.3 | `ministral-8b` *(substitute)* |
 
 The short names map to full model ids in each game's `llm_client.py`. The routed entry point
-(`python -m util.run`, below) sends these open models to Nebius by default.
+(`poseidon-run`, below) sends these open models to Nebius by default.
 
 Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept; `llama-3.3-70b`,
 `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling parameters and output caps are the ones
@@ -101,14 +103,14 @@ cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps
 **Success signal:** the tournament completes without errors and writes results under
 `Collusion_Cleanup/runs/smoke/` (see [Outputs](#outputs)).
 
-> **⚠️ `util.run --model X` collapses the 4-model design.** This experiment's whole point is four
+> **⚠️ `poseidon-run --model X` collapses the 4-model design.** This experiment's whole point is four
 > *different* models, one per seat (the `--roster small`/`large` entries in the [Models](#models)
-> table, resolved per seat through each game's `MODEL_MAP`). But `python -m util.run --model X` exports
+> table, resolved per seat through each game's `MODEL_MAP`). But `poseidon-run --model X` exports
 > `LLM_MODEL=X`, which **overrides every seat** — all four agents then run the *same* model X and the
 > per-seat design is lost. To keep the four distinct models, run the game **natively** (the bare
 > `python -m cleanup_llm.games.tournament …` / `python src/game/game.py` commands). Native now works
 > with just an `OPENROUTER_API_KEY` set (OpenRouter fallback), so there is no reason to reach for
-> `util.run` for these smoke/experiment commands. Only use `util.run --model X` when you deliberately
+> `poseidon-run` for these smoke/experiment commands. Only use `poseidon-run --model X` when you deliberately
 > want a single model in all four seats.
 
 A single Liar's Bar game runs until one player is left. This is a **cost/time-notable run**, not a
@@ -132,14 +134,14 @@ point of the study. Native works with just an `OPENROUTER_API_KEY` (OpenRouter f
 cd Collusion_Liars_Bar && python src/game/game.py
 ```
 
-**Do not** wrap these in `python -m util.run --model X` unless you intend a single-model run: `--model`
+**Do not** wrap these in `poseidon-run --model X` unless you intend a single-model run: `--model`
 exports `LLM_MODEL=X`, which overrides every seat and forces the *same* model into all four agents —
-collapsing the 4-model design (see the warning in [Quick start](#quick-start)). `util.run` with
+collapsing the 4-model design (see the warning in [Quick start](#quick-start)). `poseidon-run` with
 `--model` is only appropriate when you deliberately want one model everywhere:
 
 ```bash
 # single-model only: ALL FOUR seats become Llama-3.1-8B — the per-seat design is lost
-python -m util.run --model meta-llama/Llama-3.1-8B-Instruct -- \
+poseidon-run --model meta-llama/Llama-3.1-8B-Instruct -- \
   bash -c "cd Collusion_Liars_Bar && python src/game/game.py"
 ```
 
@@ -147,8 +149,8 @@ See [`../COMPUTE.md`](../COMPUTE.md) for the full routing story.
 
 > **Large tournaments → Modal.** The full runs here make thousands of model calls, and `../COMPUTE.md`
 > lists this experiment's compute as **Modal**. To offload a whole run to Modal's machines instead of
-> your laptop, use `util/modal_run.py` (from the repo root):
-> `modal run util/modal_run.py --project llm-agent-collusion-2 --cmd "<command>"`. It injects
+> your laptop, use `poseidon_compute.modal_run` (from the repo root):
+> `modal run poseidon_compute.modal_run --project llm-agent-collusion-2 --cmd "<command>"`. It injects
 > `../compute.env` into the container so inference still reaches Nebius.
 
 ### Liar's Bar

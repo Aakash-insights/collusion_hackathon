@@ -16,6 +16,8 @@ rounds, 1 seed = 90 calls**); the brief's manipulated variables are command-line
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh llm-agent-collusion` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 Run everything from **this experiment's directory** (`llm-agent-collusion/`) — the
 `src/continuous_double_auction/...` paths below are relative to it.
 
@@ -93,8 +95,8 @@ Two equivalent ways (neither is the only one):
 
 - **Routed** (explicit routing via the shared entry point, run from the **repo root**): the inner
   command runs from the repo root, so `cd` into this project first —
-  `python -m util.run --model <id> -- bash -c "cd llm-agent-collusion && uv run python src/continuous_double_auction/simulation.py ..."`
-  — note `util.run`'s single `--model` forces **one** model for **all** agents (via `LLM_MODEL`); to give
+  `poseidon-run --model <id> -- bash -c "cd llm-agent-collusion && uv run python src/continuous_double_auction/simulation.py ..."`
+  — note `poseidon-run`'s single `--model` forces **one** model for **all** agents (via `LLM_MODEL`); to give
   sellers/buyers different models, use the native `--seller_models` / `--buyer_models` flags
   instead. In particular, the cross-model experiment (**2.1**, `--seller_models gpt-4.1
   claude-3-7-sonnet-latest gemini-2.5-flash-preview-04-17`) cannot use the routed single-`--model`

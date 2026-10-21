@@ -18,12 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Put the repo-root util/ (shared llm_config) on the path.
-_u = Path(__file__).resolve()
-while _u != _u.parent and not (_u / "util" / "llm_config.py").exists():
-    _u = _u.parent
-sys.path.insert(0, str(_u / "util"))
-import llm_config  # noqa: E402
+from poseidon_compute import llm_config
 
 
 def check(label: str, ok: bool, detail: str = "") -> bool:

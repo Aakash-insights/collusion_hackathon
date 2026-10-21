@@ -23,11 +23,7 @@ import time
 from openai import OpenAI, APIError, BadRequestError
 from tqdm import tqdm
 
-import sys as _sys, pathlib as _pl
-_r = _pl.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists(): _r = _r.parent
-_sys.path.insert(0, str(_r / "util"))
-from llm_config import make_client, resolve_model
+from poseidon_compute import make_client, resolve_model
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)

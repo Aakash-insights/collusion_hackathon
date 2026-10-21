@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 # Core: run every experiment script against a hosted or local LLM provider
 # and produce the plots. CPU-only, installs in well under a minute.
 dependencies = [
+    "poseidon-compute",
     "numpy>=2.0",
     "scipy>=1.13",
     "polars>=1.30.0",
@@ -43,3 +44,6 @@ dev = ["ruff>=0.11.13", "pre-commit>=4.2.0"]
 [tool.ruff]
 line-length = 100
 extend-exclude = ["notebooks"]
+
+[tool.uv.sources]
+poseidon-compute = { path = "../util", editable = true }

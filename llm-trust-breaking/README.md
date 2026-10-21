@@ -25,6 +25,8 @@ heterogeneous-group exploitation dynamics.
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh llm-trust-breaking` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 Requires Python 3.9+ (verified on 3.12). Create a virtual environment first, then install deps
 (installing with a bare `pip` can hit a mismatched interpreter):
 
@@ -58,7 +60,7 @@ effort, agent count). The local `.env` does **not** hold API keys.
 Smoke test — ~10 API calls, under a minute. Confirms the key and the model work.
 
 ```bash
-python -m util.run --model openai/gpt-4o-mini -- \
+poseidon-run --model openai/gpt-4o-mini -- \
   python experiments/run_endogenous.py \
     --game diners --agents 2 --trials 1 --rounds 1 \
     --model openai/gpt-4o-mini --use-queue
@@ -68,7 +70,7 @@ python -m util.run --model openai/gpt-4o-mini -- \
 (see [Outputs](#outputs)). If the key or model is wrong, the run aborts at the first stage instead
 of burning the whole budget.
 
-`python -m util.run` is the recommended one entry point — it routes the model across providers for
+`poseidon-run` is the recommended one entry point — it routes the model across providers for
 you (Nebius → OpenRouter → Modal). It is run from the repo root, but the native
 `python experiments/run_endogenous.py …` command below also works directly from this directory
 because it reads the repo-root `compute.env`. Neither is the only way to run it.
@@ -78,7 +80,7 @@ because it reads the repo-root `compute.env`. Neither is the only way to run it.
 ### Homogeneous groups (all same model)
 
 ```bash
-python -m util.run --model openai/gpt-4o-mini -- \
+poseidon-run --model openai/gpt-4o-mini -- \
   python experiments/run_endogenous.py \
     --game diners \
     --agents 5 \
@@ -107,7 +109,7 @@ Create `my_models.json`:
 ```
 
 ```bash
-python -m util.run --model openai/gpt-4o -- \
+poseidon-run --model openai/gpt-4o -- \
   python experiments/run_endogenous.py \
     --game diners \
     --agents 5 \

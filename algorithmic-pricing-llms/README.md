@@ -26,6 +26,8 @@ This project is a Master's thesis (BSE Data Science for Decision Making, 2024-20
 
 ## Setup
 
+> **Fastest path:** from the repo root, `./setup.sh algorithmic-pricing-llms` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
 ### Install (CPU only, < 1 min)
 
 ```bash
@@ -111,7 +113,7 @@ uv run python experiments_synthetic/duopoly.py --memory 10 --seeds 1 2 3   # exp
 **Pinning a model through the shared entry point.** To pin a specific model and let the shared config handle provider routing (Nebius → OpenRouter → Modal), run the same command through the repo-root entry point (one level up) — see [`../COMPUTE.md`](../COMPUTE.md):
 
 ```bash
-python -m util.run --model <model id> -- uv run python experiments_synthetic/duopoly.py
+poseidon-run --model <model id> -- uv run python experiments_synthetic/duopoly.py
 ```
 
 ---

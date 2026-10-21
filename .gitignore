@@ -9,6 +9,7 @@ CLAUDE.md
 HACKATHON_CHANGES.md
 # environments
 .venv/
+.venv_tg/
 __pycache__/
 
 # central hackathon compute config (keys)

@@ -1,4 +1,7 @@
 # GPU base (CUDA 12.1 runtime, Ubuntu 22.04)
+#
+# Build from the REPO ROOT (so the shared poseidon_compute package in ../util is in context):
+#     docker build -f focal-points/Dockerfile -t focal-points .
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -33,16 +36,20 @@ RUN mkdir -p /workspace /hf /cache /logs /results /plots && chmod -R 777 /worksp
 WORKDIR /workspace
 
 # Install Python deps
-COPY requirements.txt /workspace/requirements.txt
+COPY focal-points/requirements.txt /workspace/requirements.txt
 
 # PyTorch CUDA 12.1 wheels (official index)
-RUN python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu121 torch  
+RUN python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cu121 torch
+
+# Shared compute/inference layer (poseidon_compute) — installed before project deps so imports resolve.
+COPY util /opt/poseidon-util
+RUN python -m pip install --no-cache-dir -e /opt/poseidon-util
 
 # Project dependencies
 RUN python -m pip install --no-cache-dir -r /workspace/requirements.txt
 
 # Copy project files
-COPY . /workspace
+COPY focal-points /workspace
 
 # Set HOME
 ENV HOME=/workspace

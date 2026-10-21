@@ -8,13 +8,13 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
 - **Compute — Modal.** *Where your code runs.* Offload heavy/parallel runs and GPU work.
   **There's no Modal key to paste anywhere** — you just sign in through your browser once by running
   `modal setup`, and your credits attach to that account (**ask in the hackathon Slack channel to get
-  your Modal credits set up**). Modal can also host a model on demand (`util/hosted_model.py` boots one
+  your Modal credits set up**). Modal can also host a model on demand (`poseidon_compute.hosted_model` boots one
   for a run and tears it down) — the last-resort way to serve a model on *neither* provider (e.g. a
   custom fine-tune, or when you need vLLM-level control).
 
 > **One spot:** copy `compute.env.example` → `compute.env`, add `NEBIUS_API_KEY` (and optionally
-> `OPENROUTER_API_KEY`), done. `util/llm_config.py` feeds it to every project's client. For cloud runs,
-> `util/modal_run.py` also passes it into the Modal container (as a Secret) so your code can still reach
+> `OPENROUTER_API_KEY`), done. `poseidon_compute` feeds it to every project's client. For cloud runs,
+> `poseidon_compute.modal_run` also passes it into the Modal container (as a Secret) so your code can still reach
 > inference there.
 
 ---
@@ -23,9 +23,30 @@ Set your key once, at the repo root, and every project uses it. Two layers, two 
 
 ```bash
 cp compute.env.example compute.env      # at the repo root
-# edit compute.env:  NEBIUS_API_KEY=...
+# edit compute.env:  NEBIUS_API_KEY=...  (and/or OPENROUTER_API_KEY)
+./setup.sh                              # sets up ALL experiments in one go (see §0)
 ```
 Run any project exactly as its README says — it picks up `compute.env` automatically.
+
+---
+
+## 0. One-shot setup — `./setup.sh`
+
+`./setup.sh` installs the shared compute layer (`poseidon_compute`) and sets up **every** experiment in
+one go:
+
+```bash
+./setup.sh                 # all experiments
+./setup.sh focal-points    # just the named one(s)
+```
+
+For each experiment it runs `uv sync` (uv projects) or creates a `.venv` and installs
+`requirements.txt` (pip projects); both pull in `poseidon_compute` automatically. It also installs the
+`poseidon-run` / `poseidon-host` entry points into a repo-root `./.venv`. If `compute.env` is missing it
+is created from the example so you only need to fill in a key. Re-run it any time; it's idempotent.
+
+The shared layer is a **real installed package** — experiments just `from poseidon_compute import ...`
+with no path hacking (see §5).
 
 ---
 
@@ -65,9 +86,9 @@ printed. That preserves your intent rather than silently falling back to an unre
 provider routing automatically (you never choose Nebius-vs-OpenRouter-vs-Modal yourself):
 
 ```bash
-python -m util.run --model <model id> -- <the experiment's normal command>
+poseidon-run --model <model id> -- <the experiment's normal command>
 # e.g.
-python -m util.run --model Qwen/Qwen2.5-7B-Instruct -- \
+poseidon-run --model Qwen/Qwen2.5-7B-Instruct -- \
   bash -c "cd colosseum && uv run python -m experiments.collusion.run --config ..."
 ```
 
@@ -90,7 +111,7 @@ tells you how to fix it — it never quietly runs the "wrong" thing.
 > own directory). It talks to whichever endpoint your `compute.env` key selects — **Nebius or OpenRouter**
 > (with an OpenRouter-only key, model ids are auto-translated to OpenRouter casing) — so a native command
 > works with either key. What it does **not** do is auto-fall-back across providers or spin up Modal; use
-> `util.run` when you want to pin a specific model and have Nebius→OpenRouter→Modal routing handled. (A
+> `poseidon-run` when you want to pin a specific model and have Nebius→OpenRouter→Modal routing handled. (A
 > couple of projects run their own way — `trace-guard` via its inspect-ai shim, the notebook projects via
 > Jupyter; their READMEs say so.)
 
@@ -106,18 +127,18 @@ If you want to run a **whole project** on Modal's machines (long/parallel runs, 
 than your laptop — this is about *where your code runs*, not which inference endpoint it uses:
 ```bash
 pip install modal && modal setup
-modal run util/modal_run.py --project llm-cartel --cmd "uv run python run_game.py --rounds 30"
-modal run util/modal_run.py --project llm-cartel --gpu a10g --cmd "uv run python steering/<script>.py"
+modal run poseidon_compute.modal_run --project llm-cartel --cmd "uv run python run_game.py --rounds 30"
+modal run poseidon_compute.modal_run --project llm-cartel --gpu a10g --cmd "uv run python steering/<script>.py"
 ```
-`util/modal_run.py` injects your `compute.env` automatically (as a Secret), so inference still reaches
+`poseidon_compute.modal_run` injects your `compute.env` automatically (as a Secret), so inference still reaches
 Nebius from inside the container.
 
 <details><summary>Advanced: force a Modal-hosted model from Python (skip the Nebius check)</summary>
 
 ```python
-from hosted_model import hosted_model          # util/ on sys.path (see §5 bootstrap)
+from poseidon_compute import hosted_model
 with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
-    ...  # your code; llm_config points at the Modal model in here
+    ...  # your code; the shared client points at the Modal model in here
 # torn down on exit
 ```
 </details>
@@ -126,7 +147,7 @@ with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
 
 ## 4. Which provider does each experiment need?
 
-Run every row through **the one entry point** (§3): `python -m util.run --model <id> -- <cmd>` — it routes
+Run every row through **the one entry point** (§3): `poseidon-run --model <id> -- <cmd>` — it routes
 Nebius → OpenRouter → Modal automatically, or stops with a clear error. Nothing is substituted.
 **Nebius ✓** = its default is open and on Nebius · **OpenRouter** = its paper model is closed
 (GPT/Gemini/Claude) or otherwise not on Nebius, so set `OPENROUTER_API_KEY` and it runs there.
@@ -140,12 +161,12 @@ Nebius → OpenRouter → Modal automatically, or stops with a clear error. Noth
 | algorithmic/collusion sweeps | Nebius ✓ | Modal for parallel runs | — |
 | llm-agent-collusion | **OpenRouter** (paper models GPT-4.1 / Claude / Gemini) | laptop; Modal for sweeps | runs its real closed paper models via OpenRouter; or pass any open `--model` |
 | colosseum | **OpenRouter** (paper default GPT-4o-mini) | **Modal** (topology sweeps) | runs GPT-4o-mini via OpenRouter; or pass an open `--model` |
-| trace-guard | **OpenRouter** (paper GPT-4o) via its shim | **Docker required** (local) | runs GPT-4o via OpenRouter; doesn't fit the basic `util/modal_run.py` |
+| trace-guard | **OpenRouter** (paper GPT-4o) via its shim | **Docker required** (local) | runs GPT-4o via OpenRouter; doesn't fit the basic `poseidon_compute.modal_run` |
 | steganographic-collusion | **Nebius ✓** (hosted configs); **none** for scripted/distilgpt2 | laptop; Modal for sweeps | scripted + distilgpt2 configs make **no API calls** |
 | **llm-trust-breaking** | **needs JSON-capable model** (Nebius or OpenRouter) | **Modal** (~8k-call full run) | enforces structured output; pick a model that supports `response_format` (GPT/Claude via OpenRouter qualify). Its OpenAI-only gate was relaxed to a warning. |
-| **collusive-llm-agents** | **needs JSON-capable model** (Nebius or OpenRouter) | laptop (notebooks) | notebooks require `response_format`; pick a model that supports it via `python -m util.run` |
+| **collusive-llm-agents** | **needs JSON-capable model** (Nebius or OpenRouter) | laptop (notebooks) | notebooks require `response_format`; pick a model that supports it via `poseidon-run` |
 
-**Rule of thumb:** always launch with `python -m util.run --model <id> -- <cmd>` — it picks
+**Rule of thumb:** always launch with `poseidon-run --model <id> -- <cmd>` — it picks
 Nebius → OpenRouter → Modal for you and fails loudly if no provider has the model (nothing is
 substituted). Closed paper models (GPT/Gemini/Claude) run via **OpenRouter** (`OPENROUTER_API_KEY`).
 **JSON-mode** ones (trust-breaking, collusive notebooks) need a response_format-capable model; **GPU
@@ -155,39 +176,38 @@ extra** (llm-cartel steering) → Modal GPU; **Docker** (trace-guard) → local 
 
 ## 5. Use it in your own script
 
-```python
-import sys, pathlib
-_r = pathlib.Path(__file__).resolve()
-while _r != _r.parent and not (_r / "util" / "llm_config.py").exists():
-    _r = _r.parent
-sys.path.insert(0, str(_r / "util"))
-from llm_config import make_client, resolve_model
+`poseidon_compute` is a normal installed package (after `./setup.sh`, or `pip install -e util` /
+`uv add poseidon-compute` in your project) — so just import it. **No path hacking, no bootstrap.**
 
-client = make_client()                          # Nebius / OpenRouter / Modal (whichever util.run selected)
+```python
+from poseidon_compute import make_client, resolve_model
+
+client = make_client()                          # Nebius / OpenRouter / Modal (whichever poseidon-run selected)
 model  = resolve_model("meta-llama/Llama-3.3-70B-Instruct")
 resp = client.chat.completions.create(model=model, messages=[{"role": "user", "content": "hi"}])
 ```
-Async: `make_client(async_=True)`. Raw values: `llm_config.base_url()`, `.api_key()`,
-`.endpoint_kind()`. Jupyter (no `__file__`): start from `pathlib.Path.cwd()`.
+Async: `make_client(async_=True)`. Raw values: `from poseidon_compute import base_url, api_key,
+endpoint_kind`. The same import works in notebooks — nothing depends on `__file__`. It finds
+`compute.env` by walking up from the current directory, so run from anywhere inside the repo.
 
 ---
 
 ## 6. How it works
 
-When you launch `python -m util.run --model <id> -- <cmd>`:
+When you launch `poseidon-run --model <id> -- <cmd>`:
 
-1. **`util/run.py`** (the entry point) checks catalogs (`nebius_serves()`, then `openrouter_serves()`) and
+1. **`poseidon_compute.run`** (the entry point) checks catalogs (`nebius_serves()`, then `openrouter_serves()`) and
    routes: Nebius → OpenRouter → Modal → loud error. It never swaps in a default model. (Retired model
    pins are upgraded to their current version first, announced — see `resolve_model`.)
-2. **`util/llm_config.py`** is the shared inference interface every project builds its client from:
+2. **`poseidon_compute`** is the shared inference interface every project builds its client from:
    `make_client()` returns an OpenAI-compatible client pointed at the active endpoint, and
    `resolve_model()` returns the requested id (or the `LLM_MODEL` override). Ids are written in Nebius /
    Hugging Face casing; `openrouter_serves()` translates to OpenRouter's casing only when routing there.
-3. If the model has to run on Modal, **`util/hosted_model.py`** boots it for the run and tears it down,
-   pointing `llm_config` at the temporary endpoint while it's up. **`util/modal_serve.py`** is the vLLM
+3. If the model has to run on Modal, **`poseidon_compute.hosted_model`** boots it for the run and tears it down,
+   pointing `llm_config` at the temporary endpoint while it's up. **`poseidon_compute.modal_serve`** is the vLLM
    server it launches.
 
-Separately, **`util/modal_run.py`** runs a whole project on Modal for *compute* (not inference routing),
+Separately, **`poseidon_compute.modal_run`** runs a whole project on Modal for *compute* (not inference routing),
 injecting your `compute.env` as a Secret so calls still reach inference from inside the container.
 
 ---
@@ -199,11 +219,11 @@ injecting your `compute.env` as a Secret so calls still reach inference from ins
   trust-breaking's OpenAI-only gate is now a warning, not a hard error.
 - **No silent substitution:** a model is never swapped for an unrelated *default*. Closed models
   (GPT/Gemini/Claude) run via **OpenRouter** (`OPENROUTER_API_KEY`); open models Nebius lacks run via
-  OpenRouter or Modal; if no provider has the model, `python -m util.run` **fails loudly**. The one
+  OpenRouter or Modal; if no provider has the model, `poseidon-run` **fails loudly**. The one
   exception is a **retired model pin** (e.g. `claude-3.5-sonnet`), which is upgraded to its current
   same-lineage version and the upgrade is **printed** — see §2.
-- **What needs Modal (not OpenRouter):** OpenRouter only serves its catalog. Use Modal (`util/run.py`
-  routes there automatically, or `util/hosted_model.py`) for a model on **neither** provider — a **custom
+- **What needs Modal (not OpenRouter):** OpenRouter only serves its catalog. Use Modal (`poseidon_compute.run`
+  routes there automatically, or `poseidon_compute.hosted_model`) for a model on **neither** provider — a **custom
   fine-tune / your own checkpoint**, an off-catalog open model, or when you need **vLLM-level control**
   (token logprobs, guided decoding, exact weight/version pinning, or keeping prompts off third-party
   providers). Trade-off: a Modal cold start is ~2–5 min for a small model (minutes more for large ones),
@@ -211,9 +231,9 @@ injecting your `compute.env` as a Secret so calls still reach inference from ins
 - **GPU / Docker:** `llm-cartel` steering needs a GPU (Modal `--gpu`); `trace-guard` needs Docker to
   run (not the basic Modal runner).
 - **Gated models on Modal:** some open-weight models (e.g. Llama, Gemma) are **gated** on Hugging Face —
-  you must accept their license and use a token that has access. When you host one via `python -m util.run`
-  / `util/hosted_model.py`, it **preflights HF access and fails loudly** if you don't have it, printing
+  you must accept their license and use a token that has access. When you host one via `poseidon-run`
+  / `poseidon_compute.hosted_model`, it **preflights HF access and fails loudly** if you don't have it, printing
   the model's access page (`https://huggingface.co/<model>`) and the fix: accept the license there, then
   `modal secret create huggingface HF_TOKEN=hf_...` (and `export HF_TOKEN=hf_...` locally). The default
-  `util/modal_serve.py` model, Qwen, is open and needs none.
+  `poseidon_compute.modal_serve` model, Qwen, is open and needs none.
 - Scaffolding ahead of live sponsor credits — validate once Nebius/Modal are funded.

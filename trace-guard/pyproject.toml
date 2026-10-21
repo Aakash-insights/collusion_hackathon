@@ -7,8 +7,9 @@ name = "traceguard"
 version = "0.1.0"
 description = "Structured Cognitive Trace Monitoring as a Control Protocol"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"  # control-arena==1.0.0 requires >=3.12 (was >=3.10, which couldn't resolve)
 dependencies = [
+    "poseidon-compute",
     "inspect-ai>=0.3",
     "control-arena",
     "matplotlib>=3.8",
@@ -32,3 +33,6 @@ where = ["src"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.uv.sources]
+poseidon-compute = { path = "../util", editable = true }

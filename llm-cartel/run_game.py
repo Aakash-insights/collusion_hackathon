@@ -282,7 +282,7 @@ def run_episode(args, seed: int, prefixes, model_specs) -> str:
 def main() -> None:
     args = build_parser().parse_args()
     # Model resolution order: explicit --models, then MODEL_NAME (.env override),
-    # then LLM_MODEL (what `python -m util.run --model X` sets), so a util.run
+    # then LLM_MODEL (what `poseidon-run --model X` sets), so a poseidon-run
     # wrapper does not need to re-specify the model as a --models flag.
     if args.models is None:
         args.models = os.getenv("MODEL_NAME") or os.getenv("LLM_MODEL")
