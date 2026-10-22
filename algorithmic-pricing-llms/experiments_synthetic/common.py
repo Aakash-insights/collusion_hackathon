@@ -37,7 +37,6 @@ from typing import Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from dotenv import load_dotenv  # noqa: E402
 
 from src.agents.LLM_agent import LLMAgent  # noqa: E402
 from src.agents.llm_providers import (  # noqa: E402
@@ -51,7 +50,6 @@ from src.experiment.experiment import Experiment  # noqa: E402
 from src.prompts.prompts import GENERAL_PROMPT, GENERAL_PROMPT_NO_NOTES, P1, P2  # noqa: E402
 from src.prompts.prompts_models import create_pricing_response_model  # noqa: E402
 
-load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 
 PROMPTS = {"P1": P1, "P2": P2}
 FIRM_NAMES = ["Firm A", "Firm B", "Firm C", "Firm D", "Firm E", "Firm F", "Firm G", "Firm H"]

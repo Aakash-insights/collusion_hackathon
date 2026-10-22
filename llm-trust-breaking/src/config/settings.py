@@ -1,17 +1,7 @@
 """Configuration settings loaded from environment variables."""
 from __future__ import annotations
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 
-# Load this project's own .env, by explicit path. Calling load_dotenv() with no
-# argument makes python-dotenv walk up the directory tree, so a .env sitting in a
-# parent directory would leak into this project's config.
-# settings.py -> config -> src -> <project root>
-# override=False so this .env (if present) never overrides variables already set — the shared
-# compute.env (loaded by poseidon_compute) and the real environment take precedence.
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_PROJECT_ROOT / '.env', override=False)
 
 # ============================================================================
 # API CONFIGURATION - Loaded from .env file

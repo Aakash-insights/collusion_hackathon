@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -104,7 +103,6 @@ async def resume_experiment(experiment_dir: str):
 
     # Inference is configured in the repo-root compute.env (Nebius or OpenRouter); the model recorded
     # in metadata is reused unless MODEL_NAME overrides it.
-    load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
     from src.agents.llm_providers import make_provider
 
     MODEL_NAME = os.getenv("MODEL_NAME") or next(iter(agents_models.values()))

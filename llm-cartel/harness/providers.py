@@ -28,12 +28,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from dotenv import load_dotenv
 
-# override=False: if a local .env is present, load it without overriding variables already set.
-# poseidon_compute loads the shared compute.env the same way, so whatever is already in the
-# environment (e.g. set by poseidon-run) takes precedence.
-load_dotenv(override=False)
 
 from poseidon_compute import make_client, resolve_model
 

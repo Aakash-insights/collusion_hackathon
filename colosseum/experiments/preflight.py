@@ -32,9 +32,6 @@ def main() -> None:
     ap.add_argument("--model", default=None, help="model for --ping (default: openai/gpt-4o-mini)")
     args = ap.parse_args()
 
-    from dotenv import load_dotenv
-
-    load_dotenv(ROOT / ".env", override=False)  # don't override the repo-root compute.env
     ok = True
 
     ok &= check("python >= 3.11", sys.version_info >= (3, 11), sys.version.split()[0])

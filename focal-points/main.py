@@ -30,13 +30,11 @@ import time
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from dotenv import load_dotenv
 
 from src.utils.llm import LLM, load_model
 from src.utils.prompt import Level0
 from src.utils import iterate_data, load_bargaining_table_prompts, plot_block_frequencies
 
-load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 DEFAULT_MODEL = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 
 

@@ -30,13 +30,11 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
 
 import terrarium.utils as _tu
 
 from poseidon_compute import llm_config, resolve_model
 
-load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 
 # Default models (used only when a config/CLI omits the model). A *provided* model that fails is never
 # silently swapped — that reroutes to Modal or fails loudly. Paper configs used gpt-4o-mini

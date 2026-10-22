@@ -24,11 +24,9 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
-from dotenv import load_dotenv
 
 from .llm import APIBaseLLM
 
-load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 
 from poseidon_compute import endpoint_kind, make_client, resolve_model
 
