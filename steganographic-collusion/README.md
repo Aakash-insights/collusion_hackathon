@@ -67,10 +67,8 @@ clients pick up `base_url` + key automatically from that shared config via `pose
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal → fail loud).
 The scripted configs and the `distilgpt2` paths run locally and need **no key**.
 
-```bash
-# Keys live in the repo-root compute.env. The local .env is only for per-project overrides and is optional:
-cp .env.example .env          # optional
-```
+Keys and any per-project overrides live in the repo-root `compute.env` — nothing to set up
+in this folder.
 
 ## Quick start
 

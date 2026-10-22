@@ -55,10 +55,9 @@ directory). Copy `../compute.env.example` → `compute.env` there and set **eith
 `openai/gpt-4o-mini`) **or** `NEBIUS_API_KEY` (open models only). A single `OPENROUTER_API_KEY`
 is enough for all the commands on this page — the shared client falls back to OpenRouter whenever
 that is the only key set, and preflight's key check counts it. (The shipped hackathon configs use
-an open model id, so a `NEBIUS_API_KEY` alone also works.) Keys live only in the repo-root
-`compute.env`; see
-[`../COMPUTE.md`](../COMPUTE.md). Optionally `cp .env.example .env` here for *local, per-project*
-overrides (e.g. `TERRARIUM_COLLAB_PATH`) — not for keys.
+an open model id, so a `NEBIUS_API_KEY` alone also works.) Keys and any overrides (e.g.
+`TERRARIUM_COLLAB_PATH`) live only in the repo-root `compute.env`; see
+[`../COMPUTE.md`](../COMPUTE.md).
 
 ## Quick start
 

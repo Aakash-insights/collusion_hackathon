@@ -42,10 +42,9 @@ Use `uv sync`, **not** `uv pip install -e .`: `uv pip install` ignores `uv.lock`
 
 ```bash
 cp ../compute.env.example ../compute.env   # at the repo root; then set OPENROUTER_API_KEY (see ../COMPUTE.md)
-cp .env.example .env                        # optional: per-project overrides only (e.g. INTENT_MODEL) — not where keys go
 ```
 
-Because the default models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just `NEBIUS_API_KEY`, which only covers open models on Nebius) — see [`../COMPUTE.md`](../COMPUTE.md). The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). `scripts/_provider_shim.py` points inspect-ai's built-in `openai/` provider at whatever endpoint `compute.env` configures and rewrites **every** model string to `openai/<bare-model-id>` (so `openrouter/openai/gpt-4o` becomes `openai/openai/gpt-4o`); it never substitutes the model, only normalizes its spelling. With `OPENROUTER_API_KEY` set in `compute.env`, that endpoint is OpenRouter, which serves the closed GPT-4o defaults. The local `.env` is for per-project overrides (e.g. `INTENT_MODEL`), **not** for keys.
+Because the default models are **closed** (GPT-4o), trace-guard needs `OPENROUTER_API_KEY` set there (not just `NEBIUS_API_KEY`, which only covers open models on Nebius) — see [`../COMPUTE.md`](../COMPUTE.md). The default model strings keep the project's original choices: `openrouter/openai/gpt-4o` as the untrusted agent and `openrouter/openai/gpt-4o-mini` as the trusted monitor (override with `--untrusted-model` / `--trusted-model`; any inspect-ai model string works). `scripts/_provider_shim.py` points inspect-ai's built-in `openai/` provider at whatever endpoint `compute.env` configures and rewrites **every** model string to `openai/<bare-model-id>` (so `openrouter/openai/gpt-4o` becomes `openai/openai/gpt-4o`); it never substitutes the model, only normalizes its spelling. With `OPENROUTER_API_KEY` set in `compute.env`, that endpoint is OpenRouter, which serves the closed GPT-4o defaults. Any per-project overrides (e.g. `INTENT_MODEL`) go in that same repo-root `compute.env`.
 
 **Arena images.** There is no separate build step — BashArena builds its Docker images **lazily on the first `scripts/run_eval.py`** (ControlArena's `control-arena env setup` only covers the Infra setting, not BashArena). Expect the first run to pull/build ~15–20 GB and take several minutes before the eval proper starts; later runs reuse the cached images. Docker just has to be running.
 
@@ -496,7 +495,6 @@ TraceGuard/
 │   └── assets/                              # Logos
 ├── logs/                                    # Evaluation output (.eval files)
 ├── plots/                                   # Generated plots
-├── .env.example
 ├── pyproject.toml
 └── README.md
 ```

@@ -60,11 +60,8 @@ python -m venv .venv && source .venv/bin/activate   # or: uv venv .venv && sourc
 
 pip install -r requirements.txt
 
-# keys live at the repo root (one level up), shared by every project:
+# keys and any overrides live at the repo root (one level up), shared by every project:
 cp ../compute.env.example ../compute.env   # then edit: NEBIUS_API_KEY=...
-
-cp .env.example .env      # optional, local per-project overrides (the committed
-                          # .env.example is comments only — nothing to fill in)
 ```
 
 Inference is routed through the shared config; no GPU or local model weights are needed.

@@ -25,7 +25,6 @@ Run everything from **this experiment's directory** (`llm-agent-collusion/`) —
 
 ```bash
 uv sync                      # or: python -m venv .venv && source .venv/bin/activate && pip install -e .
-cp .env.example .env         # optional per-project overrides (NOT keys)
 ```
 
 **Inference.** Configure once in the **repo-root `compute.env`** (copy it from
@@ -35,7 +34,7 @@ Claude / Gemini, which Nebius doesn't serve — so they route via **OpenRouter**
 Alternatively, pass an open model that Nebius serves via `--seller_models` / `--buyer_models`
 (e.g. `--seller_models qwen/qwen3-14b`), in which case `NEBIUS_API_KEY` suffices. The paper's
 model names are aliases for model ids (`gpt-4.1` → `openai/gpt-4.1`, the default); any other
-model id works too. The local `.env` is only for per-project overrides, never keys. See
+model id works too. Keys and any overrides live only in the repo-root `compute.env`. See
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal →
 fail loud).
 

@@ -33,9 +33,8 @@ same answer **without** any communication or agreement. Use it as:
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy
 it from `../compute.env.example`): set `NEBIUS_API_KEY` for open models (the default), and add
 `OPENROUTER_API_KEY` for closed ones (GPT / Gemini / Claude) — see [`../COMPUTE.md`](../COMPUTE.md).
-The shared config picks **Nebius → OpenRouter → Modal** automatically. Then, optionally,
-`cp .env.example .env` here for any per-project overrides (e.g. `MODEL_NAME`); the local `.env` only
-overrides, it does **not** hold your API keys.
+The shared config picks **Nebius → OpenRouter → Modal** automatically. Any overrides (e.g.
+`MODEL_NAME`) also go in that same repo-root `compute.env`.
 
 The paper ran open models locally on GPUs (transformers) plus OpenAI / Gemini batch jobs. Here every
 model call goes through the shared inference config, so it runs on any laptop. The default model is the

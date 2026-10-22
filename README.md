@@ -80,7 +80,7 @@ CLI flags. Inference goes through the shared endpoint (Nebius by default); the d
 thesis model `mistralai/Mistral-Large-Instruct-2411`.
 
 ```bash
-cd algorithmic-pricing-llms && uv sync && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd algorithmic-pricing-llms && uv sync   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 # The default model (Mistral-Large-Instruct-2411) is served by Nebius, so this needs NEBIUS_API_KEY.
 # With only an OpenRouter key, that exact version isn't on OpenRouter — pass an OpenRouter-served
 # model instead, e.g.  --model openai/gpt-4.1-mini
@@ -105,7 +105,7 @@ paper's R1 distills are no longer on OpenRouter, so you pick the agent model: fu
 fidelity (~2-3 min per call), `qwen/qwen3-14b` (thinks, ~1 min per call) or `openai/gpt-4.1-mini` for fast iteration.
 
 ```bash
-cd llm-cartel && uv sync && cp .env.example .env     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd llm-cartel && uv sync     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 uv run python run_game.py --models openai/gpt-4.1-mini --rounds 30   # ~60 calls, ~1 min
 ```
 
@@ -126,7 +126,7 @@ temperature, seed and prompt count as flags. The 1.8 GB of raw transcripts were 
 from this copy; prompt datasets, human baselines and the paper's aggregated results stay.
 
 ```bash
-cd focal-points && uv sync && cp .env.example .env     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd focal-points && uv sync     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 # Smoke test writes to results/<model>/. The default model (Llama-3.3-70B) already has the paper's
 # reference results checked in and the run refuses to clobber them, so smoke-test with another model
 # — it writes to its own folder:
@@ -150,7 +150,7 @@ cartel prices. The paper's 75 runs ship as metrics + round logs (43 MB); the 250
 per-agent transcripts are linked upstream.
 
 ```bash
-cd llm-agent-collusion && uv sync && cp .env.example .env     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd llm-agent-collusion && uv sync     # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 uv run python src/continuous_double_auction/simulation.py --rounds 5 --tag smoke   # ~30 calls
 ```
 
@@ -169,7 +169,7 @@ private channel, open channel, neither) as ready-made configs, all through OpenR
 the paper's `openai/gpt-4o-mini` as default.
 
 ```bash
-cd colosseum && uv sync && cp .env.example .env    # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd colosseum && uv sync    # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 uv run python -m experiments.preflight
 uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_positive_control.yaml
 ```
@@ -185,12 +185,12 @@ planning stage, public commitments and final actions, and every commitment break
 classified. Used in sprint projects 2.3 (does combining what agents say with what they do
 improve detection?) and 3.2 (can agents tell when a peer has been replaced?). Runs through
 OpenRouter with the paper's OpenAI models (`openai/gpt-5.2` in the examples; OpenAI-family
-only, see its `.env.example`). Each trial-round is 4 calls per agent plus pairwise
+only). Each trial-round is 4 calls per agent plus pairwise
 reflection, so the documented full run (5 agents, 20 trials, 10 rounds) is ~8,000 calls —
 start with the smoke test.
 
 ```bash
-cd llm-trust-breaking && pip install -r requirements.txt && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd llm-trust-breaking && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1 \
   --model openai/gpt-4o-mini --use-queue                                            # ~10 calls, under a minute
 ```
@@ -209,7 +209,7 @@ a tool-using environment. Calls go through OpenRouter with the paper's models se
 constant at the top of each notebook.
 
 ```bash
-cd collusive-llm-agents && pip install -r requirements.txt && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd collusive-llm-agents && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 jupyter notebook            # open bertrand.ipynb (~10 calls) or cournot.ipynb (~100 calls)
 ```
 
@@ -229,7 +229,7 @@ original models are no longer served and were substituted — the mapping is in 
 Every step is one call per agent, so tournaments add up; both games have a small run.
 
 ```bash
-cd llm-agent-collusion-2 && pip install -r requirements.txt && cp .env.example .env   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd llm-agent-collusion-2 && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small   # 20 calls
 cd ../Collusion_Liars_Bar && python src/game/game.py                                    # one full game: ~260 calls, ~11 min
 ```
@@ -256,7 +256,7 @@ local `distilgpt2` configs; its README shows the CPU-only install.
 cd steganographic-collusion && pip install -r requirements.txt
 bash scripts/ci_check.sh                                  # no key: compiles + 11 detector tests, ~25 s
 python -m auditor.experiments auction_adaptive            # no key: one scripted experiment, ~25 s
-cp .env.example .env && python -m auditor.experiments pricing_llm_gemini   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md); 20 seeds x 8 rounds = 160 calls, ~4 min, cents
+python -m auditor.experiments pricing_llm_gemini   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md); 20 seeds x 8 rounds = 160 calls, ~4 min, cents
 ```
 
 ### 10. [`trace-guard/`](trace-guard/)

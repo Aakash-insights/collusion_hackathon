@@ -31,7 +31,7 @@ The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-
 - `NEBIUS_API_KEY` — default inference key.
 - `OPENROUTER_API_KEY` — **effectively required here**: the recommended agent/judge models below are OpenRouter ids (and closed / Nebius-missing models route through OpenRouter).
 
-**You choose the agent model** (`--models` or `MODEL_NAME`); the script refuses to guess. `cp .env.example .env` is optional and only for per-project overrides (e.g. `MODEL_NAME`, `LLM_BASE_URL`).
+**You choose the agent model** (`--models` or `MODEL_NAME`); the script refuses to guess. Any overrides (e.g. `MODEL_NAME`, `LLM_BASE_URL`) go in the repo-root `compute.env`.
 
 The paper's DeepSeek-R1-Distill-Qwen models are no longer served on OpenRouter. Measured through OpenRouter on 2026-09-15, per call in a duopoly:
 

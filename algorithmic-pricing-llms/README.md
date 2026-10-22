@@ -32,7 +32,6 @@ This project is a Master's thesis (BSE Data Science for Decision Making, 2024-20
 
 ```bash
 uv sync                      # or: pip install -e .
-cp .env.example .env         # optional per-project overrides
 ```
 
 Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extras: `uv sync --extra analysis`.
@@ -48,24 +47,18 @@ cp ../compute.env.example ../compute.env   # at the repo root
 
 Set `NEBIUS_API_KEY` (default inference). Add `OPENROUTER_API_KEY` **only** if you use closed models or models Nebius doesn't serve (routing is Nebius → OpenRouter → Modal). See [`../COMPUTE.md`](../COMPUTE.md) for details.
 
-> **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in this folder's `.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
+> **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in the repo-root `compute.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
 
-This project's local `.env` is only for optional per-project overrides, e.g.:
+**Which variable sets the model?** These scripts read **`MODEL_NAME`**; the shared inference config reads **`LLM_MODEL`**. Both live in the repo-root `compute.env` (or the process environment). Precedence, highest first:
 
-```bash
-MODEL_NAME=mistralai/Mistral-Large-Instruct-2411
-```
-
-**Which variable sets the model?** These scripts read **`MODEL_NAME`** (project-local, set it in this folder's `.env` or `--model <id>` on the command line). The shared inference config reads **`LLM_MODEL`** (global, set it in the repo-root `compute.env`). Precedence, highest first:
-
-1. `--model <id>` (command line)
-2. `MODEL_NAME` (this project's `.env`)
+1. `--model <id>` (command line) — scope it to a single run
+2. `MODEL_NAME` (repo-root `compute.env`) — this experiment's default
 3. `LLM_MODEL` (repo-root `compute.env`) — forces one model id across *all* experiments
 4. the thesis default, `mistralai/Mistral-Large-Instruct-2411`
 
-So set `MODEL_NAME` here to change the model for just this project, or `LLM_MODEL` globally to pin the same model everywhere. The pre-run banner prints the model that actually resolves (nothing is silently swapped).
+So pass `--model` for a one-off, set `MODEL_NAME` for this experiment's default, or `LLM_MODEL` to pin the same model everywhere. The pre-run banner prints the model that actually resolves (nothing is silently swapped).
 
-The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights, served by Nebius). See `.env.example` for the available overrides.
+The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights, served by Nebius).
 
 ---
 

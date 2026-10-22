@@ -45,21 +45,11 @@ ONE of:
 notebook**: set `LLM_MODEL=<id>` in the environment and it wins over the hard-coded value (handy for
 headless runs and for pointing the closed defaults at an OpenRouter-served id you prefer).
 
-> **IMPORTANT — set `OPENROUTER_API_KEY`.** Provider config is resolved by `make_client()` in
-> `poseidon_compute` (called in a later cell): with the core fix in place, if only
-> `OPENROUTER_API_KEY` is set the client talks to OpenRouter directly — no `LLM_BASE_URL` or other
-> workaround needed. Put `OPENROUTER_API_KEY=...` in the repo-root `compute.env` and the notebook
-> reaches OpenRouter.
->
-> One caveat: the *first* cell of each notebook still runs `assert os.getenv('OPENROUTER_API_KEY')` as
-> an early sanity check, and it reads the **process** environment. So the key must be visible to the
-> Jupyter process — either `export OPENROUTER_API_KEY=...` in your shell before launching Jupyter, or
-> `cp .env.example .env` here and put `OPENROUTER_API_KEY=...` in this directory's local `.env` (the
-> first cell does `load_dotenv('.env', override=True)` before the assert).
->
-> Note the `override=True`: if you set **both**, the value in the local `.env` wins over whatever you
-> exported in the shell. So don't leave a stale or placeholder `OPENROUTER_API_KEY=` line in `.env` —
-> an empty value there will override your good exported key and trip the assert.
+> **IMPORTANT — set an inference key.** Provider config is resolved by `make_client()` in
+> `poseidon_compute` (called in a later cell): put `OPENROUTER_API_KEY=...` (or `NEBIUS_API_KEY=...`)
+> in the repo-root `compute.env` and the notebook reaches your endpoint directly — no `LLM_BASE_URL`
+> or other workaround needed. The *first* cell imports `poseidon_compute`, which loads that
+> `compute.env` into the process environment, then asserts a key is present before any model call.
 
 ## Quick start
 
@@ -73,7 +63,6 @@ Start with the cheaper **Bertrand** notebook (5 rounds, ~10 calls on gpt-3.5-tur
 cd collusive-llm-agents
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # put OPENROUTER_API_KEY here (satisfies the early assert)
 jupyter notebook            # open bertrand.ipynb, run the cells in order
 ```
 

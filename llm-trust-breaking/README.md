@@ -61,8 +61,8 @@ In both cases decisions are requested as JSON inside the prompt, and a parse fai
 **empty** decision rather than an error — so check the output (`_parse_ok`, below) before trusting
 a run that printed either message.
 
-Optionally, `cp .env.example .env` here for per-project overrides only (temperature, reasoning
-effort, agent count). The local `.env` does **not** hold API keys.
+Any per-project overrides (temperature, reasoning effort, agent count) go in the repo-root
+`compute.env` alongside your keys.
 
 ## Quick start
 
@@ -364,7 +364,6 @@ llm-trust-breaking/
 ├── README.md                    # This file
 ├── methodology.png              # Visual protocol diagram
 ├── requirements.txt
-├── .env.example                 # Per-project overrides only (no keys)
 │
 ├── src/                         # Core library code
 │   ├── games/                   # 6 game implementations
