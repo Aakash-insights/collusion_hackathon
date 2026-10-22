@@ -31,7 +31,7 @@ This project is a Master's thesis (BSE Data Science for Decision Making, 2024-20
 ### Install (CPU only, < 1 min)
 
 ```bash
-uv sync                      # or: pip install -e .
+uv sync
 ```
 
 Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extras: `uv sync --extra analysis` (add `--extra text` for the `text_analysis_*` notebooks, which pull torch + sentence-transformers). Run the notebooks from the `notebooks/` directory — they read `../data/results/all_experiments.parquet` relative to it (Jupyter and `jupyter nbconvert` use the notebook's own folder as the working directory by default).
@@ -82,7 +82,7 @@ uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.
 
 ## Running experiments
 
-The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in this folder's `.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
+The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in the repo-root `compute.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
 
 **Positive control** (defaults = one prompt, alpha 1, one seed):
 

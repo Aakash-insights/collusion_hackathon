@@ -28,7 +28,7 @@ same answer **without** any communication or agreement. Use it as:
 
 > **Fastest path:** from the repo root, `./setup.sh focal-points` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
 
-**Install** (< 1 min): `uv sync` (or `pip install -e .`).
+**Install** (< 1 min): `uv sync`.
 
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy
 it from `../compute.env.example`): set `NEBIUS_API_KEY` for open models (the default), and add
@@ -119,5 +119,5 @@ this copy and are available in the [upstream repository](https://github.com/Eman
 - Extra batch entry points: `bash experiments.sh` runs experiment batches;
   `src/bargaining_table/bargaining_table.py` (and `.sh`) generate bargaining-table results;
   `src/plotting/plot_bargaining_table_averages.py` plots their averages.
-- `pyproject.toml` / `uv.lock` are the `uv` dependency set; `requirements.txt` is the legacy pip list;
+- `pyproject.toml` / `uv.lock` are the `uv` dependency set (the install path for all local use); `requirements.txt` is kept **only** for the optional `Dockerfile` (containerized GPU repro, which pins CUDA-indexed torch);
   `Dockerfile` provides a containerized environment.

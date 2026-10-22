@@ -53,12 +53,13 @@ only needed for models Nebius doesn't serve. See [`../COMPUTE.md`](../COMPUTE.md
 story (Nebius → OpenRouter → Modal → fail loud).
 
 ```bash
-# create and activate a virtual environment first (the fastest-path ./setup.sh does
-# this for you; the manual path needs it too, since requirements.txt installs the shared
-# poseidon_compute package as an editable dep — see the last line of requirements.txt):
-python -m venv .venv && source .venv/bin/activate   # or: uv venv .venv && source .venv/bin/activate
+# uv creates .venv/ and installs the deps (including the shared poseidon_compute
+# package as an editable dep, resolved from ../util via [tool.uv.sources]) in one step:
+uv sync
 
-pip install -r requirements.txt
+# then either activate the venv so bare `python …` works for the commands below:
+source .venv/bin/activate
+# …or prefix each command with `uv run` instead (e.g. `uv run python -m cleanup_llm...`).
 
 # keys and any overrides live at the repo root (one level up), shared by every project:
 cp ../compute.env.example ../compute.env   # then edit: NEBIUS_API_KEY=...
@@ -303,7 +304,8 @@ LLM-Agent-collusion/
 │       ├── games/                 # Tournament runners
 │       ├── analysis/              # Data analysis tools
 │       └── runs/                  # Experiment results
-└── requirements.txt               # Python dependencies
+├── pyproject.toml                 # Python dependencies (installed via `uv sync`)
+└── uv.lock                        # Pinned dependency lockfile
 ```
 
 ### Research applications

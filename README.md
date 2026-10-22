@@ -25,7 +25,6 @@ Install these once before running `./setup.sh`:
   `curl -LsSf https://astral.sh/uv/install.sh | sh` (macOS/Linux; see the uv docs for Windows), then
   restart your shell. uv also fetches the exact Python each project needs (e.g. trace-guard wants 3.12),
   so you don't manage interpreters yourself.
-- **Python 3.10+** on your PATH (`python3`) — used to create the venvs for the pip-based projects.
 - **Docker** — only for **trace-guard** (it runs its agent inside a container). Everything else is
   Python-only. Install Docker Desktop (macOS/Windows) or Docker Engine (Linux) and start it.
 - A **model API key** for the next step: a **Nebius** key (default inference) and/or an **OpenRouter**
@@ -39,7 +38,7 @@ Install these once before running `./setup.sh`:
 
 ```bash
 cp compute.env.example compute.env     # then edit the file: add NEBIUS_API_KEY and/or OPENROUTER_API_KEY
-./setup.sh                             # sets up ALL experiments (uv sync / pip venv), one go
+./setup.sh                             # sets up ALL experiments (uv sync each), one go
 ```
 
 `./setup.sh` installs the shared compute layer (**`poseidon_compute`**, in [`util/`](util/)) and every
@@ -190,8 +189,8 @@ reflection, so the documented full run (5 agents, 20 trials, 10 rounds) is ~8,00
 start with the smoke test.
 
 ```bash
-cd llm-trust-breaking && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
-python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1 \
+cd llm-trust-breaking && uv sync   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+uv run python experiments/run_endogenous.py --game diners --agents 2 --trials 1 --rounds 1 \
   --model openai/gpt-4o-mini --use-queue                                            # ~10 calls, under a minute
 ```
 
@@ -209,8 +208,8 @@ a tool-using environment. Calls go through OpenRouter with the paper's models se
 constant at the top of each notebook.
 
 ```bash
-cd collusive-llm-agents && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
-jupyter notebook            # open bertrand.ipynb (~10 calls) or cournot.ipynb (~100 calls)
+cd collusive-llm-agents && uv sync   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+uv run jupyter notebook     # open bertrand.ipynb (~10 calls) or cournot.ipynb (~100 calls)
 ```
 
 ### 8. [`llm-agent-collusion-2/`](llm-agent-collusion-2/)
@@ -229,7 +228,7 @@ original models are no longer served and were substituted — the mapping is in 
 Every step is one call per agent, so tournaments add up; both games have a small run.
 
 ```bash
-cd llm-agent-collusion-2 && pip install -r requirements.txt   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
+cd llm-agent-collusion-2 && uv sync && source .venv/bin/activate   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md)
 cd Collusion_Cleanup && python -m cleanup_llm.games.tournament --games 1 --steps 5 --out runs/smoke --roster small   # 20 calls
 cd ../Collusion_Liars_Bar && python src/game/game.py                                    # one full game: ~260 calls, ~11 min
 ```
@@ -253,10 +252,10 @@ OpenRouter) do. Note that `requirements.txt` pulls torch (~5 GB from PyPI) for t
 local `distilgpt2` configs; its README shows the CPU-only install.
 
 ```bash
-cd steganographic-collusion && pip install -r requirements.txt
-bash scripts/ci_check.sh                                  # no key: compiles + 11 detector tests, ~25 s
-python -m auditor.experiments auction_adaptive            # no key: one scripted experiment, ~25 s
-python -m auditor.experiments pricing_llm_gemini   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md); 20 seeds x 8 rounds = 160 calls, ~4 min, cents
+cd steganographic-collusion && uv sync
+uv run bash scripts/ci_check.sh                          # no key: compiles + 11 detector tests, ~25 s
+uv run python -m auditor.experiments auction_adaptive     # no key: one scripted experiment, ~25 s
+uv run python -m auditor.experiments pricing_llm_gemini   # inference set centrally: NEBIUS_API_KEY in repo-root compute.env (see COMPUTE.md); 20 seeds x 8 rounds = 160 calls, ~4 min, cents
 ```
 
 ### 10. [`trace-guard/`](trace-guard/)

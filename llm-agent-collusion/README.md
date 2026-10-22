@@ -24,7 +24,7 @@ Run everything from **this experiment's directory** (`llm-agent-collusion/`) —
 **Install** (< 1 min):
 
 ```bash
-uv sync                      # or: python -m venv .venv && source .venv/bin/activate && pip install -e .
+uv sync
 ```
 
 **Inference.** Configure once in the **repo-root `compute.env`** (copy it from

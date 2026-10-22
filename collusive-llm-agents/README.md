@@ -17,12 +17,12 @@ competition settings contributed as separate notebooks (`cournot.ipynb`, `bertra
 
 > **Fastest path:** from the repo root, `./setup.sh collusive-llm-agents` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
 
-**Install** (Python 3.9+) — use a virtual environment so `pip` doesn't trip over an
-externally-managed system Python (PEP 668):
+**Install** (Python 3.10+) — this experiment uses [uv](https://docs.astral.sh/uv/). From this
+folder, `uv sync` creates `.venv` and installs the deps (including the shared `poseidon_compute`
+package and Jupyter):
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
 
 Inference is configured once in the **repo-root** `compute.env` (one level up from this folder; copy it
@@ -61,9 +61,8 @@ Start with the cheaper **Bertrand** notebook (5 rounds, ~10 calls on gpt-3.5-tur
 
 ```bash
 cd collusive-llm-agents
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-jupyter notebook            # open bertrand.ipynb, run the cells in order
+uv sync
+uv run jupyter notebook     # open bertrand.ipynb, run the cells in order
 ```
 
 Success signal: the run creates `bertrand_data/runs/run-NNN/` with a folder per round, the two firms'
@@ -78,9 +77,8 @@ never lands in the repo:
 
 ```bash
 cd collusive-llm-agents
-source .venv/bin/activate                    # the venv created in Setup
 export OPENROUTER_API_KEY=...                # must be in the process env for the first-cell assert
-jupyter nbconvert --to notebook --execute bertrand.ipynb --output /tmp/bertrand.out.ipynb \
+uv run jupyter nbconvert --to notebook --execute bertrand.ipynb --output /tmp/bertrand.out.ipynb \
   --ExecutePreprocessor.timeout=360
 ```
 
@@ -109,7 +107,7 @@ differently:
 
   ```bash
   cp bertrand.ipynb /tmp/bertrand_smoke.ipynb   # then edit NUM_ROUNDS = 1 in the /tmp copy
-  jupyter nbconvert --to notebook --execute /tmp/bertrand_smoke.ipynb \
+  uv run jupyter nbconvert --to notebook --execute /tmp/bertrand_smoke.ipynb \
     --output /tmp/bertrand.out.ipynb --ExecutePreprocessor.timeout=360
   ```
 
