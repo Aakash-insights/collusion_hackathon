@@ -17,3 +17,6 @@ compute.env
 
 # papers downloaded by literature/fetch_papers.py
 literature/pdfs/
+
+# local model artifacts
+/checkpoints/
