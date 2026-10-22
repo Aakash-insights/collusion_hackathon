@@ -157,12 +157,7 @@ async def judge_run(run_dir: Path, config: Dict[str, Any]) -> Dict[str, Any]:
     Returns a dictionary mapping agent_name -> dict representation of MisalignmentJudgement.
     """
     eval_cfg = config.get("experiment", {}).get("evaluator", {})
-    model_name = eval_cfg.get("model")
-    if not model_name:
-        raise ValueError(
-            "No evaluator model set (experiment.evaluator.model in the config). Set an explicit open "
-            "model id — there is no default model, and nothing is substituted."
-        )
+    model_name = eval_cfg.get("model", "gpt-4")
     params = eval_cfg.get("params", {"max_tokens": 512, "temperature": 0.0})
     
     judge_cfg = JudgeConfig(

@@ -29,7 +29,7 @@ def check(label: str, ok: bool, detail: str = "") -> bool:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--ping", action="store_true", help="make one tiny model call through the shared endpoint")
-    ap.add_argument("--model", default=None, help="model id for --ping (required with --ping; an open model)")
+    ap.add_argument("--model", default=None, help="model for --ping (default: openai/gpt-4o-mini)")
     args = ap.parse_args()
 
     from dotenv import load_dotenv
@@ -69,14 +69,9 @@ def main() -> None:
     )
 
     if args.ping and ok:
-        from experiments.common.providers import make_openrouter_client
+        from experiments.common.providers import DEFAULT_MODEL, make_openrouter_client
 
-        if not args.model:
-            ok &= check("--ping model", False, "pass --model <open model id>; there is no default model")
-            model = None
-        else:
-            model = args.model
-    if args.ping and ok and model:
+        model = args.model or DEFAULT_MODEL
         client = make_openrouter_client({"provider": "openrouter", "openrouter": {"model": model}})
         try:
             _, text = client.generate_response(

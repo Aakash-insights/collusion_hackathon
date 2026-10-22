@@ -309,13 +309,8 @@ def main():
         else ["traceguard"]
     )
 
-    # Resolve model: CLI arg > INSPECT_EVAL_MODEL env var. No default — fail loudly if unset.
-    model = args.model or os.environ.get("INSPECT_EVAL_MODEL")
-    if not model:
-        raise SystemExit(
-            "No model set. Pass --model <id> or set INSPECT_EVAL_MODEL to an open model id. "
-            "There is no default model and nothing is substituted."
-        )
+    # Resolve model: CLI arg > INSPECT_EVAL_MODEL env var > default.
+    model = args.model or os.environ.get("INSPECT_EVAL_MODEL", "openrouter/openai/gpt-4o-mini")
 
     asyncio.run(run_posthoc(log_files, monitors, args.output_dir, args.all_monitors, model=model))
 

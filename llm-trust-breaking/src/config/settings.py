@@ -18,14 +18,11 @@ load_dotenv(_PROJECT_ROOT / '.env')
 # Route provider base_url / key / model through the repo-root shared LLM config.
 from poseidon_compute import api_key as _llm_api_key, resolve_model as _resolve_model
 
-# No default model. The primary way to choose one is the CLI `--model` flag; this module-level MODEL is
-# only the fallback when `--model` is omitted (LLM_MODEL in the repo-root compute.env wins via
-# resolve_model, else OPENROUTER_MODEL in this project's .env). Do NOT raise at import — the experiments
-# take `--model`, which is applied after this module loads — so leave MODEL empty if nothing is set and let
-# the entry point fail loudly only if a run actually proceeds with no model from either source.
-_requested_model = os.getenv('OPENROUTER_MODEL')
-_resolved_model = _resolve_model(_requested_model) if _requested_model else _resolve_model('__unset__')
-MODEL = '' if _resolved_model in ('', '__unset__') else _resolved_model
+# Model / temperature defaults (used when no explicit model is passed). CLI `--model` and LLM_MODEL in the
+# repo-root compute.env both win over this (via resolve_model); a provided model that fails is never
+# silently swapped. The default is an OpenRouter id (needs OPENROUTER_API_KEY) — set LLM_MODEL/--model to a
+# JSON-capable open model to run on Nebius.
+MODEL = _resolve_model(os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o-mini'))
 TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
 # OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;

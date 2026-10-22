@@ -17,7 +17,7 @@ Config block::
         llm:
           provider: openrouter                 # routing label -> shared endpoint (Nebius)
           openrouter:
-            model: Qwen/Qwen2.5-7B-Instruct    # an explicit, open model id (no default)
+            model: Qwen/Qwen2.5-7B-Instruct    # name an explicit open model (recommended; a closed default applies if omitted)
             params: { max_tokens: 1500, temperature: 0.7 }
 
 Every other provider (openai, anthropic, gemini, together, fireworks, vllm) is
@@ -38,9 +38,12 @@ from poseidon_compute import llm_config, resolve_model
 
 load_dotenv()
 
-# No default model: configs/CLIs must name the model explicitly. The paper configs used closed models
-# (gpt-4o-mini / gpt-4.1-mini) that the hackathon endpoint (Nebius) doesn't serve; the main collusion
-# sweep ran Qwen2.5-7B-Instruct. Pick an open model per run — nothing is substituted or defaulted.
+# Default models (used only when a config/CLI omits the model). A *provided* model that fails is never
+# silently swapped — that reroutes to Modal or fails loudly. Paper configs used gpt-4o-mini
+# (persuasion/collusion, agent_misalignment) and gpt-4.1-mini; the main collusion sweep ran
+# Qwen2.5-7B-Instruct. The closed defaults need OPENROUTER_API_KEY (Nebius doesn't serve them).
+DEFAULT_MODEL = "openai/gpt-4o-mini"
+DEFAULT_JUDGE_MODEL = "openai/gpt-4o-mini"
 
 
 def is_openrouter(llm_cfg: Dict[str, Any]) -> bool:
@@ -77,13 +80,7 @@ def get_client_instance(
 
 def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        model = openrouter_block(llm_config).get("model")
-        if not model:
-            raise ValueError(
-                "No model set under llm.openrouter.model in the config. Set an explicit (open) model "
-                "id — there is no default model, and nothing is substituted."
-            )
-        return resolve_model(str(model))
+        return resolve_model(str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL))
     return _tu.get_model_name(provider, llm_config)
 
 
