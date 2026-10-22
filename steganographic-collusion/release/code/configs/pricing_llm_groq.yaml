@@ -10,7 +10,7 @@ payload_bits_per_100_tokens: 2.0
 llm_agents:
   firm_a:
     backend: openrouter
-    model: meta-llama/llama-3.1-8b-instruct
+    model: meta-llama/Llama-3.1-8B-Instruct
     temperature: 0.15
     system_prompt: |
       You are Firm A coordinating prices in a differentiated duopoly.

@@ -1,14 +1,14 @@
 """
 LLM provider clients for the pricing agents.
 
-Hackathon standard: all model calls go through **OpenRouter** with one
-``OPENROUTER_API_KEY``. The default model is the one the thesis used,
-(closest available: ``mistralai/mistral-large-2512``); pick any other OpenRouter model id with
-``MODEL_NAME`` / ``--model`` (rates: https://openrouter.ai/models).
+Hackathon standard: all model calls go through the shared endpoint (**Nebius AI Studio** by default; see
+the repo-root ``compute.env`` / ``poseidon_compute``). The default model is the thesis model,
+``mistralai/Mistral-Large-Instruct-2411``; pass any other model id with ``MODEL_NAME`` / ``--model``.
+To run with a model Nebius doesn't serve, use the one entry point ``poseidon-run`` (it hosts it on
+Modal or fails loudly). No model is ever substituted.
 
-The thesis's direct Mistral-SDK path (``LLM_PROVIDER=mistral``) and other
-OpenAI-compatible endpoints are kept as opt-in alternatives for reproduction
-or debugging, but participants should not need them.
+The thesis's direct Mistral-SDK path (``LLM_PROVIDER=mistral``) and other OpenAI-compatible endpoints are
+kept as opt-in alternatives for reproduction or debugging, but participants should not need them.
 """
 
 from __future__ import annotations
@@ -16,6 +16,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+
+from poseidon_compute import make_client, resolve_model, endpoint_kind, base_url
 
 Message = Dict[str, str]
 
@@ -29,17 +31,19 @@ class Preset:
     supports_seed: bool = False
 
 
-# The thesis used mistral-large-2411. OpenRouter no longer serves it (checked 2026-09-15), so
-# the default is the current Mistral Large; mistralai/mistral-large-2407 (same generation as
-# 2411, 4x the price) is the closest match if fidelity matters more than budget.
-THESIS_MODEL_OPENROUTER = "mistralai/mistral-large-2512"
+# The thesis used Mistral Large 24.11. Nebius (the default endpoint) serves open-weight models by their
+# Hugging Face repo id, so the default here is that HF-cased id — the same model the thesis used, and
+# ungated on HF so it can also be Modal-hosted if Nebius doesn't serve it. Pass any other model with
+# --model / MODEL_NAME.
+THESIS_MODEL = "mistralai/Mistral-Large-Instruct-2411"
 
 PRESETS: Dict[str, Preset] = {
-    # Hackathon default: one key, every model.
+    # Opt-in OpenRouter preset (fallback for closed models / models Nebius doesn't serve).
+    # The standard path is the shared compute.env config (Nebius default); see the module docstring.
     "openrouter": Preset(
         "https://openrouter.ai/api/v1",
         "OPENROUTER_API_KEY",
-        THESIS_MODEL_OPENROUTER,
+        THESIS_MODEL,
         supports_seed=True,
     ),
     # Alternatives (not needed for the hackathon)
@@ -123,26 +127,28 @@ class OpenAICompatibleProvider(Provider):
         self.base_url = base_url or os.getenv("LLM_BASE_URL") or p.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'openai-compatible'")
-        self.api_key = api_key or os.getenv(p.key_env) or os.getenv("LLM_API_KEY")
-        if p.needs_key and not self.api_key:
-            raise ValueError(f"{p.key_env} is not set (LLM_PROVIDER={preset})")
-        self.model_name = model or os.getenv("MODEL_NAME") or p.default_model
+        # The client authenticates with the key from the shared compute.env (via make_client() /
+        # llm_config, Nebius or OpenRouter), which fails loudly if none is set. This field is only a
+        # diagnostic hint for the preset; it is not what authenticates the client.
+        self.api_key = api_key or os.getenv(p.key_env)  # diagnostics only; real key comes from llm_config
+        # Route the explicit --model / MODEL_NAME through resolve_model too (not just the preset
+        # default), so the LLM_MODEL override, retired-pin upgrades and OpenRouter id-casing apply to it.
+        self.model_name = resolve_model(model or os.getenv("MODEL_NAME") or p.default_model)
         if not self.model_name:
             raise ValueError("MODEL_NAME must be set for provider 'openai-compatible'")
         self.supports_seed = p.supports_seed
         self.is_remote = "localhost" not in self.base_url and "127.0.0.1" not in self.base_url
 
-        from openai import AsyncOpenAI
-
-        headers = {}
+        # The default 'openrouter' preset routes through the shared compute.env config (Nebius by
+        # default). The opt-in presets (openai / google / mistral-compat / ollama / openai-compatible)
+        # name a DIFFERENT endpoint, so honor their resolved base_url/key instead of silently rerouting
+        # everything to the shared endpoint (which also makes is_remote above load-bearing again).
         if preset == "openrouter":
-            headers = {
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon algorithmic-pricing-llms",
-            }
-        self._client = AsyncOpenAI(
-            base_url=self.base_url, api_key=self.api_key or "not-needed", default_headers=headers
-        )
+            self._client = make_client(async_=True)
+        else:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key or "EMPTY")
         self._json_mode = True  # drop response_format if the model rejects it
 
     async def complete(self, messages, temperature, seed):
@@ -160,8 +166,9 @@ class OpenAICompatibleProvider(Provider):
             )
         except fatal as e:
             raise FatalProviderError(
-                f"{self.model_name}: {e}. Check the model id at https://openrouter.ai/models "
-                "and your OPENROUTER_API_KEY."
+                f"{self.model_name}: {e}. Check the model id and your NEBIUS_API_KEY in the repo-root "
+                f"compute.env. If the model isn't on Nebius, run via `poseidon-run --model "
+                f"{self.model_name} -- <cmd>` to host it on Modal (or fail with a clear reason)."
             ) from e
         except BadRequestError as e:
             if self._json_mode and "response_format" in str(e).lower():
@@ -199,8 +206,26 @@ def make_provider(
     return OpenAICompatibleProvider(preset=kind, model=model, api_key=api_key)
 
 
+def resolve_effective_model(model: Optional[str] = None) -> str:
+    """The model id a run will actually use, via the same path as ``make_provider``.
+
+    Mirrors ``OpenAICompatibleProvider.__init__``: an explicit ``--model`` / ``MODEL_NAME``
+    wins over the thesis default, and whichever id is chosen is passed through ``resolve_model``
+    so ``LLM_MODEL`` overrides, retired-pin upgrades and OpenRouter id-translation are reflected.
+    This keeps the pre-run cost banner honest about the resolved model (no silent swap).
+    """
+    return resolve_model(model or os.getenv("MODEL_NAME") or THESIS_MODEL)
+
+
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
-    model = model or os.getenv("MODEL_NAME") or THESIS_MODEL_OPENROUTER
-    return (
-        f"≈ {n_calls:,} model calls. Per-token rates for this model: https://openrouter.ai/{model}"
-    )
+    model = resolve_effective_model(model)
+    # Show the rates page for the endpoint the call will ACTUALLY use (Nebius, or OpenRouter when
+    # that's the configured key), not a hardcoded provider — otherwise the banner misleads OpenRouter users.
+    kind = endpoint_kind()
+    if kind == "openrouter":
+        rates = f"https://openrouter.ai/{model}"
+    elif kind == "nebius":
+        rates = "Nebius AI Studio (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = base_url()
+    return f"≈ {n_calls:,} model calls with {model}. Per-token rates: {rates}."

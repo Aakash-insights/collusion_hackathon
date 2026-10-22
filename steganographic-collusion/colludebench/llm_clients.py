@@ -27,8 +27,6 @@ try:
 except ImportError:  # pragma: no cover - optional convenience
     pass
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
 
 class LLMClient(ABC):
     """Abstract base class for LLM backends."""
@@ -58,20 +56,18 @@ class OpenAIChatClient(LLMClient):
         default_temperature: Optional[float] = None,
         default_max_tokens: Optional[int] = None,
     ) -> None:
-        try:
-            from openai import OpenAI  # type: ignore
-        except ImportError as exc:  # pragma: no cover - missing optional dependency
-            raise RuntimeError(
-                "OpenAIChatClient requires the `openai` package. "
-                "Install it with `pip install openai`."
-            ) from exc
+        # Route hosted traffic through the repo-root shared LLM config (OpenRouter/Nebius).
+        from poseidon_compute import make_client, resolve_model
 
-        api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OpenAIChatClient requires an API key via `api_key` or OPENAI_API_KEY.")
-
-        self._client = OpenAI(api_key=api_key, base_url=base_url or os.getenv("OPENAI_BASE_URL"))
-        self.model = model
+        # make_client() already picks base_url+api_key from the shared config; honor any
+        # explicit overrides passed by the caller (e.g. per-config `api_key`/`base_url`).
+        overrides = {}
+        if api_key:
+            overrides["api_key"] = api_key
+        if base_url:
+            overrides["base_url"] = base_url
+        self._client = make_client(**overrides)
+        self.model = resolve_model(model)
         self.default_temperature = default_temperature
         self.default_max_tokens = default_max_tokens
 
@@ -217,17 +213,25 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         raise ValueError("LLM configuration must include a 'backend' field.")
 
     backend = backend.lower()
+    # Only the `openrouter` backend is supported for hosted models. A closed/hosted backend label
+    # (openai/gemini/groq) must fail loudly rather than be silently routed to a different endpoint
+    # (COMPUTE.md §7 "No silent substitution"); tell the caller the sanctioned way to run it.
+    if backend in {"openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
+        raise ValueError(
+            f"LLM backend '{backend}' is not supported: the direct OpenAI / Gemini / Groq "
+            "adapters are not available here. Hosted models (including closed ones like GPT/Gemini) run via "
+            "OpenRouter through the shared poseidon_compute client. Set `backend: openrouter` and "
+            "give `model` in Nebius / Hugging Face casing; the entry point routes it to the right "
+            "provider (and fails loudly if none serves it). See COMPUTE.md §§2-3,7."
+        )
     if backend == "openrouter":
-        api_key = config.get("api_key") or os.getenv("OPENROUTER_API_KEY")
-        if not api_key or api_key == "your-openrouter-key-here":
-            raise RuntimeError(
-                "backend 'openrouter' requires OPENROUTER_API_KEY in this project's .env "
-                "(see .env.example) or an `api_key` field in the config."
-            )
+        # Hosted traffic is routed centrally via the repo-root llm_config (make_client picks
+        # base_url + key from compute.env / NEBIUS_API_KEY). Per-config api_key/base_url
+        # overrides are still honored when present.
         client = OpenAIChatClient(
             model=config["model"],
-            api_key=api_key,
-            base_url=config.get("base_url", OPENROUTER_BASE_URL),
+            api_key=config.get("api_key"),
+            base_url=config.get("base_url"),
             default_temperature=config.get("temperature"),
             default_max_tokens=config.get("max_tokens"),
         )
@@ -235,12 +239,6 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         if min_interval > 0:
             return RateLimitedClient(client, min_interval)
         return client
-    if backend in {"openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
-        raise ValueError(
-            f"LLM backend '{backend}' was removed: hosted models now run through OpenRouter. "
-            "Use `backend: openrouter` with an OpenRouter model id (e.g. openai/gpt-4o-mini, "
-            "google/gemini-2.5-flash, meta-llama/llama-3.1-8b-instruct)."
-        )
     if backend in {"hf", "transformers", "huggingface"}:
         return TransformersClient(
             model=config["model"],

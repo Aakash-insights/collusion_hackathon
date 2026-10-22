@@ -5,8 +5,10 @@ Poses Schelling-style coordination problems (and the Amsterdam / Nottingham
 Bardsley tasks, and the bargaining table) to an LLM, samples several answers per
 prompt and computes a coordination index (how often two random answers agree).
 
-All model calls go through OpenRouter (one OPENROUTER_API_KEY); the default model
-is the paper's default, meta-llama/llama-3.3-70b-instruct.
+All model calls go through the shared inference config (Nebius or OpenRouter, with
+OpenRouter as fallback for closed/unavailable models), set via the repo-root
+`compute.env`; the default model is the paper's default,
+meta-llama/Llama-3.3-70B-Instruct.
 
     python main.py                                   # schelling, 18 prompts × 10 samples = 180 calls
     python main.py -s 30                             # paper's 30 samples per prompt
@@ -28,14 +30,12 @@ import time
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from dotenv import load_dotenv
 
 from src.utils.llm import LLM, load_model
 from src.utils.prompt import Level0
 from src.utils import iterate_data, load_bargaining_table_prompts, plot_block_frequencies
 
-load_dotenv()
-DEFAULT_MODEL = os.getenv("MODEL_NAME", "meta-llama/llama-3.3-70b-instruct")
+DEFAULT_MODEL = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -123,7 +123,16 @@ def parse_arguments() -> argparse.Namespace:
         "--yes",
         dest="yes",
         action="store_true",
-        help="Skip the cost confirmation.",
+        help="Skip the cost confirmation (non-interactive runs).",
+    )
+    parser.add_argument(
+        "--overwrite",
+        dest="overwrite",
+        action="store_true",
+        help="Allow overwriting an existing results/<model>/<dataset>_<tag>.jsonl. Without this, the "
+        "run refuses to clobber already-present results (e.g. the shipped paper reference data under "
+        "results/meta-llama/Llama-3.3-70B-Instruct/). Note: the output folder is named after -m, so a "
+        "mismatched -m is what puts the reference data at risk.",
     )
     parser.add_argument(
         "-x",
@@ -360,12 +369,46 @@ def run_single_job(
 ) -> LLM | None:
     start = time.time()
 
+    # Case-fold onto an existing results folder: the folder name is the model string verbatim, so a
+    # casing-only mismatch (e.g. `-m meta-llama/llama-3.3-70b-instruct` vs the shipped
+    # `results/meta-llama/Llama-3.3-70B-Instruct/`) would otherwise create a confusing duplicate folder
+    # AND (on a case-sensitive filesystem) silently bypass the overwrite-guard on the shipped reference
+    # data. Walk the org/model path component-by-component and adopt the existing casing at each level, so
+    # the same model maps to the same folder regardless of how `-m` was typed.
+    _cur = Path("./results")
+    _resolved: list[str] = []
+    for _part in model_name.split("/"):
+        _match = (
+            next((d.name for d in _cur.iterdir() if d.is_dir() and d.name.lower() == _part.lower()), None)
+            if _cur.is_dir()
+            else None
+        )
+        if _match is None:
+            _resolved = []  # no existing folder for this model — keep the id as typed
+            break
+        _resolved.append(_match)
+        _cur = _cur / _match
+    if _resolved:
+        model_name = "/".join(_resolved)
+
     # filesystem prep
     dataset_dir, logs_dir = prepare_directories(model_name)
     log_suffix = problem_tag
     if dataset in ("bargaining_table", "bargaining_table_realdata"):
         log_suffix = f"{problem_tag}_{args.bargaining_player}"
     log_file = logs_dir / f"{dataset}_responses_{log_suffix}.jsonl"
+
+    # Data-loss guard: output folders are keyed on model_name (i.e. on -m, not on the model that
+    # actually answered). Running a different model without a matching -m would write under the default
+    # folder and clobber the shipped paper reference data in results/meta-llama/Llama-3.3-70B-Instruct/.
+    # We refuse to overwrite a results file that existed before this run with freshly generated answers,
+    # unless --overwrite is passed. (A pure resume of the same model, which only skips/recomputes without
+    # new answers, is still allowed.)
+    output_dataset = dataset
+    if dataset in ("bargaining_table", "bargaining_table_realdata"):
+        output_dataset = f"{dataset}_{args.bargaining_player}"
+    results_path = Path(f"./results/{model_name}/{output_dataset}_{problem_tag}.jsonl")
+    results_preexisted = results_path.exists()
 
     # load dataset
     if dataset in ("bargaining_table", "bargaining_table_realdata"):
@@ -393,6 +436,20 @@ def run_single_job(
         print(f"[INFO] Found stored responses for {completed_prompts}/{total_prompts} prompts in {log_file}.")
 
     all_complete = completed_prompts == total_prompts and total_prompts > 0
+
+    # Data-loss guard (fire before any generation / log writes): if a results file already exists for
+    # this folder and this run would still generate new answers into it, refuse unless --overwrite.
+    # A fully-complete resume generates nothing and is allowed. This stops a different model run under a
+    # mismatched -m from clobbering shipped reference data (e.g. results/meta-llama/Llama-3.3-70B-Instruct/).
+    if results_preexisted and not all_complete and not args.overwrite:
+        raise ValueError(
+            f"Refusing to generate into existing results at {results_path} "
+            f"(model_name={model_name!r}, {completed_prompts}/{total_prompts} prompts complete). "
+            f"The output folder is named after -m, not the model that actually answers; if this is a "
+            f"different model, re-run with a matching -m so it writes to its own folder. Pass --overwrite "
+            f"only if you really mean to replace these results."
+        )
+
     responses_by_prompt: Dict[Tuple[int, str], List[str]] = dict(existing_responses)
     model = cached_model
     new_data_generated = False
@@ -438,11 +495,8 @@ def run_single_job(
     elapsed = int(time.time() - start)
     print(f"[{model_name}] elapsed {elapsed // 3600:02d}:{(elapsed % 3600) // 60:02d}:{elapsed % 60:02d}")
 
-    # Plot graphs and create result folders
-    output_dataset = dataset
-    if dataset in ("bargaining_table", "bargaining_table_realdata"):
-        output_dataset = f"{dataset}_{args.bargaining_player}"
-    results_path = Path(f"./results/{model_name}/{output_dataset}_{problem_tag}.jsonl")
+    # Plot graphs and create result folders (output_dataset / results_path computed above; the
+    # data-loss guard already ran before generation).
     if args.plot_graph:
         if new_data_generated or not results_path.exists():
             compute_metrics(model_name, output_dataset, jsonl_logs, problem_tag)

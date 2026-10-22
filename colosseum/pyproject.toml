@@ -8,6 +8,7 @@ requires-python = ">=3.11"
 # extra brings the openai client used by the judge; `science`/`plots` are the
 # numpy/pandas/matplotlib the metrics + plot scripts need.
 dependencies = [
+    "poseidon-compute",
   "terrarium-agents[providers,science,plots]==0.1.1",
   "python-dotenv>=1.0",
   "pyyaml>=6.0",
@@ -30,3 +31,6 @@ include = ["experiments*"]
 
 [tool.ruff]
 line-length = 110
+
+[tool.uv.sources]
+poseidon-compute = { path = "../util", editable = true }

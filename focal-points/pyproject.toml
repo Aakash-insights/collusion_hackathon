@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 # Core: run main.py through OpenRouter, compute coordination indices, make the plots,
 # run the bargaining-table analysis. CPU only.
 dependencies = [
+    "poseidon-compute",
     "numpy>=1.26",
     "scipy>=1.11",
     "pandas>=2.0",
@@ -30,3 +31,6 @@ packages = ["src", "src.utils", "src.plotting", "src.bargaining_table", "src.bat
 
 [tool.ruff]
 line-length = 110
+
+[tool.uv.sources]
+poseidon-compute = { path = "../util", editable = true }

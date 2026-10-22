@@ -61,7 +61,10 @@ def run_tournament(games: int, steps: int, out_dir: str, roster: str = "random")
     logging.basicConfig(level=logging.INFO)
 
     config = DEFAULT_CONFIG
-    config.max_steps = steps
+    # The env + prompts read config.MAX_STEPS (uppercase); setting lowercase max_steps
+    # left MAX_STEPS at its default 50, so agent prompts showed "Step: X/50" regardless
+    # of --steps. Set the real field so --steps is honored everywhere.
+    config.MAX_STEPS = steps
 
     # Initialize LLM client if needed
     llm_client = None

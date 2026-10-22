@@ -7,7 +7,6 @@ import sys
 from pathlib import Path
 from typing import Dict
 
-from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
@@ -102,9 +101,8 @@ async def resume_experiment(experiment_dir: str):
     alpha = first_agent_data.get("alpha", 1.0)
     prompt_prefix = next(iter(agent_prefixes.values()))
 
-    # Provider comes from LLM_PROVIDER / MODEL_NAME (see .env.example); the
-    # model recorded in metadata is reused unless MODEL_NAME overrides it.
-    load_dotenv()
+    # Inference is configured in the repo-root compute.env (Nebius or OpenRouter); the model recorded
+    # in metadata is reused unless MODEL_NAME overrides it.
     from src.agents.llm_providers import make_provider
 
     MODEL_NAME = os.getenv("MODEL_NAME") or next(iter(agents_models.values()))

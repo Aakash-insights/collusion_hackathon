@@ -35,8 +35,8 @@ Add an `llm_agents` block to any scenario configuration to route specific roles 
 ```yaml
 llm_agents:
   firm_a:
-    backend: openai_chat
-    model: gpt-4o-mini
+    backend: openrouter
+    model: openai/gpt-4o-mini
     system_prompt: |
       You are Firm A in a pricing duel. Respond with reasoning and finish with `Price:<value>`.
     user_prompt_template: |
@@ -71,14 +71,14 @@ Ready-to-run examples are available in:
 
 Environment setup:
 
-- Hosted models (`backend: openrouter`): `pip install openai python-dotenv` and put `OPENROUTER_API_KEY` in this project's `.env` (copy `.env.example`). Optional `min_request_interval` (seconds) in a config throttles requests.
+- Hosted models (`backend: openrouter`): `pip install openai python-dotenv` and put `OPENROUTER_API_KEY` in the repo-root `compute.env` (see `../COMPUTE.md`). Optional `min_request_interval` (seconds) in a config throttles requests.
 - Local models (`backend: transformers`): `pip install transformers accelerate torch` (use the CPU index for torch on a laptop) and ensure weights are cached locally.
 
 ### Hosted Cross-Model Workflow (Gemini ↔ Llama 3.1 8B, both via OpenRouter)
 
 1. Export API credentials:
    ```bash
-   # OPENROUTER_API_KEY in this project's .env (copy .env.example)
+   # OPENROUTER_API_KEY in the repo-root compute.env (see ../COMPUTE.md)
    ```
 2. Honest calibrations:
    ```bash

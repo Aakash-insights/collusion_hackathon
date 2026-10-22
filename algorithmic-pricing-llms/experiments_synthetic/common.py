@@ -15,9 +15,9 @@ project 1.2 recipe:
        --temperature 0.7      sampling temperature
   3. Expand --seeds only after the positive control works.
 
-Provider: OpenRouter by default (one OPENROUTER_API_KEY); --model / MODEL_NAME is any
-OpenRouter model id, default mistralai/mistral-large-2512 (thesis: mistral-large-2411, no
-longer on OpenRouter).
+Inference: the shared endpoint (Nebius or OpenRouter; set NEBIUS_API_KEY in the repo-root compute.env).
+--model / MODEL_NAME is any open model id the shared config can resolve; left unset it defaults to the
+thesis model, mistralai/Mistral-Large-Instruct-2411. Nothing is ever substituted.
 
     python experiments_synthetic/duopoly.py --rounds 30          # smoke test (~60 calls)
     python experiments_synthetic/duopoly.py                      # positive control, 600 calls
@@ -37,16 +37,19 @@ from typing import Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from dotenv import load_dotenv  # noqa: E402
 
 from src.agents.LLM_agent import LLMAgent  # noqa: E402
-from src.agents.llm_providers import PRESETS, estimate_cost_note, make_provider  # noqa: E402
+from src.agents.llm_providers import (  # noqa: E402
+    PRESETS,
+    estimate_cost_note,
+    make_provider,
+    resolve_effective_model,
+)
 from src.environment.calvano import CalvanoDemandEnvironment  # noqa: E402
 from src.experiment.experiment import Experiment  # noqa: E402
 from src.prompts.prompts import GENERAL_PROMPT, GENERAL_PROMPT_NO_NOTES, P1, P2  # noqa: E402
 from src.prompts.prompts_models import create_pricing_response_model  # noqa: E402
 
-load_dotenv()
 
 PROMPTS = {"P1": P1, "P2": P2}
 FIRM_NAMES = ["Firm A", "Firm B", "Firm C", "Firm D", "Firm E", "Firm F", "Firm G", "Firm H"]
@@ -178,7 +181,7 @@ def make_parser(n_firms_default: int, description: str) -> argparse.ArgumentPars
     m.add_argument(
         "--model",
         default=None,
-        help="OpenRouter model id (default: env MODEL_NAME or mistralai/mistral-large-2512)",
+        help="model id (default: env MODEL_NAME, else the thesis model mistralai/Mistral-Large-Instruct-2411)",
     )
 
     o = ap.add_argument_group("output")
@@ -197,7 +200,9 @@ def main_from_cli(n_firms_default: int, description: str) -> None:
     n_runs = len(args.seeds) * len(args.alphas) * len(args.prompts)
     n_calls = n_runs * args.rounds * args.firms
     provider = args.provider or os.getenv("LLM_PROVIDER", "openrouter")
-    model = args.model or os.getenv("MODEL_NAME") or "(provider default)"
+    # Show the model the run will actually resolve to (respects LLM_MODEL / OpenRouter
+    # id-translation), matching estimate_cost_note below — no silent swap.
+    model = resolve_effective_model(args.model)
     print(
         f"{n_runs} run(s) × {args.rounds} rounds × {args.firms} firms via {provider}/{model}\n"
         f"{estimate_cost_note(n_calls, args.model)}"

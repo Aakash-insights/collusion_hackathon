@@ -84,11 +84,7 @@ def main():
 
     # Determine which model to use based on provider
     if args.model is None:
-        # Use defaults from .env based on provider
-        if settings.USE_OPENROUTER:
-            model = settings.OPENROUTER_MODEL
-        else:
-            model = settings.MODEL
+        model = settings.MODEL   # the resolved default model (from the repo-root compute.env, else the fallback)
     else:
         model = args.model
 
@@ -102,7 +98,7 @@ def main():
     agent_names.sort()  # Sort for consistency in output, but they're still non-sequential
     print(f"Using randomized agent names: {agent_names}")
 
-    # Initialize LLM clients (all traffic goes through OpenRouter)
+    # Initialize LLM clients (inference via the shared repo-root compute.env config)
     llm_client, parallel_client = create_llm_clients(
         model=model,
         openrouter_api_key=settings.OPENROUTER_API_KEY,

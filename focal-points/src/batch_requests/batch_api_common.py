@@ -5,9 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
 
-load_dotenv()
 
 
 @dataclass(frozen=True)
@@ -206,9 +204,22 @@ def resolve_job_record(
     )
 
 
-def openai_api_key(api_key: str | None) -> str | None:
-    return api_key or os.getenv("OPENAI_API_KEY")
+def openai_api_key(api_key: str | None) -> str:
+    key = api_key or os.getenv("OPENAI_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not set. This OpenAI Batch-API path is OpenAI-only (optional; the "
+            "hackathon default is Nebius). Set OPENAI_API_KEY to use it."
+        )
+    return key
 
 
-def gemini_api_key(api_key: str | None) -> str | None:
-    return api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+def gemini_api_key(api_key: str | None) -> str:
+    # GEMINI_API_KEY and GOOGLE_API_KEY are two accepted names for the SAME Gemini key (not a swap).
+    key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not key:
+        raise RuntimeError(
+            "No Gemini key set (GEMINI_API_KEY or GOOGLE_API_KEY). This Gemini Batch-API path is "
+            "Gemini-only (optional; the hackathon default is Nebius). Set one to use it."
+        )
+    return key

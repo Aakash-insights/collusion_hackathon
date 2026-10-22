@@ -19,7 +19,8 @@ class AsyncOpenRouterParallelClient:
     # Reasoning models spend much longer before the first token.
     REASONING_TIMEOUT = 300
 
-    def __init__(self, api_key: str, max_concurrent: int = 50, timeout: int = 120, max_retries: int = 3):
+    def __init__(self, api_key: str, max_concurrent: int = 50, timeout: int = 120, max_retries: int = 3,
+                 base_url: str = "https://openrouter.ai/api/v1/chat/completions"):
         """
         Initialize async parallel OpenRouter client.
 
@@ -30,7 +31,7 @@ class AsyncOpenRouterParallelClient:
             max_retries: Maximum number of retry attempts (default: 3)
         """
         self.api_key = api_key
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.base_url = base_url
         self.max_concurrent = max_concurrent
         self.timeout = timeout
         self.max_retries = max_retries

@@ -84,6 +84,10 @@ class AuditPipelineConfig:
     log_dir: Optional[Path] = None
     interventions: InterventionSuiteConfig = field(default_factory=InterventionSuiteConfig)
     detectors: Sequence[DetectorConfig] = field(default_factory=list)
+    # Short identifier for THIS audit config, used only to disambiguate output paths so that two
+    # configs sharing a scenario (and output_dir) don't overwrite/append to each other's transcripts.
+    # Populated from the audit YAML filename by `from_yaml`; falls back to the scenario_config stem.
+    config_name: Optional[str] = None
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "AuditPipelineConfig":
@@ -111,6 +115,7 @@ class AuditPipelineConfig:
             )
             for entry in data.get("detectors", [])
         ]
+        config_name = data.get("config_name")
         return cls(
             scenario_config=scenario_config,
             output_dir=Path(str(data.get("output_dir", "results/audit"))),
@@ -120,6 +125,7 @@ class AuditPipelineConfig:
             log_dir=Path(str(data["log_dir"])) if data.get("log_dir") else None,
             interventions=interventions,
             detectors=detectors,
+            config_name=str(config_name) if config_name else None,
         )
 
     @classmethod
@@ -134,7 +140,11 @@ class AuditPipelineConfig:
             data = yaml.safe_load(handle)
         if not isinstance(data, Mapping):
             raise ValueError("Audit configuration must be a mapping")
-        return cls.from_mapping(data)
+        config = cls.from_mapping(data)
+        # Default the disambiguating tag to the audit config's own filename when not set explicitly.
+        if config.config_name is None:
+            config.config_name = config_path.stem
+        return config
 
     def expanded_seeds(self) -> List[int]:
         seeds = self.seed_schedule.generate()

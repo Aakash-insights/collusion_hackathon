@@ -1,25 +1,28 @@
 """
 LLM provider resolution for the Colosseum experiments (hackathon edition).
 
-Hackathon standard: every model call goes through **OpenRouter** with a single
-``OPENROUTER_API_KEY``. Terrarium (0.1.1) does not know OpenRouter, but its
-``TogetherClient`` is a plain OpenAI-compatible chat-completions client with
-tool calling and a configurable ``base_url``, so ``provider: openrouter`` is
-routed through that client pointed at ``https://openrouter.ai/api/v1``.
+Hackathon standard: model calls go through the **shared OpenAI-compatible endpoint**
+(Nebius or OpenRouter; see repo-root ``compute.env`` / ``poseidon_compute``). Terrarium (0.1.1)
+has no notion of this endpoint, but its ``TogetherClient`` is a plain OpenAI-compatible
+chat-completions client with tool calling and a configurable ``base_url``, so the
+``provider: openrouter`` config label is routed through that client pointed at the shared
+endpoint's ``base_url`` with the shared key. (The ``openrouter`` label is just a routing
+key to the shared OpenAI-compatible client (Nebius or OpenRouter); it does not itself select
+OpenRouter or force calls to openrouter.ai.)
 
 Config block::
 
     llm_models:
-      - label: gpt4o_mini
+      - label: qwen7b
         llm:
-          provider: openrouter
+          provider: openrouter                 # routing label -> shared endpoint (Nebius)
           openrouter:
-            model: openai/gpt-4o-mini        # any OpenRouter model id
+            model: Qwen/Qwen2.5-7B-Instruct    # name an explicit open model (recommended; a closed default applies if omitted)
             params: { max_tokens: 1500, temperature: 0.7 }
 
 Every other provider (openai, anthropic, gemini, together, fireworks, vllm) is
 delegated unchanged to ``terrarium.utils``. Import the helpers from here instead
-of ``terrarium.utils`` so ``openrouter`` works everywhere.
+of ``terrarium.utils`` so the shared-endpoint routing works everywhere.
 """
 
 from __future__ import annotations
@@ -27,15 +30,16 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
 
 import terrarium.utils as _tu
 
-load_dotenv()
+from poseidon_compute import llm_config, resolve_model
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-# Paper configs used gpt-4o-mini (persuasion/collusion, agent_misalignment) and
-# gpt-4.1-mini; the main collusion sweep ran Qwen2.5-7B-Instruct through vLLM.
+
+# Default models (used only when a config/CLI omits the model). A *provided* model that fails is never
+# silently swapped — that reroutes to Modal or fails loudly. Paper configs used gpt-4o-mini
+# (persuasion/collusion, agent_misalignment) and gpt-4.1-mini; the main collusion sweep ran
+# Qwen2.5-7B-Instruct. The closed defaults need OPENROUTER_API_KEY (Nebius doesn't serve them).
 DEFAULT_MODEL = "openai/gpt-4o-mini"
 DEFAULT_JUDGE_MODEL = "openai/gpt-4o-mini"
 
@@ -49,27 +53,15 @@ def openrouter_block(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
     return block if isinstance(block, dict) else {}
 
 
-def openrouter_api_key() -> str:
-    key = os.getenv("OPENROUTER_API_KEY", "").strip()
-    if not key:
-        raise ValueError(
-            "OPENROUTER_API_KEY is not set. Copy .env.example to .env and paste the hackathon key."
-        )
-    return key
-
-
 def make_openrouter_client(llm_cfg: Dict[str, Any]):
-    """OpenAI-compatible chat client aimed at OpenRouter (Terrarium's TogetherClient)."""
+    """OpenAI-compatible chat client (Terrarium's TogetherClient) pointed at the shared endpoint.
+    base_url + key come from llm_config (Nebius or OpenRouter); api_key() fails loudly if no key is set."""
     from llm_server.clients.together_client import TogetherClient
 
     block = openrouter_block(llm_cfg)
-    base_url = str(block.get("base_url") or os.getenv("OPENROUTER_BASE_URL") or OPENROUTER_BASE_URL)
+    base_url = str(block.get("base_url") or llm_config.base_url())
     timeout = int(block.get("request_timeout", 120))
-    client = TogetherClient(base_url=base_url, api_key=openrouter_api_key(), request_timeout=timeout)
-    # OpenRouter attribution headers (optional but recommended by OpenRouter).
-    client.session.headers.update(
-        {"HTTP-Referer": "https://github.com/hackathon-ny-starter-repo", "X-Title": "hackathon colosseum"}
-    )
+    client = TogetherClient(base_url=base_url, api_key=llm_config.api_key(), request_timeout=timeout)
     return client
 
 
@@ -77,28 +69,28 @@ def make_openrouter_client(llm_cfg: Dict[str, Any]):
 # Drop-in replacements for terrarium.utils helpers
 # --------------------------------------------------------------------------- #
 def get_client_instance(
-    llm_config: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
+    llm_cfg: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
 ):
-    if is_openrouter(llm_config):
-        return make_openrouter_client(llm_config)
-    return _tu.get_client_instance(llm_config, agent_name=agent_name, vllm_runtime=vllm_runtime)
+    if is_openrouter(llm_cfg):
+        return make_openrouter_client(llm_cfg)
+    return _tu.get_client_instance(llm_cfg, agent_name=agent_name, vllm_runtime=vllm_runtime)
 
 
-def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
+def get_model_name(provider: str, llm_cfg: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        return str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL)
-    return _tu.get_model_name(provider, llm_config)
+        return resolve_model(str(openrouter_block(llm_cfg).get("model") or DEFAULT_MODEL))
+    return _tu.get_model_name(provider, llm_cfg)
 
 
-def get_generation_params(llm_config: Dict[str, Any]) -> Dict[str, Any]:
-    if is_openrouter(llm_config):
-        raw = openrouter_block(llm_config).get("params") or {}
+def get_generation_params(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    if is_openrouter(llm_cfg):
+        raw = openrouter_block(llm_cfg).get("params") or {}
         return {k: v for k, v in raw.items() if k != "model"} if isinstance(raw, dict) else {}
-    return _tu.get_generation_params(llm_config)
+    return _tu.get_generation_params(llm_cfg)
 
 
-def build_vllm_runtime(llm_config: Dict[str, Any]):
-    return _tu.build_vllm_runtime(llm_config)
+def build_vllm_runtime(llm_cfg: Dict[str, Any]):
+    return _tu.build_vllm_runtime(llm_cfg)
 
 
 # Terrarium names log directories after extract_model_info(); teach it about openrouter.
@@ -133,13 +125,20 @@ def cost_note(cfg: Dict[str, Any], total_runs: int) -> str:
     for m in cfg.get("llm_models") or []:
         llm = m.get("llm") or {}
         models.append(get_model_name(str(llm.get("provider") or ""), llm))
-    links = (
-        " · ".join(f"https://openrouter.ai/{m}" for m in sorted(set(models)))
-        or "https://openrouter.ai/models"
-    )
+    model_list = " · ".join(sorted(set(models))) or "(none configured)"
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius, or OpenRouter
+    # when that's the configured key), not a hardcoded provider — otherwise the estimate misleads.
+    kind = llm_config.endpoint_kind()
+    if kind == "openrouter":
+        rates = "see OpenRouter pricing (https://openrouter.ai/models)"
+    elif kind == "nebius":
+        rates = "see Nebius AI Studio pricing (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = f"your configured endpoint ({llm_config.base_url()})"
     return (
         f"{total_runs} run(s), at most ≈ {estimate_calls(cfg, total_runs):,} model calls "
-        f"(tool loops usually use fewer). Rates: {links}"
+        f"(tool loops usually use fewer). Models: {model_list}. "
+        f"Rates: {rates}."
     )
 
 

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -19,6 +19,7 @@ dependencies = [
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "openai" },
     { name = "polars" },
+    { name = "poseidon-compute" },
     { name = "pyarrow" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -63,6 +64,7 @@ requires-dist = [
     { name = "openai", specifier = ">=1.86.0" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.3.0" },
     { name = "polars", specifier = ">=1.30.0" },
+    { name = "poseidon-compute", editable = "../util" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.2.0" },
     { name = "pyarrow", specifier = ">=20.0.0" },
     { name = "pydantic", specifier = ">=2.11" },
@@ -2864,6 +2866,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/e7/c61c1c7eea37705920fe7c1302d1dd80d1165db2b928f0da3eae6d1ebb75/polars_runtime_32-1.44.2-cp310-abi3-win_amd64.whl", hash = "sha256:8598e7a20efba70bb74978c7df7af7c606ff4d79b9b48fdd808250b189bc9a13", size = 51297967, upload-time = "2026-09-09T07:40:41.993Z" },
     { url = "https://files.pythonhosted.org/packages/e7/a0/d0dd0d2ec95fa328dd47055905fae53ba3cd79f11c8973326ebe75a49e4c/polars_runtime_32-1.44.2-cp310-abi3-win_arm64.whl", hash = "sha256:d51040d3ab40157f6db3c62be59cab5b80fb3c8d158924769c4982a1c8eef730", size = 44303345, upload-time = "2026-09-09T07:40:47.081Z" },
 ]
+
+[[package]]
+name = "poseidon-compute"
+version = "0.1.0"
+source = { editable = "../util" }
+dependencies = [
+    { name = "openai" },
+    { name = "python-dotenv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "modal", marker = "extra == 'modal'", specifier = ">=0.64" },
+    { name = "openai", specifier = ">=1.40" },
+    { name = "python-dotenv", specifier = ">=1.0" },
+]
+provides-extras = ["modal"]
 
 [[package]]
 name = "pre-commit"

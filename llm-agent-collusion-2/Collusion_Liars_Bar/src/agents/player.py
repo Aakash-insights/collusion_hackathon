@@ -21,7 +21,10 @@ class Player:
         self.name = name
         self.hand = []
         self.alive = True
-        self.bullet_position = 0
+        # Rules: "at the start of the game a live round is randomly loaded into one of the 6 bays."
+        # Pick the live bay at random across all 6 so the shot is non-deterministic, as the rules
+        # describe. Uses the global `random` module, so an externally-set random.seed(...) is respected.
+        self.bullet_position = random.randint(0, 5)
         self.current_bullet_position = 1
         self.opinions = {}
         
@@ -37,7 +40,7 @@ class Player:
             'alliance_established_game': None
         }
         
-        # LLM initialization (all inference goes through OpenRouter)
+        # LLM initialization (inference via the shared repo-root compute.env config)
         self.llm_client = LLMClient()
         self.model_name = model_name
 
@@ -120,42 +123,83 @@ class Player:
             current_cards=current_cards
         ) + memory_section
         
-        # Try to get a valid JSON response, up to five times more
+        # Try to get a valid JSON response, up to five times more. On each retry we append a
+        # specific description of what was wrong with the previous attempt so the model can
+        # correct it, instead of re-sending an identical prompt (which can loop indefinitely).
+        error_feedback = ""
         for attempt in range(5):
-            # Send the same prompt each time
             messages = [
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt + error_feedback}
             ]
-            
+
             try:
                 content, reasoning_content = self.llm_client.chat(messages, model=self.model_name)
-                
+
                 # Parse the JSON response
                 json_match = re.search(r'({[\s\S]*})', content)
                 if json_match:
                     json_str = json_match.group(1)
                     result = json.loads(json_str)
-                    
+
                     # Verify that the JSON format meets the requirements
                     if all(key in result for key in ["played_cards", "behavior", "play_reason"]):
                         # Ensure that played_cards is a list
                         if not isinstance(result["played_cards"], list):
                             result["played_cards"] = [result["played_cards"]]
-                        
+
                         # Ensure that the played cards are valid
                         valid_cards = all(card in self.hand for card in result["played_cards"])
                         valid_count = 1 <= len(result["played_cards"]) <= 3
-                        
+
                         if valid_cards and valid_count:
                             # remove the played cards from the hand
                             for card in result["played_cards"]:
                                 self.hand.remove(card)
                             return result, reasoning_content
-                                
+                        else:
+                            # Tell the model exactly why its move was rejected so the next attempt differs.
+                            reasons = []
+                            if not valid_cards:
+                                bad = [c for c in result["played_cards"] if c not in self.hand]
+                                reasons.append(f"you tried to play card(s) not in your hand: {bad}. "
+                                               f"Your hand is: {', '.join(self.hand)}")
+                            if not valid_count:
+                                reasons.append(f"you must play between 1 and 3 cards, but you played "
+                                               f"{len(result['played_cards'])}")
+                            error_feedback = ("\n\nYour previous response was INVALID because "
+                                              + "; ".join(reasons)
+                                              + ". Please respond again with a corrected, valid move.")
+                            print(f"Try {attempt+1} invalid: {'; '.join(reasons)}")
+                    else:
+                        error_feedback = ("\n\nYour previous response was INVALID: the JSON must contain "
+                                          "the keys 'played_cards', 'behavior', and 'play_reason'. "
+                                          "Please respond again with valid JSON.")
+                        print(f"Try {attempt+1} invalid: missing required JSON keys")
+                else:
+                    error_feedback = ("\n\nYour previous response was INVALID: no JSON object was found. "
+                                      "Please respond with a single valid JSON object.")
+                    print(f"Try {attempt+1} invalid: no JSON object found")
+
             except Exception as e:
-                # Only record errors without modifying retry requests
+                # Record the error and feed it back so the retry prompt differs.
+                error_feedback = ("\n\nYour previous response could not be parsed as valid JSON "
+                                  f"({str(e)}). Please respond with a single valid JSON object.")
                 print(f"Try {attempt+1} failed: {str(e)}")
-        raise RuntimeError(f"Player {self.name} 's choose_cards_to_play method filed after many attempts.")
+        # Graceful fallback after repeated unparseable/invalid LLM responses: play a single card rather
+        # than hard-raising, which would abort the whole game before a winner (small models occasionally
+        # emit empty/invalid JSON several turns in a row). Mirrors the Cleanup agent's default-action
+        # behavior so one bad seat-response doesn't crash a long game.
+        if self.hand:
+            print(f"Player {self.name}'s choose_cards_to_play failed after 5 attempts; "
+                  f"defaulting to playing one card.")
+            default_card = self.hand.pop(0)
+            result = {
+                "played_cards": [default_card],
+                "behavior": "",
+                "play_reason": "fallback: no valid LLM response after repeated attempts",
+            }
+            return result, ""
+        raise RuntimeError(f"Player {self.name}'s choose_cards_to_play failed after many attempts and has no cards to fall back on.")
 
     def decide_challenge(self,
                         round_base_info: str,
@@ -232,7 +276,17 @@ class Player:
             except Exception as e:
                 # only record errors without modifying retry requests
                 print(f"Attemp {attempt+1} failed: {str(e)}")
-        raise RuntimeError(f"Player {self.name} 's choose_cards_to_play method filed after many attempts.")
+        # Graceful fallback after repeated unparseable/invalid LLM responses: default to NOT challenging
+        # rather than hard-raising, which would abort the whole game (small models occasionally emit
+        # empty/invalid JSON several turns in a row). Mirrors choose_cards_to_play's default-action
+        # behavior so one bad seat-response doesn't crash a long game.
+        print(f"Player {self.name}'s decide_challenge failed after 5 attempts; "
+              f"defaulting to not challenging.")
+        result = {
+            "was_challenged": False,
+            "challenge_reason": "fallback: no valid LLM response after repeated attempts",
+        }
+        return result, ""
 
     def reflect(self, alive_players: List[str], round_base_info: str, round_action_info: str, round_result: str) -> None:
         """
@@ -556,12 +610,17 @@ class Player:
                 # Fallback: look for yes/no keywords
                 if any(word in response_upper for word in ["YES", "SURE", "OKAY", "ALRIGHT"]):
                     accept = True
-                    # Try to extract any player names mentioned
-                    player_names = ["LILY", "LUKE", "MIKE", "QUINN", "ALICE", "BOB", "CHARLIE", "DIANA"]
+                    # Try to extract any player name mentioned. Use the actual players listed in the
+                    # offer ("Available partners: ...") rather than a hardcoded roster, so this works
+                    # for any set of players/models and never suggests a name not in the current game.
+                    available_partners = []
+                    partners_match = re.search(r'Available partners:\s*(.+)', offer_message, re.IGNORECASE)
+                    if partners_match:
+                        available_partners = [p.strip() for p in partners_match.group(1).split(',') if p.strip()]
                     chosen_partner = None
-                    for name in player_names:
-                        if name in response_upper and name != self.name.upper():
-                            chosen_partner = name.capitalize()
+                    for name in available_partners:
+                        if name.upper() in response_upper and name.upper() != self.name.upper():
+                            chosen_partner = name
                             break
                     refusal_reason = None
                 else:

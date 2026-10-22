@@ -26,6 +26,13 @@ from dotenv import load_dotenv
 # from the current directory, which is not where the key is meant to live.
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
+# Let the repo-root compute.env (provider keys: NEBIUS_API_KEY / OPENROUTER_API_KEY, plus
+# optional LLM_MODEL) drive inspect-ai. The provider is inferred from which key is set; this
+# points inspect-ai's openai provider at that endpoint and rewrites model strings to
+# openai/<model>. See scripts/_provider_shim.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _provider_shim
+
 from inspect_ai import eval
 
 from control_arena import EvalMode
@@ -119,8 +126,8 @@ def run_experiment(
                 all_tasks.extend(tasks)
 
     if not all_tasks:
-        print("No tasks to run!")
-        return
+        print("No tasks to run!", file=sys.stderr)
+        sys.exit(1)
 
     print(f"Running {len(all_tasks)} evaluation tasks (limit={limit} per task)")
     print(f"Monitors: {monitor_names}")
@@ -141,8 +148,37 @@ def run_experiment(
 
     elapsed_min = (time.time() - start_time) / 60
 
-    print(f"\nCompleted! {len(results)} eval logs written to {log_dir}/")
+    # Inspect the eval logs: a run that errored on every task (or completed zero
+    # samples) must not report success. "Completed!" + exit 0 on a total failure
+    # hides crashes and corrupts the experiment's conclusions.
+    errored_logs = [r for r in results if getattr(r, "status", None) == "error"]
+    completed_samples = sum(
+        (r.results.completed_samples or 0)
+        for r in results
+        if getattr(r, "results", None) is not None
+    )
+
+    print(f"\n{len(results)} eval logs written to {log_dir}/")
+    print(f"  errored tasks: {len(errored_logs)}/{len(results)}")
+    print(f"  completed samples: {completed_samples}")
     print(f"Elapsed: {elapsed_min:.1f} min")
+
+    if completed_samples == 0:
+        # Surface the first error so the failure is diagnosable, then fail loudly.
+        for r in errored_logs:
+            if getattr(r, "error", None) is not None:
+                print(f"\nFirst task error: {r.error}", file=sys.stderr)
+                break
+        print(
+            "\nFAILED: no samples completed successfully — nothing to analyze.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if errored_logs:
+        print(f"\nWARNING: {len(errored_logs)} task(s) errored (see logs in {log_dir}/).")
+
+    print(f"Completed! {completed_samples} samples across {len(results)} eval logs.")
     print(f"\nTo analyze only this run's results:")
     print(f"  python scripts/analyze_results.py --log-dir {log_dir} --recent {int(elapsed_min) + 5} --all-plots")
     return results
@@ -213,18 +249,23 @@ def main():
 
     args = parser.parse_args()
 
+    # Apply the repo-root compute.env provider choice, then remap model strings.
+    # map_model rewrites every model string to openai/<model> for our endpoint, so
+    # after this point no model string carries an "openrouter/" prefix.
+    provider = _provider_shim.apply()
+    args.untrusted_model = _provider_shim.map_model(args.untrusted_model)
+    args.trusted_model = _provider_shim.map_model(args.trusted_model)
+    if os.environ.get("INTENT_MODEL"):
+        os.environ["INTENT_MODEL"] = _provider_shim.map_model(os.environ["INTENT_MODEL"])
 
     # Fail before Docker and BashArena spin up, not ten minutes into the run.
-
-    if any(m.startswith("openrouter/") for m in (args.untrusted_model, args.trusted_model)):
-
+    # (apply() already raised if no key was configured; this adds a provider-specific
+    # placeholder check.) provider is endpoint_kind(): "nebius" or "openrouter".
+    if provider == "openrouter":
         key = os.environ.get("OPENROUTER_API_KEY", "")
-
         if not key or key == "your-openrouter-key-here":
-
-            sys.exit("OPENROUTER_API_KEY is not set (or is still the placeholder). "
-
-                     "Copy .env.example to .env and fill it in.")
+            sys.exit("OPENROUTER_API_KEY is not set (or is still the placeholder) "
+                     "in the repo-root compute.env. See ../COMPUTE.md.")
 
     # Determine which monitors to run
     if args.all_monitors:

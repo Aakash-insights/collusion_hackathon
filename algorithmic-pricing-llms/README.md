@@ -1,129 +1,143 @@
 # Algorithmic Collusion and the Limits of Coordination
 
+A Fish-style LLM duopoly/oligopoly pricing game, testing whether algorithmic collusion breaks down according to Folk Theorem predictions as market concentration decreases.
+
+**Paper:** Fish, Gonczarowski & Shorrer (2025), *Algorithmic Collusion by Large Language Models* ([arXiv:2404.00806](https://arxiv.org/abs/2404.00806)) · Calvano, Calzolari, Denicolò & Pastorello (2020), *Artificial Intelligence, Algorithmic Pricing, and Collusion*, AER ([doi:10.1257/aer.20190623](https://doi.org/10.1257/aer.20190623))
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![uv](https://img.shields.io/badge/Managed%20with-uv-purple)](https://github.com/astral-sh/uv)
-
-## Master's Thesis: Testing Folk Theorem Predictions in AI-Mediated Markets
-
-> ## 🏁 Hackathon quick start (Collusion Research Sprint, project 1.2)
->
-> This is the "Fish-style duopoly implementation" from the sprint brief: a repeated
-> two-seller pricing game, 300 rounds, visible history, persistent notes. It has been
-> trimmed to run on a 16 GB laptop with no GPU, calling models **through OpenRouter**, and
-> the sprint's one-variable-at-a-time ablations are command-line flags.
->
-> **1. Install (CPU only, < 1 min)**
-> ```bash
-> uv sync                      # or: pip install -e .
-> cp .env.example .env         # paste the hackathon OPENROUTER_API_KEY
-> ```
-> All model calls go through [OpenRouter](https://openrouter.ai) with one key. The thesis used
-> `mistral-large-2411`, which OpenRouter no longer serves, so the default is the current
-> `mistralai/mistral-large-2512` (`mistralai/mistral-large-2407` is the closest match, at 4x the
-> price). Pass `--model <openrouter id>` to try anything else (e.g.
-> `mistralai/mistral-small-3.2-24b-instruct`, `openai/gpt-4.1-mini`, `google/gemini-2.5-flash`).
-> Rates per model: https://openrouter.ai/models.
->
-> **2. Positive control first** (defaults = one prompt, alpha 1, one seed)
-> ```bash
-> uv run python experiments_synthetic/duopoly.py --rounds 30   # smoke test, ~60 calls
-> uv run python experiments_synthetic/duopoly.py               # 300 rounds, ~600 calls
-> ```
-> The run ends with a summary of mean price over the last 50 rounds against the Nash
-> (competitive) and monopoly (collusive) prices, plus `Positive control: PASS/FAIL`.
-> Only move on once it passes.
->
-> **3. Vary exactly one feature, hold the economics fixed**
-> ```bash
-> uv run python experiments_synthetic/duopoly.py --memory 0        # visible rounds: 0 / 10 / 100
-> uv run python experiments_synthetic/duopoly.py --no-notes        # PLANS/INSIGHTS scratchpad off
-> uv run python experiments_synthetic/oligopoly_3.py --shuffle-names   # competitor labels re-shuffled each round
-> uv run python experiments_synthetic/duopoly.py --temperature 1.0
-> uv run python experiments_synthetic/duopoly.py --memory 10 --seeds 1 2 3   # expand seeds after the control works
-> ```
-> Each run is a folder under `experiments_synthetic/experiments_runs/` named after its
-> settings (e.g. `duopoly_setting_P1_mem10_seed2`) with `metadata.json` (all settings +
-> the summary), `results.json` (every answer), `environment_history.parquet` and
-> `results_plot.svg`. Cost: rounds × firms calls per run; the script prints the total and
-> asks before spending (skip with `-y`).
->
-> **Also useful:** `--prompts P1 P2`, `--alphas 1 3.2 10` and `--seeds` reproduce the
-> thesis sweep; `--help` lists everything. The 216 original runs (203k rows, with the
-> agents' full reasoning) are in `data/results/all_experiments.parquet` for the
-> notebooks (`uv sync --extra analysis`).
-
-
-
-**Authors**: Julian Romero, Lucia Sauer, Moritz Peist  
-**Institution**: Barcelona School of Economics  
-**Programme**: Data Science for Decision Making  
-**Academic Year**: 2024-2025  
-**Supervisor**: Christopher Rauh
-
-<div align="center">
-  <img src="./latex/imgs/BSE%20Barcelona%20Graduate%20School%20of%20Economics.svg" width="20%" />
-</div>
-
----
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Quick Start](#quick-start)
-- [Repository Structure](#repository-structure)
-- [Key Findings](#key-findings)
-- [Experimental Results](#experimental-results)
-- [Methodology](#methodology)
-- [Technical Implementation](#technical-implementation)
 
 ---
 
 ## Overview
 
-This repository contains the research infrastructure for investigating whether algorithmic collusion among Large Language Model (LLM) agents breaks down according to Folk Theorem predictions as market concentration decreases.
+This repository contains the research infrastructure for investigating whether algorithmic collusion among Large Language Model (LLM) agents breaks down according to Folk Theorem predictions as market concentration decreases. It is the **"Fish-style duopoly implementation" from the Collusion Research Sprint (project 1.2)**: a repeated two-seller pricing game, 300 rounds, visible history, persistent notes — trimmed to run on a 16 GB laptop with no GPU, calling models through the shared inference config, with the sprint's one-variable-at-a-time ablations exposed as command-line flags.
 
 **Research Question**: Do LLM agent collusion mechanisms break down according to Folk Theorem predictions as the number of market participants increases from 2 to 5 agents?
 
-**Key Innovation**: This study provides the first systematic test of theoretical collusion boundaries in AI-mediated markets, extending the work of Fish et al. (2025) from duopoly to oligopoly settings. Unlike traditional RL algorithms requiring extensive training, LLMs arrive pre-trained on vast corpora about markets and strategic behavior, enabling sophisticated coordination strategies.
+**Key Innovation**: The first systematic test of theoretical collusion boundaries in AI-mediated markets, extending Fish et al. (2025) from duopoly to oligopoly settings. Unlike traditional RL algorithms requiring extensive training, LLMs arrive pre-trained on vast corpora about markets and strategic behavior, enabling sophisticated coordination strategies.
 
-## Quick Start
+This project is a Master's thesis (BSE Data Science for Decision Making, 2024-2025): *Testing Folk Theorem Predictions in AI-Mediated Markets*.
 
-### Installation
+**Authors**: Julian Romero, Lucia Sauer, Moritz Peist · **Institution**: Barcelona School of Economics · **Supervisor**: Christopher Rauh
+
+---
+
+## Setup
+
+> **Fastest path:** from the repo root, `./setup.sh algorithmic-pricing-llms` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
+
+### Install (CPU only, < 1 min)
 
 ```bash
-# Clone repository
-git clone https://github.com/luciasauer/algorithmic-collusion-thesis.git
-cd algorithmic-collusion-thesis
-
-# Install dependencies with uv
 uv sync
 ```
 
-### Environment Setup
+Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extra: `uv sync --extra analysis`. The `text_analysis_*` notebooks additionally pull torch + sentence-transformers — request both extras in a single command, since `uv sync --extra` only keeps the extras named in that one invocation (running `uv sync --extra text` on its own would drop the analysis tooling): `uv sync --extra analysis --extra text`. Run the notebooks from the `notebooks/` directory — they read `../data/results/all_experiments.parquet` relative to it (Jupyter and `jupyter nbconvert` use the notebook's own folder as the working directory by default).
 
-Create a `.env` file in the project root:
+### Inference config
 
-```bash
-OPENROUTER_API_KEY=your_key
-MODEL_NAME=mistralai/mistral-large-2512
-```
-See `.env.example` for the (optional) direct-provider alternatives.
-
-### Running Experiments
+Inference is configured once in the **repo-root** `compute.env` (one level up from this experiment): copy it from the example and set your key.
 
 ```bash
-# Run individual experiments
-python experiments_synthetic/duopoly.py
-python experiments_synthetic/oligopoly_3.py
-python experiments_synthetic/oligopoly_4.py
-python experiments_synthetic/oligopoly_5.py
-
-# Baseline monopoly experiment
-python experiments_synthetic/monopoly.py
+cp ../compute.env.example ../compute.env   # at the repo root
+# edit compute.env:  NEBIUS_API_KEY=...
 ```
 
-### Data Analysis
+Set a `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works for inference). The thesis default model is open and served by Nebius, so with an OpenRouter-only key pass an OpenRouter-served `--model`. See [`../COMPUTE.md`](../COMPUTE.md) for details.
+
+> **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in the repo-root `compute.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
+
+**Which variable sets the model?** These scripts read **`MODEL_NAME`**; the shared inference config reads **`LLM_MODEL`**. Both live in the repo-root `compute.env` (or the process environment). Precedence, highest first:
+
+1. `--model <id>` (command line) — scope it to a single run
+2. `MODEL_NAME` (repo-root `compute.env`) — this experiment's default
+3. `LLM_MODEL` (repo-root `compute.env`) — forces one model id across *all* experiments
+4. the thesis default, `mistralai/Mistral-Large-Instruct-2411`
+
+So pass `--model` for a one-off, set `MODEL_NAME` for this experiment's default, or `LLM_MODEL` to pin the same model everywhere. The pre-run banner prints the model that actually resolves (nothing is silently swapped).
+
+The default model is the thesis model, `mistralai/Mistral-Large-Instruct-2411` (open weights, served by Nebius).
+
+---
+
+## Quick start
+
+Run the smoke test (positive control, ~60 calls):
+
+```bash
+uv run python experiments_synthetic/duopoly.py --rounds 30
+```
+
+If you are running OpenRouter-only (see the note under **Inference config**), add an OpenRouter-served model id, e.g.:
+
+```bash
+uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.1-mini
+```
+
+**Success signal**: the run ends with a summary of mean price over the last rounds against the Nash (competitive) and monopoly (collusive) prices, plus `Positive control: PASS/FAIL`. Only move on once it passes. The script always prints the total call count up front; it only pauses for a `Continue? [y/N]` confirmation when a run exceeds 100 calls (so the 30-round smoke test at ~60 calls runs without asking). Larger runs — e.g. the full 300-round control (~600 calls) — do prompt; skip that prompt with `-y`.
+
+---
+
+## Running experiments
+
+The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in the repo-root `compute.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
+
+**Positive control** (defaults = one prompt, alpha 1, one seed):
+
+```bash
+uv run python experiments_synthetic/duopoly.py               # 300 rounds, ~600 calls
+```
+
+**Other market structures / baseline:**
+
+```bash
+uv run python experiments_synthetic/oligopoly_3.py
+uv run python experiments_synthetic/oligopoly_4.py
+uv run python experiments_synthetic/oligopoly_5.py
+uv run python experiments_synthetic/monopoly.py    # baseline monopoly experiment
+```
+
+**Vary exactly one feature, hold the economics fixed** (one-variable ablations):
+
+```bash
+uv run python experiments_synthetic/duopoly.py --memory 0           # visible rounds: 0 / 10 / 100
+uv run python experiments_synthetic/duopoly.py --no-notes           # PLANS/INSIGHTS scratchpad off
+uv run python experiments_synthetic/oligopoly_3.py --shuffle-names  # competitor labels re-shuffled each round
+uv run python experiments_synthetic/duopoly.py --temperature 1.0
+uv run python experiments_synthetic/duopoly.py --memory 10 --seeds 1 2 3   # expand seeds after the control works
+```
+
+**Reproduce the thesis sweep:** `--prompts P1 P2`, `--alphas 1 3.2 10` and `--seeds`. Pass `--model <id>` to try any other open model (e.g. `meta-llama/Llama-3.3-70B-Instruct`, `Qwen/Qwen2.5-72B-Instruct`). `--help` lists everything.
+
+**Pinning a model through the shared entry point.** To pin a specific model and let the shared config handle provider routing (Nebius → OpenRouter → Modal), run the same command through the repo-root entry point (one level up) — see [`../COMPUTE.md`](../COMPUTE.md):
+
+```bash
+poseidon-run --model <model id> -- uv run python experiments_synthetic/duopoly.py
+```
+
+---
+
+## Outputs
+
+Each run is a folder under `experiments_synthetic/experiments_runs/<n>_agents/`, named `<timestamp>_<settings>` (e.g. `2_agents/1792625342_duopoly_setting_P1_mem100_seed0`), containing:
+
+- `metadata.json` — all settings + the run summary
+- `results.json` — every answer
+- `environment_history.parquet`
+- `results_plot.svg`
+- `log.txt` — full per-round run log (also useful for debugging a failed run)
+
+**How to tell it worked**: the run completes with a printed summary and `Positive control: PASS/FAIL` against the Nash and monopoly benchmarks. Cost is rounds × firms calls per run; the script always prints this total up front and asks for confirmation only when it exceeds 100 calls (use `-y` to skip that prompt).
+
+**Rough wall-clock** (hosted endpoint, ~1s/call rate limit, 2 firms): the `--rounds 30` smoke test (~60 calls) takes roughly 1–2 minutes; the full 300-round positive control (~600 calls) is on the order of 10–20 minutes. Larger `--firms`, `--seeds`, `--alphas`, or `--prompts` grids multiply this. Timings vary with endpoint latency.
+
+The 216 original runs (203k rows, with the agents' full reasoning) are in `data/results/all_experiments.parquet` for the notebooks (`uv sync --extra analysis`).
+
+---
+
+## Analysis
 
 ```bash
 # Start Jupyter for analysis
@@ -135,6 +149,24 @@ jupyter lab
 # - notebooks/text_analysis_clusters.ipynb - Agent reasoning analysis
 ```
 
+**Analysis Methodology**
+
+*Run-Level Equilibrium Analysis:* Focus on final 50 periods (251-300) for convergence:
+ln(Price_run) = β₀ + β₁·GroupSize + β₂·PromptType + X'γ + ε
+
+*Textual Reasoning Analysis:*
+
+- Clustering: HDBSCAN algorithm on sentence embeddings
+- Validation: Human interpretation verification
+- Strategic Patterns: Identification of reward-punishment language
+
+*Robustness Testing:*
+
+- Alternative aggregation windows (25, 75, 100 periods)
+- Non-linear specifications with interaction terms
+- Bootstrap confidence intervals
+- Outlier sensitivity analysis
+
 ### Code Quality
 
 ```bash
@@ -145,6 +177,24 @@ ruff format
 # Run pre-commit hooks
 pre-commit run --all-files
 ```
+
+---
+
+## Notes
+
+**Common Issues:**
+
+- **API Rate Limits**: Built-in rate limiting prevents overuse; adjust `rate_limit_seconds` if needed
+- **Memory Usage**: Large experiments may require substantial RAM for data processing
+- **Model Availability**: Ensure the shared inference config (`compute.env`) can reach the default model `mistralai/Mistral-Large-Instruct-2411` — served by Nebius, with the OpenRouter fallback for models Nebius doesn't serve
+
+**Development Tips:**
+
+- Use `notebooks/` for exploratory analysis
+- Results are automatically saved in Parquet format in `data/results/`
+- All experiment parameters are logged for reproducibility
+
+---
 
 ## Repository Structure
 
@@ -165,8 +215,6 @@ algorithmic-collusion-thesis/
 └── pyproject.toml         # Dependencies (uv-managed)
 ```
 
-## Technical Architecture
-
 **Core Components:**
 
 - **LLM Agents**: Mistral API integration with 100-period rolling memory
@@ -181,20 +229,6 @@ algorithmic-collusion-thesis/
 - `statsmodels/linearmodels` - Econometric analysis
 - `seaborn/matplotlib` - Statistical visualization
 - `sentence-transformers` - Text analysis and embeddings
-
-## Troubleshooting
-
-**Common Issues:**
-
-- **API Rate Limits**: Built-in rate limiting prevents overuse; adjust `rate_limit_seconds` if needed
-- **Memory Usage**: Large experiments may require substantial RAM for data processing
-- **Model Availability**: Ensure Mistral API key has access to `mistral-large-2411`
-
-**Development Tips:**
-
-- Use `notebooks/` for exploratory analysis
-- Results are automatically saved in Parquet format in `data/results/`
-- All experiment parameters are logged for reproducibility
 
 ---
 
@@ -321,48 +355,14 @@ Robust standard errors (HC3) in parentheses.
 - **Memory Architecture**: 100-period rolling history for strategic learning
 
 **Market Environment:**
-Following Calvano et al. (2020): q_i = (a_i - p_i + μ∑p_j) / (1 + μ(n-1))
-
-Where a_i is demand intercept for firm i, μ is substitutability parameter, and n is number of competitors.
-
-### Analysis Methodology
-
-**Run-Level Equilibrium Analysis:**
-Focus on final 50 periods (251-300) for convergence:
-ln(Price_run) = β₀ + β₁·GroupSize + β₂·PromptType + X'γ + ε
-
-**Textual Reasoning Analysis:**
-
-- Clustering: HDBSCAN algorithm on sentence embeddings
-- Validation: Human interpretation verification
-- Strategic Patterns: Identification of reward-punishment language
-
-**Robustness Testing:**
-
-- Alternative aggregation windows (25, 75, 100 periods)
-- Non-linear specifications with interaction terms
-- Bootstrap confidence intervals
-- Outlier sensitivity analysis
-
-## Technical Implementation
-
-**Development Workflow:**
-
-1. Configure API keys in `.env` file
-2. Run experiments using scripts in `experiments_synthetic/`
-3. Analyze results using Jupyter notebooks in `notebooks/`
-4. Generate visualizations and statistical outputs
-
-**Key Technical Features:**
-
-- Automated experiment execution with rate limiting
-- Real-time statistical analysis with multiple model specifications
-- Advanced text clustering for agent reasoning analysis
-- Publication-ready visualizations with economic benchmark overlays
-- Comprehensive robustness testing across specifications
+Following the Calvano et al. (2020) logit demand specification (see the paper for the equations).
 
 ---
 
 ## License
 
 This project is licensed under the MIT License. This research is conducted for academic purposes under standard fair use principles.
+
+<div align="center">
+  <img src="./latex/imgs/BSE%20Barcelona%20Graduate%20School%20of%20Economics.svg" width="20%" />
+</div>

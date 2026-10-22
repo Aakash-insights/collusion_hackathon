@@ -5,9 +5,11 @@ disagreed with each other: the same model got a JSON schema on one code path and
 prompt-based JSON forcing on another, depending on whether a run used the queued
 client, the parallel client or the synchronous one.
 
-This project supports OpenAI-family models only, reached through OpenRouter — see
-``.env.example``. Names here are OpenRouter-qualified; bare names are qualified
-before lookup, so ``gpt-4o-mini`` and ``openai/gpt-4o-mini`` resolve alike.
+This project supports any ``response_format``-capable model, routed via the shared
+inference config (Nebius default, OpenRouter fallback). Non-OpenAI models are
+accepted (with a warning), not rejected. Names here are OpenRouter-qualified; bare
+names are qualified before lookup, so ``gpt-4o-mini`` and ``openai/gpt-4o-mini``
+resolve alike.
 """
 from __future__ import annotations
 
@@ -19,6 +21,9 @@ STRUCTURED_OUTPUT_MODELS = frozenset({
     "openai/gpt-4-turbo",
     "openai/gpt-4o",
     "openai/gpt-4o-mini",
+    "openai/gpt-4.1",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-4.1-nano",
     "openai/gpt-5",
     "openai/gpt-5-mini",
     "openai/gpt-5-nano",

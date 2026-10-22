@@ -1,11 +1,13 @@
 """
-Responses API collusion tester for OpenAI reasoning models, via OpenRouter.
+Responses API collusion tester for OpenAI reasoning models.
 Uses reasoning models (o3, o4-mini, gpt-5.4, ...) with reasoning summaries exposed as 'thoughts'.
 
-All calls go through OpenRouter (OPENROUTER_API_KEY), which exposes the same Responses API
-endpoint. Model names are OpenRouter ids (openai/gpt-5.4); a bare OpenAI name is prefixed
-automatically. Verified 2026-09-16 with openai/gpt-5.4: `reasoning.summary` comes back
-through OpenRouter and is stored as 'thoughts'.
+Calls follow the shared inference config (poseidon_compute): Nebius or OpenRouter,
+OpenRouter as fallback for closed models (NEBIUS_API_KEY / OPENROUTER_API_KEY in compute.env).
+OpenRouter exposes the same Responses API endpoint. Model ids are written in Nebius /
+Hugging Face casing (openai/gpt-5.4; poseidon_compute translates to OpenRouter casing when it
+routes there); a bare OpenAI name is prefixed automatically. Verified 2026-09-16 with
+openai/gpt-5.4: `reasoning.summary` comes back through OpenRouter and is stored as 'thoughts'.
 
 Reasoning summary options for --reasoning_summary:
   auto     - OpenAI decides length automatically (recommended)
@@ -45,10 +47,10 @@ parser.add_argument("--seed", type=int, default=None, help="Run a single episode
 parser.add_argument("--overwrite", action="store_true", help="Overwrite any existing output file instead of resuming from the first failed or missing round")
 args = parser.parse_args()
 
-api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key or api_key.startswith("<") or api_key == "your-openrouter-key-here":
-    raise ValueError("OPENROUTER_API_KEY not found. Copy .env.example to .env and fill it in.")
-client = OpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+from poseidon_compute import llm_config
+if not llm_config.api_key():
+    raise ValueError("No API key found. Set NEBIUS_API_KEY (or OPENROUTER_API_KEY) in compute.env.")
+client = llm_config.make_client()  # follows compute.env (OpenRouter / Nebius)
 
 # OpenRouter ids are provider-qualified; accept the paper's bare OpenAI names too.
 if "/" not in args.model:

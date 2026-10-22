@@ -1,24 +1,20 @@
 """
-OpenRouter backend for the focal-point experiments (hackathon standard).
+LLM backend for the focal-point experiments (hackathon standard).
 
-Every model call goes through **OpenRouter** with one ``OPENROUTER_API_KEY``, so the
-experiments run on any laptop with no GPU. The paper's models were served locally
-through HuggingFace transformers (``meta-llama/Llama-3.3-70B-Instruct`` was the
-default in ``experiments.sh`` / the Dockerfile) or through the OpenAI / Gemini
-APIs; the same families exist on OpenRouter, so the default model here is
-``meta-llama/llama-3.3-70b-instruct``. Any OpenRouter model id works
-(rates: https://openrouter.ai/models).
+Every model call goes through the shared endpoint (**Nebius AI Studio** by default; see the repo-root
+``compute.env`` / ``poseidon_compute``), so the experiments run on any laptop with no GPU. The paper's
+default model (``meta-llama/Llama-3.3-70B-Instruct`` in ``experiments.sh`` / the Dockerfile) is the
+default here too — model ids are used as-is, in Nebius / Hugging Face casing (the same ids the paper
+used); nothing is rewritten or substituted.
 
 Model specs:
-  * an OpenRouter id, e.g. ``meta-llama/llama-3.3-70b-instruct``, ``openai/gpt-4o``,
-    ``qwen/qwen2.5-72b-instruct``, ``google/gemini-2.5-flash``;
-  * a HuggingFace id from the paper (``meta-llama/Llama-3.3-70B-Instruct``) is
-    mapped to its OpenRouter id automatically (see ``HF_TO_OPENROUTER``);
+  * a Hugging Face / Nebius model id, e.g. ``meta-llama/Llama-3.3-70B-Instruct``,
+    ``Qwen/Qwen2.5-72B-Instruct``;
   * ``custom:<model>`` uses ``LLM_BASE_URL`` / ``LLM_API_KEY`` (any OpenAI-compatible
     server); ``ollama:<model>`` a free local Ollama. Not needed for the hackathon.
 
-Sampling N responses per prompt is done with N separate calls: OpenRouter only
-forwards ``n`` to some providers, and separate calls also make resume trivial.
+Sampling N responses per prompt is done with N separate calls (robust across providers and makes
+resume trivial).
 """
 
 from __future__ import annotations
@@ -28,40 +24,17 @@ import re
 from dataclasses import dataclass
 from typing import Dict, Tuple
 
-from dotenv import load_dotenv
 
 from .llm import APIBaseLLM
 
-load_dotenv()
 
-DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct"  # paper default (experiments.sh / Dockerfile)
+from poseidon_compute import endpoint_kind, make_client, resolve_model
 
-#: HuggingFace ids used by the paper -> OpenRouter ids (only those that exist there).
-HF_TO_OPENROUTER: Dict[str, str] = {
-    "meta-llama/Llama-3.3-70B-Instruct": "meta-llama/llama-3.3-70b-instruct",
-    "meta-llama/Llama-3.1-70B-Instruct": "meta-llama/llama-3.1-70b-instruct",
-    "meta-llama/Meta-Llama-3-70B-Instruct": "meta-llama/llama-3-70b-instruct",
-    "meta-llama/Llama-3.1-8B-Instruct": "meta-llama/llama-3.1-8b-instruct",
-    "meta-llama/Meta-Llama-3-8B-Instruct": "meta-llama/llama-3-8b-instruct",
-    "meta-llama/Llama-3.2-3B-Instruct": "meta-llama/llama-3.2-3b-instruct",
-    "meta-llama/Llama-3.2-1B-Instruct": "meta-llama/llama-3.2-1b-instruct",
-    "Qwen/Qwen2.5-72B-Instruct": "qwen/qwen2.5-72b-instruct",
-    "Qwen/Qwen2.5-7B-Instruct": "qwen/qwen2.5-7b-instruct",
-    "Qwen/Qwen2-72B-Instruct": "qwen/qwen-2-72b-instruct",
-    "google/gemma-3-27b-it": "google/gemma-3-27b-it",
-    "google/gemma-3-12b-it": "google/gemma-3-12b-it",
-    "google/gemma-3-4b-it": "google/gemma-3-4b-it",
-    "microsoft/Phi-4-mini-instruct": "microsoft/phi-4-mini-instruct",
-    "openai/gpt-oss-120b": "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b": "openai/gpt-oss-20b",
-    "deepseek-ai/DeepSeek-R1-Distill-Llama-70B": "deepseek/deepseek-r1-distill-llama-70b",
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": "deepseek/deepseek-r1-distill-qwen-32b",
-    "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": "deepseek/deepseek-r1-distill-qwen-14b",
-    "gpt-4o": "openai/gpt-4o",
-    "gpt-5": "openai/gpt-5",
-    "gpt-5.1": "openai/gpt-5.1",
-    "gemini-3-flash-preview": "google/gemini-3-flash-preview",
-}
+DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct"  # paper default (experiments.sh / Dockerfile)
+
+# Fail fast instead of blocking the whole run on a single stuck request.
+CLIENT_TIMEOUT = 120.0  # seconds per request
+CLIENT_MAX_RETRIES = 2
 
 
 @dataclass(frozen=True)
@@ -80,11 +53,12 @@ PRESETS: Dict[str, Preset] = {
 
 
 def parse_model_spec(spec: str) -> Tuple[str, str]:
-    """'custom:foo' -> ('custom', 'foo'); a bare id -> ('openrouter', <mapped id>)."""
+    """'custom:foo' -> ('custom', 'foo'); a bare id -> (provider, id). Model ids are used as-is, in
+    Nebius / Hugging Face casing (the same ids the paper used) — nothing is rewritten."""
     if ":" in spec and spec.split(":", 1)[0] in PRESETS:
         provider, model = spec.split(":", 1)
         return provider, model
-    return os.getenv("LLM_PROVIDER", "openrouter"), HF_TO_OPENROUTER.get(spec, spec)
+    return os.getenv("LLM_PROVIDER", "openrouter"), spec
 
 
 def resolve_model_id(spec: str) -> str:
@@ -94,7 +68,20 @@ def resolve_model_id(spec: str) -> str:
 
 def cost_note(n_calls: int, model_spec: str) -> str:
     _, model = parse_model_spec(model_spec)
-    return f"≈ {n_calls:,} model calls. Per-token rates: https://openrouter.ai/{model}"
+    # Show the model that will actually run (resolve_model applies the LLM_MODEL override, retired-pin
+    # upgrades, and HF->OpenRouter casing) rather than the raw requested id, so the rate URL matches
+    # the model that is actually billed.
+    model = resolve_model(model)
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius, or OpenRouter
+    # when that's the configured key), not a hardcoded provider — otherwise the banner misleads.
+    kind = endpoint_kind()
+    if kind == "openrouter":
+        rates = f"https://openrouter.ai/{model}"
+    elif kind == "nebius":
+        rates = "Nebius AI Studio (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = "your configured endpoint"
+    return f"≈ {n_calls:,} model calls. Per-token rates: {rates}"
 
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -114,16 +101,15 @@ class OpenRouterLLM(APIBaseLLM):
         top_p: float | None = None,
     ) -> None:
         self.provider, model = parse_model_spec(model_id)
+        model = resolve_model(model)  # honor LLM_MODEL override; otherwise use the id as-is (no rewrite)
         preset = PRESETS[self.provider]
         self.base_url = os.getenv("LLM_BASE_URL") if self.provider == "custom" else preset.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'custom'")
-        self.api_key = os.getenv(preset.key_env) or os.getenv("LLM_API_KEY")
-        if preset.needs_key and not self.api_key:
-            raise ValueError(
-                f"{preset.key_env} is not set (needed for {self.provider}:{model}). "
-                "Copy .env.example to .env and paste the hackathon key."
-            )
+        # The client authenticates with the key from the shared compute.env (via make_client() /
+        # llm_config, Nebius or OpenRouter), which fails loudly if none is set. This field is only a
+        # diagnostic hint for the preset; it is not what authenticates the client.
+        self.api_key = os.getenv(preset.key_env)  # diagnostics only; real key comes from llm_config
 
         effort = reasoning.strip().lower() if reasoning else None
         if effort is not None and effort not in {"none", "minimal", "low", "medium", "high", "xhigh"}:
@@ -140,17 +126,21 @@ class OpenRouterLLM(APIBaseLLM):
         self.top_p = top_p
         self.is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
-        from openai import OpenAI
-
-        headers = {}
+        # Default provider ('openrouter' label) routes through the shared compute.env config
+        # (Nebius or OpenRouter). The opt-in 'ollama' / 'custom' presets select a DIFFERENT endpoint,
+        # so honor their resolved base_url/key instead of silently rerouting to the shared endpoint.
+        # timeout / max_retries make a stuck request fail fast instead of blocking the whole run.
         if self.provider == "openrouter":
-            headers = {
-                "HTTP-Referer": "https://github.com/hackathon-ny-starter-repo",
-                "X-Title": "hackathon focal-points",
-            }
-        self.client = OpenAI(
-            base_url=self.base_url, api_key=self.api_key or "not-needed", default_headers=headers
-        )
+            self.client = make_client(timeout=CLIENT_TIMEOUT, max_retries=CLIENT_MAX_RETRIES)
+        else:
+            from openai import OpenAI
+
+            self.client = OpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key or "EMPTY",
+                timeout=CLIENT_TIMEOUT,
+                max_retries=CLIENT_MAX_RETRIES,
+            )
         print(f"[INFO] Initialized OpenRouterLLM ({self.provider}) with model_id: {self.model_id}")
         print(
             f"[INFO] Reasoning effort: {self.reasoning_display} | temperature: {temperature} | seed: {seed}"
