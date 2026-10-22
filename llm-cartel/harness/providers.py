@@ -30,9 +30,9 @@ from typing import Dict, List, Optional, Tuple
 
 from dotenv import load_dotenv
 
-# override=False: a stray local .env must NOT shadow the repo-root compute.env (the shared
-# inference config). poseidon_compute loads compute.env without overriding os.environ either,
-# so whatever is already set (e.g. by poseidon-run) wins over both.
+# override=False: if a local .env is present, load it without overriding variables already set.
+# poseidon_compute loads the shared compute.env the same way, so whatever is already in the
+# environment (e.g. set by poseidon-run) takes precedence.
 load_dotenv(override=False)
 
 from poseidon_compute import make_client, resolve_model
@@ -138,7 +138,7 @@ class ChatProvider:
         self.reasoning = reasoning
 
         if self.provider == "openrouter":
-            # Default preset: route via the shared compute.env config (Nebius by default, with the
+            # Default preset: route via the shared compute.env config (Nebius or OpenRouter, with the
             # OpenRouter fallback) — make_client() picks endpoint + base_url + key.
             self._client = make_client()
         else:

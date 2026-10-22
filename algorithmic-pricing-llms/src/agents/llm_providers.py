@@ -128,7 +128,7 @@ class OpenAICompatibleProvider(Provider):
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'openai-compatible'")
         # The client authenticates with the key from the shared compute.env (via make_client() /
-        # llm_config, Nebius by default), which fails loudly if none is set. This field is only a
+        # llm_config, Nebius or OpenRouter), which fails loudly if none is set. This field is only a
         # diagnostic hint for the preset; it is not what authenticates the client.
         self.api_key = api_key or os.getenv(p.key_env)  # diagnostics only; real key comes from llm_config
         # Route the explicit --model / MODEL_NAME through resolve_model too (not just the preset
@@ -219,7 +219,7 @@ def resolve_effective_model(model: Optional[str] = None) -> str:
 
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
     model = resolve_effective_model(model)
-    # Show the rates page for the endpoint the call will ACTUALLY use (Nebius by default, OpenRouter when
+    # Show the rates page for the endpoint the call will ACTUALLY use (Nebius, or OpenRouter when
     # that's the configured key), not a hardcoded provider — otherwise the banner misleads OpenRouter users.
     kind = endpoint_kind()
     if kind == "openrouter":

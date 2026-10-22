@@ -28,7 +28,7 @@ from dotenv import load_dotenv
 
 from .llm import APIBaseLLM
 
-load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
+load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 
 from poseidon_compute import endpoint_kind, make_client, resolve_model
 
@@ -74,7 +74,7 @@ def cost_note(n_calls: int, model_spec: str) -> str:
     # upgrades, and HF->OpenRouter casing) rather than the raw requested id, so the rate URL matches
     # the model that is actually billed.
     model = resolve_model(model)
-    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius by default, OpenRouter
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius, or OpenRouter
     # when that's the configured key), not a hardcoded provider — otherwise the banner misleads.
     kind = endpoint_kind()
     if kind == "openrouter":
@@ -109,7 +109,7 @@ class OpenRouterLLM(APIBaseLLM):
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'custom'")
         # The client authenticates with the key from the shared compute.env (via make_client() /
-        # llm_config, Nebius by default), which fails loudly if none is set. This field is only a
+        # llm_config, Nebius or OpenRouter), which fails loudly if none is set. This field is only a
         # diagnostic hint for the preset; it is not what authenticates the client.
         self.api_key = os.getenv(preset.key_env)  # diagnostics only; real key comes from llm_config
 
@@ -129,7 +129,7 @@ class OpenRouterLLM(APIBaseLLM):
         self.is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
         # Default provider ('openrouter' label) routes through the shared compute.env config
-        # (Nebius by default). The opt-in 'ollama' / 'custom' presets select a DIFFERENT endpoint,
+        # (Nebius or OpenRouter). The opt-in 'ollama' / 'custom' presets select a DIFFERENT endpoint,
         # so honor their resolved base_url/key instead of silently rerouting to the shared endpoint.
         # timeout / max_retries make a stuck request fail fast instead of blocking the whole run.
         if self.provider == "openrouter":

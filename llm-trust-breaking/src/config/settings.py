@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 # argument makes python-dotenv walk up the directory tree, so a .env sitting in a
 # parent directory would leak into this project's config.
 # settings.py -> config -> src -> <project root>
-# override=False so a stray local .env can never shadow the central compute.env
-# (which poseidon_compute owns) — compute.env / real environment wins.
+# override=False so this .env (if present) never overrides variables already set — the shared
+# compute.env (loaded by poseidon_compute) and the real environment take precedence.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(_PROJECT_ROOT / '.env', override=False)
 

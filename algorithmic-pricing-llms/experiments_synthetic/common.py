@@ -15,7 +15,7 @@ project 1.2 recipe:
        --temperature 0.7      sampling temperature
   3. Expand --seeds only after the positive control works.
 
-Inference: the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the repo-root compute.env).
+Inference: the shared endpoint (Nebius or OpenRouter; set NEBIUS_API_KEY in the repo-root compute.env).
 --model / MODEL_NAME is any open model id the shared config can resolve; left unset it defaults to the
 thesis model, mistralai/Mistral-Large-Instruct-2411. Nothing is ever substituted.
 
@@ -51,7 +51,7 @@ from src.experiment.experiment import Experiment  # noqa: E402
 from src.prompts.prompts import GENERAL_PROMPT, GENERAL_PROMPT_NO_NOTES, P1, P2  # noqa: E402
 from src.prompts.prompts_models import create_pricing_response_model  # noqa: E402
 
-load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
+load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
 
 PROMPTS = {"P1": P1, "P2": P2}
 FIRM_NAMES = ["Firm A", "Firm B", "Firm C", "Firm D", "Firm E", "Firm F", "Firm G", "Firm H"]

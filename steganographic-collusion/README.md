@@ -71,8 +71,8 @@ separate minimal numerical/test subset — prefer `uv sync` here.
 
 **Inference config.** Hosted model calls are configured once, centrally: copy the repo-root
 `compute.env.example` → `compute.env` (one level up from this folder; `cp ../compute.env.example
-../compute.env`) and set `NEBIUS_API_KEY` (the open default). Models Nebius doesn't serve — including
-closed ones (GPT / Gemini / Claude) — route through the optional `OPENROUTER_API_KEY`. The hosted
+../compute.env`) and set a `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works). Models Nebius
+doesn't serve — including closed ones (GPT / Gemini / Claude) — need `OPENROUTER_API_KEY`. The hosted
 clients pick up `base_url` + key automatically from that shared config via `poseidon_compute`. See
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal → fail loud).
 The scripted configs and the `distilgpt2` paths run locally and need **no key**.

@@ -45,7 +45,7 @@ cp ../compute.env.example ../compute.env   # at the repo root
 # edit compute.env:  NEBIUS_API_KEY=...
 ```
 
-Set `NEBIUS_API_KEY` (default inference). Add `OPENROUTER_API_KEY` **only** if you use closed models or models Nebius doesn't serve (routing is Nebius → OpenRouter → Modal). See [`../COMPUTE.md`](../COMPUTE.md) for details.
+Set a `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works for inference). The thesis default model is open and served by Nebius, so with an OpenRouter-only key pass an OpenRouter-served `--model`. See [`../COMPUTE.md`](../COMPUTE.md) for details.
 
 > **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in the repo-root `compute.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
 

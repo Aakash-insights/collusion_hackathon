@@ -46,7 +46,7 @@ Copy it from the example and fill in your keys (see [`../COMPUTE.md`](../COMPUTE
 # at the repo ROOT (one level up):
 cp ../compute.env.example ../compute.env
 # Edit ../compute.env:
-#   NEBIUS_API_KEY=...        # default inference (open models)
+#   NEBIUS_API_KEY=...        # a Nebius key (open models)
 #   OPENROUTER_API_KEY=...    # REQUIRED for the GPT / Claude example models (and other closed ids)
 ```
 

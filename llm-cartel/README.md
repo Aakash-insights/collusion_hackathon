@@ -28,7 +28,7 @@ The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-
 
 **Inference config.** Configure inference once in the repo-root `compute.env` (copy it from `../compute.env.example`). That one file holds your keys for every project; routing is Nebius → OpenRouter → Modal. See [`../COMPUTE.md`](../COMPUTE.md).
 
-- `NEBIUS_API_KEY` — default inference key.
+- `NEBIUS_API_KEY` — a Nebius key (open models).
 - `OPENROUTER_API_KEY` — **effectively required here**: the recommended agent/judge models below are OpenRouter ids (and closed / Nebius-missing models route through OpenRouter).
 
 **You choose the agent model** (`--models` or `MODEL_NAME`); the script refuses to guess. Any overrides (e.g. `MODEL_NAME`, `LLM_BASE_URL`) go in the repo-root `compute.env`.

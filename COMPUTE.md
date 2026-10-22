@@ -2,9 +2,9 @@
 
 Set your key once, at the repo root, and every project uses it. Two layers, two sponsors:
 
-- **Inference — Nebius AI Studio (default), with OpenRouter as a fallback.** *Where model calls go.*
-  Nebius is an OpenAI-compatible endpoint serving open models; OpenRouter covers models Nebius doesn't,
-  including closed ones (GPT/Gemini/Claude). The one entry point picks between them automatically.
+- **Inference — Nebius AI Studio or OpenRouter (interchangeable).** *Where model calls go.* Both are
+  OpenAI-compatible; set whichever you have credits for (or both). Nebius serves open models; OpenRouter
+  additionally covers closed ones (GPT/Gemini/Claude). The one entry point picks between them automatically.
 - **Compute — Modal.** *Where your code runs.* Offload heavy/parallel runs and GPU work.
   **There's no Modal key to paste anywhere** — you just sign in through your browser once by running
   `modal setup`, and your credits attach to that account (**ask in the hackathon Slack channel to get
@@ -54,15 +54,15 @@ with no path hacking (see §5).
 
 | key | meaning |
 |---|---|
-| `NEBIUS_API_KEY` | your Nebius AI Studio key (default inference) |
-| `OPENROUTER_API_KEY` *(opt)* | enables the OpenRouter fallback — models Nebius lacks, incl. closed (GPT/Gemini/Claude) |
+| `NEBIUS_API_KEY` | a Nebius AI Studio key (open models) |
+| `OPENROUTER_API_KEY` | an OpenRouter key (open models plus closed ones: GPT/Gemini/Claude) |
 | `LLM_MODEL` *(opt)* | pick one model for every project (an exact Nebius / Hugging Face model id) |
 
 `compute.env` is **gitignored** — keys never get committed.
 
 ---
 
-## 2. Inference — Nebius (default) + OpenRouter (fallback)
+## 2. Inference — Nebius or OpenRouter (interchangeable)
 
 Put `NEBIUS_API_KEY` in `compute.env` (and/or `OPENROUTER_API_KEY`). The shared client points at whichever
 you set: Nebius if `NEBIUS_API_KEY` is present, otherwise OpenRouter if only `OPENROUTER_API_KEY` is set —
@@ -149,8 +149,8 @@ with hosted_model(model="Qwen/Qwen2.5-7B-Instruct"):
 
 Run every row through **the one entry point** (§3): `poseidon-run --model <id> -- <cmd>` — it routes
 Nebius → OpenRouter → Modal automatically, or stops with a clear error. Nothing is substituted.
-**Nebius ✓** = its default is open and on Nebius · **OpenRouter** = its paper model is closed
-(GPT/Gemini/Claude) or otherwise not on Nebius, so set `OPENROUTER_API_KEY` and it runs there.
+**Nebius ✓** = its default model is open (runs on Nebius or OpenRouter) · **OpenRouter** = its paper
+model is closed (GPT/Gemini/Claude) or otherwise not on Nebius, so it needs `OPENROUTER_API_KEY`.
 
 | project | inference | compute | notes |
 |---|---|---|---|

@@ -2,14 +2,14 @@
 
 Ten research codebases on LLM agents, collusion and multi-agent coordination, bundled so a
 team can clone once and start hacking. Every project runs on a normal laptop with **no GPU**,
-calling models **through Nebius AI Studio**, configured once at the repo root. Some have other local
+calling models **through a hosted inference provider** (Nebius or OpenRouter), configured once at the repo root. Some have other local
 requirements, see below. Each folder has its own README with a quick start; the projects are
 independent, so start with the question that interests you. The starter gives you a working harness,
 not results: the sprint questions are yours to answer.
 
-> **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set
-> `NEBIUS_API_KEY` (and optionally `OPENROUTER_API_KEY`); every project uses it automatically (inference
-> defaults to **Nebius AI Studio**). **One entry point runs any experiment with a chosen model:**
+> **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set an
+> inference key — `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works; Nebius and OpenRouter are
+> interchangeable). Every project uses it automatically. **One entry point runs any experiment with a chosen model:**
 > `poseidon-run --model <id> -- <the experiment's command>` — it routes **Nebius → OpenRouter →
 > Modal** automatically (OpenRouter covers closed models like GPT/Gemini/Claude; Modal hosts custom /
 > off-catalog models), otherwise stops with a clear error (nothing is ever substituted). Full guide:
@@ -27,8 +27,8 @@ Install these once before running `./setup.sh`:
   so you don't manage interpreters yourself.
 - **Docker** — only for **trace-guard** (it runs its agent inside a container). Everything else is
   Python-only. Install Docker Desktop (macOS/Windows) or Docker Engine (Linux) and start it.
-- A **model API key** for the next step: a **Nebius** key (default inference) and/or an **OpenRouter**
-  key (needed for closed models like GPT/Gemini/Claude). Hackathon participants get these from the event
+- A **model API key** for the next step: a **Nebius** or **OpenRouter** key — either
+  works for inference (OpenRouter additionally covers closed models like GPT/Gemini/Claude). Hackathon participants get these from the event
   Slack/Luma; otherwise sign up at [Nebius AI Studio](https://studio.nebius.com/) /
   [OpenRouter](https://openrouter.ai/). Details in [`COMPUTE.md`](COMPUTE.md).
 - *(Optional)* a **Modal** account (`pip install modal && modal setup`) — only if you want to offload
@@ -248,8 +248,8 @@ than treat them as a turnkey bag of trajectories. Heavy on results and docs (213
 of it the raw transcripts of 1,737 runs, kept on purpose as a dataset). The default path —
 22 scripted configs, the detector tests, the threshold calibration — needs **no key at
 all**; only the three hosted configs (Gemini 2.5 Flash, Llama 3.1 8B, GPT-4o-mini via
-OpenRouter) do. Note that `requirements.txt` pulls torch (~5 GB from PyPI) for the three
-local `distilgpt2` configs; its README shows the CPU-only install.
+OpenRouter) do. Note that the optional `local` extra (`uv sync --extra local`) pulls torch (~5 GB from PyPI) for the
+three local `distilgpt2` configs; its README shows the CPU-only install.
 
 ```bash
 cd steganographic-collusion && uv sync

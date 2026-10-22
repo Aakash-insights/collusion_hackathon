@@ -2,7 +2,7 @@
 Responses API collusion tester for OpenAI reasoning models.
 Uses reasoning models (o3, o4-mini, gpt-5.4, ...) with reasoning summaries exposed as 'thoughts'.
 
-Calls follow the shared inference config (poseidon_compute): Nebius by default,
+Calls follow the shared inference config (poseidon_compute): Nebius or OpenRouter,
 OpenRouter as fallback for closed models (NEBIUS_API_KEY / OPENROUTER_API_KEY in compute.env).
 OpenRouter exposes the same Responses API endpoint. Model ids are written in Nebius /
 Hugging Face casing (openai/gpt-5.4; poseidon_compute translates to OpenRouter casing when it

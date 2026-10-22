@@ -278,7 +278,7 @@ def config():
 
 
 def make_client(async_=False, **kwargs):
-    """Construct an (Async)OpenAI client for the configured endpoint (Nebius by default)."""
+    """Construct an (Async)OpenAI client for the configured endpoint (Nebius or OpenRouter)."""
     from openai import OpenAI, AsyncOpenAI
     cls = AsyncOpenAI if async_ else OpenAI
     return cls(base_url=base_url(), api_key=api_key(), **kwargs)

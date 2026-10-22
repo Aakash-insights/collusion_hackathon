@@ -102,9 +102,9 @@ async def resume_experiment(experiment_dir: str):
     alpha = first_agent_data.get("alpha", 1.0)
     prompt_prefix = next(iter(agent_prefixes.values()))
 
-    # Inference is configured in the repo-root compute.env (Nebius by default); the model recorded
+    # Inference is configured in the repo-root compute.env (Nebius or OpenRouter); the model recorded
     # in metadata is reused unless MODEL_NAME overrides it.
-    load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
+    load_dotenv(override=False)  # load a local .env if present, without overriding variables already set
     from src.agents.llm_providers import make_provider
 
     MODEL_NAME = os.getenv("MODEL_NAME") or next(iter(agents_models.values()))
