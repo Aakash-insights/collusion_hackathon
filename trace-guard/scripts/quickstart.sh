@@ -20,6 +20,17 @@ fail() {
 
 echo "=== TraceGuard Quick Start ==="
 echo ""
+
+# Ensure the project venv exists and is active. On a fresh checkout there is no .venv, so bare `python`
+# would be the system interpreter (without control-arena) and `uv pip install -e .` would fail with
+# "No virtual environment found". Create + activate it here so the checks below use the right interpreter.
+if [ -z "${VIRTUAL_ENV:-}" ]; then
+    [ -d .venv ] || { echo "   creating project venv (uv venv)..."; uv venv \
+        || fail "could not create a virtual environment." "Install uv (https://docs.astral.sh/uv/) and re-run."; }
+    # shellcheck source=/dev/null
+    source .venv/bin/activate
+fi
+
 echo "1. Prerequisites"
 python -c "import control_arena" 2>/dev/null \
     || fail "control-arena is not installed." "Run: uv pip install -e .   (installs inspect-ai + control-arena, ~1 GB)"

@@ -131,10 +131,19 @@ def cost_note(cfg: Dict[str, Any], total_runs: int) -> str:
         llm = m.get("llm") or {}
         models.append(get_model_name(str(llm.get("provider") or ""), llm))
     model_list = " · ".join(sorted(set(models))) or "(none configured)"
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius by default, OpenRouter
+    # when that's the configured key), not a hardcoded provider — otherwise the estimate misleads.
+    kind = llm_config.endpoint_kind()
+    if kind == "openrouter":
+        rates = "see OpenRouter pricing (https://openrouter.ai/models)"
+    elif kind == "nebius":
+        rates = "see Nebius AI Studio pricing (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = f"your configured endpoint ({llm_config.base_url()})"
     return (
         f"{total_runs} run(s), at most ≈ {estimate_calls(cfg, total_runs):,} model calls "
         f"(tool loops usually use fewer). Models: {model_list}. "
-        f"Rates: see Nebius AI Studio pricing (https://studio.nebius.com)."
+        f"Rates: {rates}."
     )
 
 
