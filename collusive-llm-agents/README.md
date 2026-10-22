@@ -131,7 +131,9 @@ Open `bertrand.ipynb` or `cournot.ipynb` and run the cells in order. Knobs near 
 Each run writes to `bertrand_data/` / `cournot_data/` (created on first run, git-ignored). Runs land
 under a `runs/` sub-folder: one `runs/run-NNN/` folder per run with a sub-folder per round (prompts and
 the model's structured reply) plus the two firms' history JSONs (`firm_1_history.json`,
-`firm_2_history.json`); the `run_metadata.csv` is written at the top level (`bertrand_data/run_metadata.csv`).
+`firm_2_history.json`); the `run_metadata.csv` summary is written at the experiment top level for
+bertrand (`bertrand_data/run_metadata.csv`) and inside the `runs/` folder for cournot
+(`cournot_data/runs/run_metadata.csv`).
 
 The plotting cells at the end read the latest run by default — `RUN_TO_PLOT_FOLDER` in Bertrand,
 `RUN_TO_PLOT` in Cournot; point these at another `run-NNN` to compare runs. Bertrand plots firm prices
