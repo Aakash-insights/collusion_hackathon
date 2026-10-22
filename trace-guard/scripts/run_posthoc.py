@@ -192,10 +192,12 @@ async def rescore_sample(messages: list, monitor_name: str, model: str | None = 
         model=model,
     )
 
+    def _json_safe(x):  # an abstained dimension's score is NaN; write it as null (valid JSON)
+        return None if isinstance(x, float) and x != x else x
     dimensions = {
         ds.dimension_name: {
-            "raw_score": ds.raw_score,
-            "normalized_score": ds.normalized_score,
+            "raw_score": _json_safe(ds.raw_score),
+            "normalized_score": _json_safe(ds.normalized_score),
             "reasoning": ds.reasoning[:200],
         }
         for ds in result.dimension_scores

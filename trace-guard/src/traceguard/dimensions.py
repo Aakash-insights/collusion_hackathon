@@ -357,9 +357,16 @@ class TraceGuardResult:
     def to_reason_string(self) -> str:
         parts = [f"TraceGuard Composite Score: {self.composite_score:.3f}\n"]
         for ds in self.dimension_scores:
-            parts.append(
-                f"  [{ds.dimension_name}] {ds.normalized_score:.2f} "
-                f"(raw={ds.raw_score:.1f}/10): {ds.reasoning[:120]}"
-            )
+            # An abstained dimension (parse failure) has a NaN score — show it as "abstained"
+            # rather than rendering "nan".
+            if getattr(ds, "parse_failed", False) or ds.normalized_score != ds.normalized_score:
+                parts.append(
+                    f"  [{ds.dimension_name}] abstained (unparseable score): {ds.reasoning[:120]}"
+                )
+            else:
+                parts.append(
+                    f"  [{ds.dimension_name}] {ds.normalized_score:.2f} "
+                    f"(raw={ds.raw_score:.1f}/10): {ds.reasoning[:120]}"
+                )
         parts.append(f"\nSummary: {self.summary}")
         return "\n".join(parts)

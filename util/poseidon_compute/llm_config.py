@@ -76,12 +76,17 @@ def _find_root_env():
     return None
 
 
-@functools.lru_cache(maxsize=1)
+_loaded_env_file = None  # cached once a compute.env is found + applied; "not found" is NOT cached
+
+
 def _load():
     """Load compute.env into os.environ (without overriding anything already set)."""
+    global _loaded_env_file
+    if _loaded_env_file is not None:
+        return _loaded_env_file
     f = _find_root_env()
     if f is None:
-        return None
+        return None  # not found from here — don't cache; a later call (e.g. after a chdir) can still find it
     try:
         from dotenv import dotenv_values
         values = dotenv_values(f)
@@ -95,6 +100,7 @@ def _load():
     for k, v in values.items():
         if v is not None and k not in os.environ:
             os.environ[k] = v
+    _loaded_env_file = f
     return f
 
 
@@ -148,7 +154,7 @@ def api_key():
     return key
 
 
-def resolve_model(requested):
+def resolve_model(requested, translate_openrouter=True):
     """The model id to use. `LLM_MODEL` overrides everything; otherwise the requested id passes through.
     The ONLY rewriting is an explicit, announced upgrade of a RETIRED pin to its current same-lineage
     version (see _RETIRED_MODEL_UPGRADES) — the requested model is never silently swapped for an unrelated
@@ -174,27 +180,34 @@ def resolve_model(requested):
                   f"'{upgraded}' (explicit version upgrade, not a default substitution).", flush=True)
             _announced_upgrades.add(model)
         model = upgraded
-    # If the active endpoint is OpenRouter (an OpenRouter key and no Nebius/custom endpoint), translate
-    # the id to OpenRouter's casing so Hugging-Face-cased ids resolve there. No-op if it's already an
-    # OpenRouter id or not in the catalog (then it passes through and fails loudly at the call).
-    if endpoint_kind() == "openrouter":
+    # Translate to OpenRouter's casing only for DIRECT client use on an OpenRouter-only endpoint, so a
+    # Hugging-Face-cased id resolves there. poseidon_compute.run does its own Nebius-vs-OpenRouter catalog
+    # lookup and passes translate_openrouter=False, so those checks see the id in its original casing.
+    # No-op if the id is already an OpenRouter id or not in the catalog (then it passes through).
+    if translate_openrouter and endpoint_kind() == "openrouter":
         return openrouter_serves(model) or model
     return model
 
 
-@functools.lru_cache(maxsize=1)
+_nebius_cat = None  # success-only cache: an absent key or a failed fetch is NOT cached (so it can retry)
+
+
 def _nebius_catalog():
     """Set of model ids Nebius currently serves (GET /v1/models), or None if it can't be fetched."""
+    global _nebius_cat
+    if _nebius_cat is not None:
+        return _nebius_cat
     key = os.environ.get("NEBIUS_API_KEY")
     if not key:
-        return None  # no Nebius key configured — can't (and needn't) check; silent, this is expected
+        return None  # no Nebius key configured — can't (and needn't) check; expected, not cached
     import urllib.request
     import json
     try:
         req = urllib.request.Request(NEBIUS_BASE_URL.rstrip("/") + "/models")
         req.add_header("Authorization", f"Bearer {key}")
         with urllib.request.urlopen(req, timeout=15) as r:
-            return {m.get("id") for m in json.load(r).get("data", [])}
+            _nebius_cat = {m.get("id") for m in json.load(r).get("data", [])}
+            return _nebius_cat
     except Exception as e:
         # a key IS set but the fetch failed (bad key, network, Nebius down) — surface the reason.
         print(f"[llm_config] WARNING: couldn't fetch the Nebius model catalog "
@@ -221,10 +234,15 @@ def _norm_model(s):
     return re.sub(r"[^a-z0-9]", "", s.split("/")[-1].lower())
 
 
-@functools.lru_cache(maxsize=1)
+_openrouter_cat = None  # success-only cache (a failed fetch is NOT cached, so it can retry)
+
+
 def _openrouter_catalog():
     """Map normalized-model-name -> real OpenRouter id. Listing is PUBLIC (no key needed to check);
     a key is only needed to actually call the model. None if the catalog couldn't be fetched."""
+    global _openrouter_cat
+    if _openrouter_cat is not None:
+        return _openrouter_cat
     import urllib.request
     import json
     try:
@@ -236,6 +254,7 @@ def _openrouter_catalog():
             mid = m.get("id") or ""
             if mid and not mid.endswith(":batch") and not mid.startswith("~"):
                 out.setdefault(_norm_model(mid), mid)
+        _openrouter_cat = out
         return out
     except Exception as e:
         print(f"[llm_config] WARNING: couldn't fetch the OpenRouter catalog "

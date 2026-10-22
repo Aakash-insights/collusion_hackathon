@@ -152,7 +152,7 @@ def _assert_decisions_parsed(
 def _execute_parallel(parallel_client: Any, requests: List[Dict[str, Any]],
                       stage_name: str = "") -> Dict[str, Any]:
     """execute_parallel() plus failure reporting -- see _report_batch_failures."""
-    raw = _execute_parallel(parallel_client, requests)
+    raw = parallel_client.execute_parallel(requests)
     _report_batch_failures(raw, stage_name)
     return raw
 

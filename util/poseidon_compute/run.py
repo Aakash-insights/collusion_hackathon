@@ -76,7 +76,9 @@ def main():
     if not cmd:
         ap.error("provide a command after `--`, e.g.  -- bash -c 'cd proj && python ...'")
 
-    model = llm_config.resolve_model(args.model)  # retired pins upgraded (announced); never a default swap
+    # retired pins upgraded (announced); translate_openrouter=False so the catalog lookups below see the
+    # id in its original casing — run.py does its own Nebius-vs-OpenRouter routing. Never a default swap.
+    model = llm_config.resolve_model(args.model, translate_openrouter=False)
     nb = llm_config.nebius_serves(model)          # True / False / None
 
     # 1. Nebius serves it.
