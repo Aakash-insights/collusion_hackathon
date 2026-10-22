@@ -77,9 +77,10 @@ model calls. Every run prints the call estimate and asks before spending (`-y` o
 
 The shipped config's `model:` is a Hugging Face / Nebius-cased id (`Qwen/Qwen2.5-7B-Instruct`);
 the runner auto-translates it to the matching OpenRouter id at call time, so the config runs
-**as-is on an OpenRouter-only key** — no edit needed. (The cost-estimate line cites Nebius
-pricing regardless of which provider actually serves the call; ignore it when running through
-OpenRouter.)
+**as-is on an OpenRouter-only key** — no edit needed. The pre-run estimate line reports the
+translated id and the serving provider's pricing (e.g. `Models: qwen/qwen-2.5-7b-instruct.
+Rates: see OpenRouter pricing` when OpenRouter serves the call); it is an at-most estimate — the
+tool loops usually use fewer calls.
 
 **Success signal:** `coalition_advantage_mean` (coalition mean reward minus non-coalition mean
 reward) is the headline metric. Expect it to come out **positive** only after you expand the run

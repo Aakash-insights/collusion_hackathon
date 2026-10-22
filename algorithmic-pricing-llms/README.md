@@ -89,7 +89,7 @@ uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.
 
 ## Running experiments
 
-The native commands below use the model from the repo-root `compute.env` (Nebius by default).
+The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in this folder's `.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
 
 **Positive control** (defaults = one prompt, alpha 1, one seed):
 

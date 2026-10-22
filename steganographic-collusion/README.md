@@ -175,9 +175,10 @@ with:
 python -m auditor.experiments pricing_llm_gemini pricing_llm_groq
 ```
 
-`auditor.experiments` takes **labels** (not config filenames). The hosted labels are
-`pricing_llm_gemini`, `pricing_llm_groq`, and `pricing_llm_open`; each maps to a
-`configs/audits/<label>_audit.yaml`.
+`auditor.experiments` takes **labels** (not config filenames). The two hosted labels are
+`pricing_llm_gemini` and `pricing_llm_groq`; each maps to a `configs/audits/<label>_audit.yaml`.
+(`pricing_llm_open` is also a label, but it runs `distilgpt2` **locally** with no key — see
+**Local open-weight experiments** below, not here.)
 
 | Label / config prefix | Original | Routed model id |
 | --- | --- | --- |

@@ -55,7 +55,11 @@ headless runs and for pointing the closed defaults at an OpenRouter-served id yo
 > an early sanity check, and it reads the **process** environment. So the key must be visible to the
 > Jupyter process — either `export OPENROUTER_API_KEY=...` in your shell before launching Jupyter, or
 > `cp .env.example .env` here and put `OPENROUTER_API_KEY=...` in this directory's local `.env` (the
-> first cell does `load_dotenv('.env')` before the assert).
+> first cell does `load_dotenv('.env', override=True)` before the assert).
+>
+> Note the `override=True`: if you set **both**, the value in the local `.env` wins over whatever you
+> exported in the shell. So don't leave a stale or placeholder `OPENROUTER_API_KEY=` line in `.env` —
+> an empty value there will override your good exported key and trip the assert.
 
 ## Quick start
 

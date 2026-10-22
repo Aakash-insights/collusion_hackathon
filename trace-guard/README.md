@@ -26,7 +26,7 @@ In the Collusion Research Sprint this is the AI-control monitor baseline: a **si
 | --- | --- |
 | Python >= 3.12 | — (`control-arena` >= 14.2.0 requires 3.12+) |
 | `uv pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
-| **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
+| **Docker** running | BashArena builds several images on the first run (~15–20 GB, some minutes) |
 | `OPENROUTER_API_KEY` | in the repo-root `compute.env` (see `../COMPUTE.md`) — **required**: the default models are closed GPT-4o |
 
 **Install:** first create the virtual environment, then install into it:
@@ -115,7 +115,7 @@ python scripts/run_posthoc.py --log-dir logs/ --all-monitors
 
 ## Notes
 
-- **Full run cost.** The full experiment (all monitors, 50 samples) is **~6–8 h** and 2,400 evaluation runs (`monitors × thresholds × modes × samples`, e.g. `6 × 4 × 2 × 50`). Leave the optional intent analyzer off for smoke tests.
+- **Full run cost.** Run count is `monitors × thresholds × modes × side_tasks × samples` (note the **side_tasks** factor — `run_eval.py` runs each of the 4 side tasks separately). With the default **21** thresholds this gets huge fast, so the full experiment pins thresholds: all 6 monitors × **4** thresholds × 2 modes × 4 side tasks × 50 samples = 9,600 runs, **~6–8 h**. Leave the optional intent analyzer off for smoke tests.
 - Docs pointers: [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) (datasets & experiment guide), [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) (full CLI reference).
 
 ---
@@ -430,9 +430,15 @@ python scripts/analyze_results.py --log-dir logs/ --output figures/ --confusion-
 ### How Runs Multiply
 
 ```
-Total runs = monitors × thresholds × modes × samples
-Example: --all-monitors --limit 50 → 6 × 4 × 2 × 50 = 2,400 evaluation runs
+Total runs = monitors × thresholds × modes × side_tasks × samples
+Example (thresholds pinned to 4): --all-monitors --thresholds 0.3 0.5 0.7 0.9 --limit 50
+          → 6 × 4 × 2 × 4 × 50 = 9,600 evaluation runs
 ```
+
+> Don't forget the **side_tasks** factor (4 by default): `run_eval.py` runs each side task
+> as its own task. And the default is **21** thresholds, not 4 — leaving `--thresholds`
+> unpinned multiplies the run count another ~5×. The 4-threshold figure above assumes the
+> pinned-threshold full-experiment recipe.
 
 ### Default Thresholds
 

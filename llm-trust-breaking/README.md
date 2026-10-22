@@ -53,8 +53,9 @@ advisory, not a hard error. Two advisory messages can print at startup, and **bo
 
 - A **`NOTE`** for a non-OpenAI model (the name has no `openai/` prefix).
 - A **`WARNING`** for an OpenAI model that is not in the per-model structured-output table
-  (`src/llm/capabilities.py`). This fires for in-table misses too — e.g. `openai/gpt-4o-mini` is
-  listed but `openai/gpt-4.1-mini` is not, so the latter warns even though it is an OpenAI model.
+  (`src/llm/capabilities.py`). The common examples — `openai/gpt-4o-mini` and `openai/gpt-4.1-mini`
+  — are both in the table, so they do **not** warn. An OpenAI id that is absent from the table (e.g.
+  `openai/o3`, which is not listed while `openai/o3-mini` is) warns even though it is an OpenAI model.
 
 In both cases decisions are requested as JSON inside the prompt, and a parse failure yields an
 **empty** decision rather than an error — so check the output (`_parse_ok`, below) before trusting
