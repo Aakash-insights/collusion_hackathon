@@ -52,7 +52,7 @@ This is an academic research project (repackaged as a hackathon starter, see the
 
 **`/src/environment/`** - Market Simulation
 - `CalvanoDemandEnvironment` implements the Calvano et al. (2020) demand specification
-- Calculates market shares using logit demand: `q_i = (a_i - p_i + μ∑p_j) / (1 + μ(n-1))`
+- Calculates market shares using the Calvano et al. (2020) logit demand specification
 - Provides Nash equilibrium and monopoly pricing benchmarks
 
 **`/src/experiment/`** - Experiment Orchestration

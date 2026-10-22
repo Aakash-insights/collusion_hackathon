@@ -362,9 +362,7 @@ Robust standard errors (HC3) in parentheses.
 - **Memory Architecture**: 100-period rolling history for strategic learning
 
 **Market Environment:**
-Following Calvano et al. (2020): q_i = (a_i - p_i + μ∑p_j) / (1 + μ(n-1))
-
-Where a_i is demand intercept for firm i, μ is substitutability parameter, and n is number of competitors.
+Following the Calvano et al. (2020) logit demand specification (see the paper for the equations).
 
 ---
 
