@@ -75,7 +75,7 @@ async def main() -> int:
         intent = _provider_shim.map_model(intent)
         targets.append(("intent", intent))
     else:
-        print("  skip  intent     INTENT_MODEL not set -- intent analysis stays disabled (see .env.example)")
+        print("  skip  intent     INTENT_MODEL not set -- intent analysis stays disabled (set it in the repo-root compute.env; see ../compute.env.example)")
 
     results = await asyncio.gather(*(probe(label, model) for label, model in targets))
     return 0 if all(results) else 1

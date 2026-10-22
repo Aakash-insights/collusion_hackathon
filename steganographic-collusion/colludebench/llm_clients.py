@@ -213,7 +213,18 @@ def create_llm_client(config: Mapping[str, Any]) -> LLMClient:
         raise ValueError("LLM configuration must include a 'backend' field.")
 
     backend = backend.lower()
-    if backend in {"openrouter", "openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
+    # Only the `openrouter` backend is supported for hosted models. A closed/hosted backend label
+    # (openai/gemini/groq) must fail loudly rather than be silently routed to a different endpoint
+    # (COMPUTE.md §7 "No silent substitution"); tell the caller the sanctioned way to run it.
+    if backend in {"openai", "openai_chat", "gemini", "google", "google_ai", "groq"}:
+        raise ValueError(
+            f"LLM backend '{backend}' is not supported: the direct OpenAI / Gemini / Groq "
+            "adapters are not available here. Hosted models (including closed ones like GPT/Gemini) run via "
+            "OpenRouter through the shared poseidon_compute client. Set `backend: openrouter` and "
+            "give `model` in Nebius / Hugging Face casing; the entry point routes it to the right "
+            "provider (and fails loudly if none serves it). See COMPUTE.md §§2-3,7."
+        )
+    if backend == "openrouter":
         # Hosted traffic is routed centrally via the repo-root llm_config (make_client picks
         # base_url + key from compute.env / NEBIUS_API_KEY). Per-config api_key/base_url
         # overrides are still honored when present.

@@ -1,7 +1,7 @@
 """Bridge the repo-root compute.env into inspect-ai's provider config.
 
 inspect-ai selects a provider from the PREFIX of a model string and reads that provider's creds from
-provider-specific env vars. Inference here is always our OpenAI-compatible endpoint (Nebius by default,
+provider-specific env vars. Inference here is always our OpenAI-compatible endpoint (Nebius or OpenRouter,
 or a Modal-hosted model when poseidon_compute.hosted_model is active), so we point inspect-ai's built-in
 ``openai/`` provider at it (OPENAI_BASE_URL / OPENAI_API_KEY) and rewrite model strings to
 ``openai/<model>``.

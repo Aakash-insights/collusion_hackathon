@@ -84,11 +84,7 @@ def main():
 
     # Determine which model to use based on provider
     if args.model is None:
-        # Use defaults from .env based on provider
-        if settings.USE_OPENROUTER:
-            model = settings.OPENROUTER_MODEL
-        else:
-            model = settings.MODEL
+        model = settings.MODEL   # the resolved default model (from the repo-root compute.env, else the fallback)
     else:
         model = args.model
 

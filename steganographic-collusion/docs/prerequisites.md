@@ -7,7 +7,7 @@
 ## Python Environment
 - Python 3.11.
 - Recommended to install via `pyenv` or `conda` for reproducible builds.
-- Install the full dependency set with `pip install -r requirements.txt` (numerical stack, YAML, the OpenAI-compatible client for hosted inference, and the local `distilgpt2` backend). `docs/requirements-extras.txt` is only the minimal numerical/test subset (`pytest`, `numpy`, `pandas`, `matplotlib`) and is not sufficient for the configs or hosted runs.
+- Install the default dependency set with `uv sync` (numerical stack, YAML, and the OpenAI-compatible client for hosted inference). The local `distilgpt2` backend (torch/transformers) is not installed by default; add it with `uv sync --extra local`. `docs/requirements-extras.txt` is only the minimal numerical/test subset (`pytest`, `numpy`, `pandas`, `matplotlib`) and is not sufficient for the configs or hosted runs.
 
 ## Hardware
 - CPU-only execution is sufficient: sweeps were profiled on 24 vCPU / 64 GB RAM machines.

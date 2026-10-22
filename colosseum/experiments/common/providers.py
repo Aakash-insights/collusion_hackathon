@@ -2,12 +2,12 @@
 LLM provider resolution for the Colosseum experiments (hackathon edition).
 
 Hackathon standard: model calls go through the **shared OpenAI-compatible endpoint**
-(Nebius by default; see repo-root ``compute.env`` / ``poseidon_compute``). Terrarium (0.1.1)
+(Nebius or OpenRouter; see repo-root ``compute.env`` / ``poseidon_compute``). Terrarium (0.1.1)
 has no notion of this endpoint, but its ``TogetherClient`` is a plain OpenAI-compatible
 chat-completions client with tool calling and a configurable ``base_url``, so the
 ``provider: openrouter`` config label is routed through that client pointed at the shared
 endpoint's ``base_url`` with the shared key. (The ``openrouter`` label is just a routing
-key to the shared OpenAI-compatible client (Nebius by default); it does not itself select
+key to the shared OpenAI-compatible client (Nebius or OpenRouter); it does not itself select
 OpenRouter or force calls to openrouter.ai.)
 
 Config block::
@@ -30,13 +30,11 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-from dotenv import load_dotenv
 
 import terrarium.utils as _tu
 
 from poseidon_compute import llm_config, resolve_model
 
-load_dotenv()
 
 # Default models (used only when a config/CLI omits the model). A *provided* model that fails is never
 # silently swapped — that reroutes to Modal or fails loudly. Paper configs used gpt-4o-mini
@@ -57,7 +55,7 @@ def openrouter_block(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
 
 def make_openrouter_client(llm_cfg: Dict[str, Any]):
     """OpenAI-compatible chat client (Terrarium's TogetherClient) pointed at the shared endpoint.
-    base_url + key come from llm_config (Nebius by default); api_key() fails loudly if no key is set."""
+    base_url + key come from llm_config (Nebius or OpenRouter); api_key() fails loudly if no key is set."""
     from llm_server.clients.together_client import TogetherClient
 
     block = openrouter_block(llm_cfg)
@@ -71,28 +69,28 @@ def make_openrouter_client(llm_cfg: Dict[str, Any]):
 # Drop-in replacements for terrarium.utils helpers
 # --------------------------------------------------------------------------- #
 def get_client_instance(
-    llm_config: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
+    llm_cfg: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
 ):
-    if is_openrouter(llm_config):
-        return make_openrouter_client(llm_config)
-    return _tu.get_client_instance(llm_config, agent_name=agent_name, vllm_runtime=vllm_runtime)
+    if is_openrouter(llm_cfg):
+        return make_openrouter_client(llm_cfg)
+    return _tu.get_client_instance(llm_cfg, agent_name=agent_name, vllm_runtime=vllm_runtime)
 
 
-def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
+def get_model_name(provider: str, llm_cfg: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        return resolve_model(str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL))
-    return _tu.get_model_name(provider, llm_config)
+        return resolve_model(str(openrouter_block(llm_cfg).get("model") or DEFAULT_MODEL))
+    return _tu.get_model_name(provider, llm_cfg)
 
 
-def get_generation_params(llm_config: Dict[str, Any]) -> Dict[str, Any]:
-    if is_openrouter(llm_config):
-        raw = openrouter_block(llm_config).get("params") or {}
+def get_generation_params(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    if is_openrouter(llm_cfg):
+        raw = openrouter_block(llm_cfg).get("params") or {}
         return {k: v for k, v in raw.items() if k != "model"} if isinstance(raw, dict) else {}
-    return _tu.get_generation_params(llm_config)
+    return _tu.get_generation_params(llm_cfg)
 
 
-def build_vllm_runtime(llm_config: Dict[str, Any]):
-    return _tu.build_vllm_runtime(llm_config)
+def build_vllm_runtime(llm_cfg: Dict[str, Any]):
+    return _tu.build_vllm_runtime(llm_cfg)
 
 
 # Terrarium names log directories after extract_model_info(); teach it about openrouter.
@@ -128,7 +126,7 @@ def cost_note(cfg: Dict[str, Any], total_runs: int) -> str:
         llm = m.get("llm") or {}
         models.append(get_model_name(str(llm.get("provider") or ""), llm))
     model_list = " · ".join(sorted(set(models))) or "(none configured)"
-    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius by default, OpenRouter
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius, or OpenRouter
     # when that's the configured key), not a hardcoded provider — otherwise the estimate misleads.
     kind = llm_config.endpoint_kind()
     if kind == "openrouter":

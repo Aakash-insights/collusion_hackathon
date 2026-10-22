@@ -9,10 +9,9 @@
 #   ./setup.sh                 # set up ALL experiments
 #   ./setup.sh focal-points    # set up only the named experiment(s)
 #
-# Per experiment:
-#   * uv project   (has pyproject.toml)  ->  `uv sync`   (installs poseidon-compute via [tool.uv.sources])
-#   * pip project  (requirements.txt)    ->  a local .venv + `pip install -r requirements.txt`
-#                                            (its `-e ../util` line installs poseidon-compute)
+# Every experiment is a uv project: `uv sync` installs its deps plus the shared poseidon-compute
+# (wired via [tool.uv.sources] -> ../util). uv is the one dependency manager; install it from
+# https://docs.astral.sh/uv/ (it also fetches the exact Python each project needs).
 #
 # Nothing here needs a GPU or any key — it only installs. Put your keys in compute.env afterwards.
 
@@ -33,15 +32,10 @@ PASS=(); FAIL=()
 # --- prerequisites --------------------------------------------------------------------------------
 have() { command -v "$1" >/dev/null 2>&1; }
 
-if ! have python3; then
-  bad "python3 not found — install Python 3.9+ and re-run."; exit 1
-fi
-
-HAVE_UV=1
 if ! have uv; then
-  HAVE_UV=0
-  warn "uv not found. uv-based experiments will be skipped."
+  bad "uv not found — this repo uses uv for every experiment."
   info "Install uv:  curl -LsSf https://astral.sh/uv/install.sh | sh    (then re-run ./setup.sh)"
+  exit 1
 fi
 
 # --- compute.env ----------------------------------------------------------------------------------
@@ -58,28 +52,19 @@ fi
 
 # --- shared package into a repo-root venv (gives you the `poseidon-run` entry point) ---------------
 printf "\n${bold}Shared compute layer (poseidon_compute)${rst}\n"
-if [ "$HAVE_UV" = "1" ]; then
-  if uv venv "$ROOT/.venv" >/dev/null 2>&1 && uv pip install --python "$ROOT/.venv" -e "$ROOT/util" >/dev/null 2>&1; then
-    ok "installed into ./.venv  —  run the entry point with:  ./.venv/bin/poseidon-run --model <id> -- <cmd>"
-  else
-    bad "failed to install poseidon-compute into ./.venv"; FAIL+=("poseidon-compute (root .venv)")
-  fi
+if uv venv "$ROOT/.venv" >/dev/null 2>&1 && uv pip install --python "$ROOT/.venv" -e "$ROOT/util" >/dev/null 2>&1; then
+  ok "installed into ./.venv  —  run the entry point with:  ./.venv/bin/poseidon-run --model <id> -- <cmd>"
 else
-  if python3 -m venv "$ROOT/.venv" && "$ROOT/.venv/bin/python" -m pip install -q -U pip >/dev/null 2>&1 \
-     && "$ROOT/.venv/bin/python" -m pip install -q -e "$ROOT/util" >/dev/null 2>&1; then
-    ok "installed into ./.venv  —  run the entry point with:  ./.venv/bin/poseidon-run --model <id> -- <cmd>"
-  else
-    bad "failed to install poseidon-compute into ./.venv"; FAIL+=("poseidon-compute (root .venv)")
-  fi
+  bad "failed to install poseidon-compute into ./.venv"; FAIL+=("poseidon-compute (root .venv)")
 fi
 
 # --- discover experiments -------------------------------------------------------------------------
-# An experiment is a direct subdir with a pyproject.toml (uv) or a requirements.txt (pip), excluding util.
+# An experiment is a direct subdir with a pyproject.toml (every experiment is a uv project), excluding util.
 discover() {
   for d in */; do
     d="${d%/}"
     [ "$d" = "util" ] && continue
-    if [ -f "$d/pyproject.toml" ] || [ -f "$d/requirements.txt" ]; then echo "$d"; fi
+    if [ -f "$d/pyproject.toml" ]; then echo "$d"; fi
   done
 }
 
@@ -95,19 +80,9 @@ setup_one() {
   if [ ! -d "$d" ]; then bad "$d — no such directory"; FAIL+=("$d"); return; fi
   printf "\n${bold}%s${rst}\n" "$d"
   if [ -f "$d/pyproject.toml" ]; then
-    if [ "$HAVE_UV" = "0" ]; then warn "$d — uv project, but uv is not installed; skipping"; FAIL+=("$d (needs uv)"); return; fi
     if ( cd "$d" && uv sync ); then ok "$d — uv sync"; PASS+=("$d"); else bad "$d — uv sync failed"; FAIL+=("$d"); fi
-  elif [ -f "$d/requirements.txt" ]; then
-    if ( cd "$d" \
-         && python3 -m venv .venv \
-         && ./.venv/bin/python -m pip install -q -U pip \
-         && ./.venv/bin/python -m pip install -r requirements.txt ); then
-      ok "$d — .venv + requirements.txt (incl. poseidon-compute)"; PASS+=("$d")
-    else
-      bad "$d — pip install failed"; FAIL+=("$d")
-    fi
   else
-    warn "$d — no pyproject.toml or requirements.txt; nothing to do"
+    warn "$d — no pyproject.toml; nothing to do"
   fi
 }
 
