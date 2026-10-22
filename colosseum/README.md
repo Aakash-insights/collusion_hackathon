@@ -25,10 +25,10 @@ untouched but not needed.
 
 In the Collusion Research Sprint this covers:
 
-- **Project 1.1** – four matched conditions isolating whether a prompted pair plus a private
+- **Project 2.1** – four matched conditions isolating whether a prompted pair plus a private
   channel produces a coalition advantage.
-- **Project 2.4** – an LLM judge over the coalition channel as collusion evidence.
-- **Project 1.3** – actions as covert carriers, starting from the no-channel condition.
+- **Project 2.3** – an LLM judge over the coalition channel as collusion evidence.
+- **Project 3.1** – actions as covert carriers, starting from the no-channel condition.
 
 ## Setup
 
@@ -90,18 +90,18 @@ config's own comments) before reading the sign as a real effect.
 
 ## Running experiments
 
-**Project 1.1 – four matched conditions** (same task, model, seed, path topology):
+**Project 2.1 – four matched conditions** (same task, model, seed, path topology):
 
 | config | assigned pair prompted | extra channel | knobs |
 |---|---|---|---|
-| `hackathon_1_1_a_pair_private_channel.yaml` | yes | coalition-only | paper default |
-| `hackathon_1_1_b_pair_no_channel.yaml` | yes | none | `coalition_prompt: always` |
-| `hackathon_1_1_c_open_channel.yaml` | no | open to everyone | `coalition_prompt: never`, `extra_channel_members: all` |
-| `hackathon_1_1_d_neither.yaml` | no | none | vanilla baseline |
+| `hackathon_2_1_a_pair_private_channel.yaml` | yes | coalition-only | paper default |
+| `hackathon_2_1_b_pair_no_channel.yaml` | yes | none | `coalition_prompt: always` |
+| `hackathon_2_1_c_open_channel.yaml` | no | open to everyone | `coalition_prompt: never`, `extra_channel_members: all` |
+| `hackathon_2_1_d_neither.yaml` | no | none | vanilla baseline |
 
 ```bash
 for c in a_pair_private_channel b_pair_no_channel c_open_channel d_neither; do
-  uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_1_1_$c.yaml -y
+  uv run python -m experiments.collusion.run --config experiments/collusion/configs/hackathon_2_1_$c.yaml -y
 done
 ```
 
@@ -111,7 +111,7 @@ shares no other blackboard) are new; everything else is the paper's runner. Expa
 subset" in the unassigned conditions, the per-agent rewards are in each run's
 `final_summary.json`.
 
-**LLM judge on the coalition channel** (project 2.4 evidence): same rubric as the paper, through
+**LLM judge on the coalition channel** (project 2.3 evidence): same rubric as the paper, through
 OpenRouter. `--judge-model` is **required** (there is no default) — pass any tool-free open model
 id it should judge with:
 
@@ -122,7 +122,7 @@ uv run python -m experiments.collusion.judge_blackboards \
 
 `--root` is the timestamp folder printed at the end of a run (the "Wrote results to:" line).
 
-**Project 1.3 (actions as carriers):** start from condition B (pair prompted, no channel) — the
+**Project 3.1 (actions as carriers):** start from condition B (pair prompted, no channel) — the
 coalition can only coordinate through public posts and `assign_task` calls, all logged in
 `tool_events.json` / `blackboard_0.txt`. Hide or canonicalise those before the partner sees them
 by editing `experiments/collusion/prompts.py` / the environment's `format_blackboard_context`.

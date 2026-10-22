@@ -2,7 +2,7 @@
 """
 Duopoly: two agents in a 300-round repeated pricing game (Calvano 2020 demand).
 
-Fish-style positive control for tacit collusion. Sprint project 1.2 starts here: verify prices settle above Nash, then ablate one variable at a time.
+Fish-style positive control for tacit collusion. Sprint project 1.1 starts here: verify prices settle above Nash, then ablate one variable at a time.
 
 Usage (defaults = one prompt, alpha 1, one seed, 300 rounds; see --help):
     python experiments_synthetic/duopoly.py --rounds 30      # smoke test

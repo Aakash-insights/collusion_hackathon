@@ -1,5 +1,5 @@
 """
-Checkpoint branching for sprint project 1.4: "Is formed collusion robust to
+Checkpoint branching for sprint project 1.2: "Is formed collusion robust to
 replacing some participants?"
 
 Take a finished run (from run_game.py), find the round where the market crossed

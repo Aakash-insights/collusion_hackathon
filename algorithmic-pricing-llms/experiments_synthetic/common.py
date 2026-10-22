@@ -3,7 +3,7 @@ Shared runner for the synthetic pricing experiments (hackathon edition).
 
 Every script in this folder (monopoly.py, duopoly.py, oligopoly_*.py) is a thin
 wrapper around ``run_setting``. The CLI follows the "Collusion Research Sprint"
-project 1.2 recipe:
+project 1.1 recipe:
 
   1. Reduce the thesis sweep to ONE prompt, ONE demand parameter, ONE seed
      (these are the defaults) and verify sustained prices above the Nash

@@ -12,7 +12,7 @@ TraceGuard is a multi-dimensional monitoring protocol for AI control settings. I
 
 **Core hypothesis:** structured multi-dimensional scoring catches attacks that a single "is this suspicious?" check misses — especially subtle ones where the output looks fine but the reasoning is off. Additionally, when using an untrusted model as its own monitor, structured scoring makes collusion harder because explicit evaluation criteria constrain what the monitor attends to.
 
-In the Collusion Research Sprint this is the AI-control monitor baseline: a **single-agent**, collusion-resistant trusted-monitoring rubric rather than a collusion detector. Sprint project **2.3** reuses its action-trace consistency rubric as one of the monitor views compared there.
+In the Collusion Research Sprint this is the AI-control monitor baseline: a **single-agent**, collusion-resistant trusted-monitoring rubric rather than a collusion detector. Sprint project **2.2** reuses its action-trace consistency rubric as one of the monitor views compared there.
 
 > This project is as much a learning journey as it is a contribution. The authors had experience building LLM guardrails and safety filters in production, but AI control as formalized by [Greenblatt et al.](https://arxiv.org/abs/2312.06942) was new territory for us. TraceGuard grew out of our study of the [ControlArena](https://github.com/UKGovernmentBEIS/control-arena) framework and the broader AI control literature — we aimed to learn the field deeply while contributing a small but concrete piece: a new monitor type that the community can build on.
 

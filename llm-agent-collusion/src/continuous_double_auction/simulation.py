@@ -296,7 +296,7 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--temperature", type=float, default=0.7)
     m.add_argument("--seller_prompt_template", type=str, default="seller_prompt_base.jinja2")
 
-    a = p.add_argument_group("interventions (sprint projects 2.1, 3.3, 3.4)")
+    a = p.add_argument_group("interventions (sprint projects 1.3, 1.5, 3.4)")
     a.add_argument("--seller_comms_enabled", action="store_true", help="sellers can message each other")
     a.add_argument("--buyer_comms_enabled", action="store_true")
     a.add_argument("--max_message_length", type=int, default=500, help="message cap in characters")

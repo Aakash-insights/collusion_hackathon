@@ -12,7 +12,7 @@ A Fish-style LLM duopoly/oligopoly pricing game, testing whether algorithmic col
 
 ## Overview
 
-This repository contains the research infrastructure for investigating whether algorithmic collusion among Large Language Model (LLM) agents breaks down according to Folk Theorem predictions as market concentration decreases. It is the **"Fish-style duopoly implementation" from the Collusion Research Sprint (project 1.2)**: a repeated two-seller pricing game, 300 rounds, visible history, persistent notes — trimmed to run on a 16 GB laptop with no GPU, calling models through the shared inference config, with the sprint's one-variable-at-a-time ablations exposed as command-line flags.
+This repository contains the research infrastructure for investigating whether algorithmic collusion among Large Language Model (LLM) agents breaks down according to Folk Theorem predictions as market concentration decreases. It is the **"Fish-style duopoly implementation" from the Collusion Research Sprint (project 1.1)**: a repeated two-seller pricing game, 300 rounds, visible history, persistent notes — trimmed to run on a 16 GB laptop with no GPU, calling models through the shared inference config, with the sprint's one-variable-at-a-time ablations exposed as command-line flags.
 
 **Research Question**: Do LLM agent collusion mechanisms break down according to Folk Theorem predictions as the number of market participants increases from 2 to 5 agents?
 
