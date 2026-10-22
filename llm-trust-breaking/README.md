@@ -48,9 +48,17 @@ cp ../compute.env.example ../compute.env
 
 Routing is **Nebius → OpenRouter → Modal** automatically. This experiment reads agent decisions
 back as structured JSON (`response_format`), **so pick a model that supports it** — GPT / Claude via
-OpenRouter qualify, as do many Nebius models. A non-OpenAI model is accepted (a warning prints)
-rather than rejected; the old OpenAI-only gate is now advisory, not a hard error. If a model cannot
-honor `response_format`, decisions may parse as empty, so check the output before trusting it.
+OpenRouter qualify, as do many Nebius models. Nothing is rejected; the old OpenAI-only gate is now
+advisory, not a hard error. Two advisory messages can print at startup, and **both are non-fatal**:
+
+- A **`NOTE`** for a non-OpenAI model (the name has no `openai/` prefix).
+- A **`WARNING`** for an OpenAI model that is not in the per-model structured-output table
+  (`src/llm/capabilities.py`). This fires for in-table misses too — e.g. `openai/gpt-4o-mini` is
+  listed but `openai/gpt-4.1-mini` is not, so the latter warns even though it is an OpenAI model.
+
+In both cases decisions are requested as JSON inside the prompt, and a parse failure yields an
+**empty** decision rather than an error — so check the output (`_parse_ok`, below) before trusting
+a run that printed either message.
 
 Optionally, `cp .env.example .env` here for per-project overrides only (temperature, reasoning
 effort, agent count). The local `.env` does **not** hold API keys.

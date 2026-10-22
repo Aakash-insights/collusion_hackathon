@@ -24,12 +24,19 @@ In the Collusion Research Sprint this is the AI-control monitor baseline: a **si
 
 | Prerequisite | Size / time |
 | --- | --- |
-| Python >= 3.12 | — (`control-arena` 1.0.0 requires 3.12+) |
+| Python >= 3.12 | — (`control-arena` >= 14.2.0 requires 3.12+) |
 | `uv pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
 | **Docker** running | BashArena builds several images on first setup (a few GB, some minutes) |
 | `OPENROUTER_API_KEY` | in the repo-root `compute.env` (see `../COMPUTE.md`) — **required**: the default models are closed GPT-4o |
 
-**Install:** `uv pip install -e .` — pulls in inspect-ai + control-arena. Use `uv`, not plain `pip`: `poseidon-compute` is resolved from the local `../util` path via `[tool.uv.sources]` in `pyproject.toml`, so a bare `pip install -e .` can't find it (and the shared `.venv` here is uv-managed and has no `pip`). The repo-root `./setup.sh trace-guard` does this for you.
+**Install:** first create the virtual environment, then install into it:
+
+```bash
+uv venv              # creates .venv (uv-managed; skip if ./setup.sh already made one)
+uv pip install -e .  # pulls in inspect-ai + control-arena
+```
+
+`uv pip install -e .` needs an existing environment — on a fresh checkout, running it alone fails with `error: No virtual environment found`, so run `uv venv` first (or just use `./setup.sh trace-guard`, which does both). Use `uv`, not plain `pip`: `poseidon-compute` is resolved from the local `../util` path via `[tool.uv.sources]` in `pyproject.toml`, so a bare `pip install -e .` can't find it (and the `.venv` here is uv-managed and has no `pip`). Activate the env (`source .venv/bin/activate`) before the bare-`python` commands below, or prefix them with `uv run`. The repo-root `./setup.sh trace-guard` does all of this for you.
 
 **Inference config.** Keys live once in the **repo-root** `compute.env` (one level up from this folder; copy it from `../compute.env.example`):
 

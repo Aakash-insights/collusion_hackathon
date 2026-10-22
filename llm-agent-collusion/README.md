@@ -152,12 +152,14 @@ not two interchangeable copies of the same thing:
 
   ```bash
   uv run python src/continuous_double_auction/experiments/temperature_experiment.py \
-    --rounds 5 --temperatures 0.1 0.7 --seller_models gpt-4.1 --buyer_models zip -y
+    --rounds 5 --temperatures 0.1 0.7 --seller_models gpt-4.1 --buyer_models gpt-4o-mini
   ```
 
   Note these preset drivers accept **only the model aliases** listed by their `--help` (not
-  arbitrary OpenRouter ids like the main `simulation.py`), and their flag names differ slightly
-  (e.g. `--temperatures`, plural); always check `--help` first.
+  arbitrary OpenRouter ids, and not the main `simulation.py`'s free `zip` buyer), and their flag
+  names differ slightly (e.g. `--temperatures`, plural). They also have **no** cost-confirmation
+  prompt and therefore **no `-y`/`--yes` flag** — passing one errors out. Always check `--help`
+  first, and remember these still make LLM buyer calls (every temperature × rounds × all agents).
 - `experiments/*.sh` are thin wrappers that call those `.py` drivers with the **paper-size**
   settings (5 sellers, 5 buyers, 30 rounds, 5 temperatures → hundreds of calls, no `-y`). They
   invoke bare `python`, so run them inside the project venv (`source .venv/bin/activate` first,

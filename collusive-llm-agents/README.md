@@ -96,17 +96,35 @@ Note: `nbconvert` runs the kernel with its working directory set to the **notebo
 above is non-interactive, so keep `ENABLE_MANUAL_PARSE_ASSIST` in mind — if a reply can't be parsed
 the notebook would block on `input()` (it did not in our smoke runs).
 
-**Make it cheap / swap the model without editing the notebook.** `NUM_ROUNDS = 1` is the smallest
-useful smoke value (one call per firm = 2 model calls total); it's the `NUM_ROUNDS` constant in the
-"Number of rounds + model" cell near the top. `MODEL_SPEC` is set via `resolve_model(...)` in that
-same cell, and `resolve_model` honors an `LLM_MODEL` environment variable that **overrides** the
-hard-coded id — so to point the run at an OpenRouter-served model without touching the notebook:
+**Make it cheap, and swap the model without editing the notebook.** Two separate knobs that behave
+differently:
 
-```bash
-export LLM_MODEL="openai/gpt-4.1-mini"        # any OpenRouter-served, JSON-capable id
-```
+- **Model — no edit needed.** `MODEL_SPEC` is set via `resolve_model(...)` in the "Number of rounds +
+  model" cell, and `resolve_model` honors an `LLM_MODEL` environment variable that **overrides** the
+  hard-coded id — so you can point the run at an OpenRouter-served model without touching the notebook:
 
-(`openai/gpt-4.1-mini` was verified end-to-end against OpenRouter for this experiment.)
+  ```bash
+  export LLM_MODEL="openai/gpt-4.1-mini"        # any OpenRouter-served, JSON-capable id
+  ```
+
+  (`openai/gpt-4.1-mini` was verified end-to-end against OpenRouter for this experiment.)
+
+- **Rounds — requires editing a notebook.** `NUM_ROUNDS = 1` is the smallest useful smoke value (one
+  call per firm = 2 model calls total); it's the `NUM_ROUNDS` constant in that same cell. Unlike
+  `MODEL_SPEC`, there is **no `NUM_ROUNDS` env override** — you must change the constant. To avoid
+  editing (and dirtying) the tracked `bertrand.ipynb`, copy it first and execute the copy:
+
+  ```bash
+  cp bertrand.ipynb /tmp/bertrand_smoke.ipynb   # then edit NUM_ROUNDS = 1 in the /tmp copy
+  jupyter nbconvert --to notebook --execute /tmp/bertrand_smoke.ipynb \
+    --output /tmp/bertrand.out.ipynb --ExecutePreprocessor.timeout=360
+  ```
+
+  Caveat: `nbconvert` sets the kernel's working directory to the **executed notebook's** directory, so
+  running a `/tmp` copy writes `bertrand_data/` and resolves `.env` under `/tmp`, not under
+  `collusive-llm-agents/`. For the smoke run that is fine (outputs stay out of the repo); just export
+  `OPENROUTER_API_KEY` (and any `LLM_MODEL`) into the process env first, since the `/tmp` copy has no
+  local `.env` to load.
 
 ## Running experiments
 

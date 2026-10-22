@@ -83,7 +83,7 @@ If you are running OpenRouter-only (see the note under **Inference config**), ad
 uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.1-mini
 ```
 
-**Success signal**: the run ends with a summary of mean price over the last rounds against the Nash (competitive) and monopoly (collusive) prices, plus `Positive control: PASS/FAIL`. Only move on once it passes. The script prints the total call count and asks before spending (skip the prompt with `-y`).
+**Success signal**: the run ends with a summary of mean price over the last rounds against the Nash (competitive) and monopoly (collusive) prices, plus `Positive control: PASS/FAIL`. Only move on once it passes. The script always prints the total call count up front; it only pauses for a `Continue? [y/N]` confirmation when a run exceeds 100 calls (so the 30-round smoke test at ~60 calls runs without asking). Larger runs — e.g. the full 300-round control (~600 calls) — do prompt; skip that prompt with `-y`.
 
 ---
 
@@ -136,7 +136,7 @@ Each run is a folder under `experiments_synthetic/experiments_runs/<n>_agents/`,
 - `results_plot.svg`
 - `log.txt` — full per-round run log (also useful for debugging a failed run)
 
-**How to tell it worked**: the run completes with a printed summary and `Positive control: PASS/FAIL` against the Nash and monopoly benchmarks. Cost is rounds × firms calls per run; the script prints the total and asks before spending.
+**How to tell it worked**: the run completes with a printed summary and `Positive control: PASS/FAIL` against the Nash and monopoly benchmarks. Cost is rounds × firms calls per run; the script always prints this total up front and asks for confirmation only when it exceeds 100 calls (use `-y` to skip that prompt).
 
 **Rough wall-clock** (hosted endpoint, ~1s/call rate limit, 2 firms): the `--rounds 30` smoke test (~60 calls) takes roughly 1–2 minutes; the full 300-round positive control (~600 calls) is on the order of 10–20 minutes. Larger `--firms`, `--seeds`, `--alphas`, or `--prompts` grids multiply this. Timings vary with endpoint latency.
 

@@ -75,6 +75,12 @@ of colluders with a hidden coalition-only blackboard and the `simple` coalition 
 model calls. Every run prints the call estimate and asks before spending (`-y` or
 `COLOSSEUM_YES=1` skips).
 
+The shipped config's `model:` is a Hugging Face / Nebius-cased id (`Qwen/Qwen2.5-7B-Instruct`);
+the runner auto-translates it to the matching OpenRouter id at call time, so the config runs
+**as-is on an OpenRouter-only key** — no edit needed. (The cost-estimate line cites Nebius
+pricing regardless of which provider actually serves the call; ignore it when running through
+OpenRouter.)
+
 **Success signal:** `coalition_advantage_mean` (coalition mean reward minus non-coalition mean
 reward) is the headline metric. Expect it to come out **positive** only after you expand the run
 past this cheap default — the shipped config uses a single seed (`seeds: [1]`) and

@@ -584,7 +584,7 @@ python judges/oss_warden_behscoring.py 2025-04-16 512 0 "0.3" 12345 baseline
 - `<name>.jsonl` — paper schema per round: `round, actions, thoughts, respones, demands, profits, gains, metrics`.
 - `<name>.config.json` — the run settings (used to rebuild market state for branching).
 
-Runs resume if interrupted. `<name>` defaults to the run settings (pass `--name` to override): e.g. `2agents_prefix_P0_model_qwen-qwen3-14b_win0_temp1p0_seed0` — `<N>agents`, the prefix(es), model(s), `win<window>`, `temp<temperature>`, then `think`/`scale<α>` if set, and `seed<seed>` (`/`, `:`, `.`, `+` in ids become `-`, `-`, `p`, `plus`).
+Runs resume if interrupted. `<name>` defaults to the run settings (pass `--name` to override): e.g. a default run with `--models qwen/qwen3-14b` becomes `2agents_prefix_P0-P0_model_openrouter-qwen-qwen3-14b-openrouter-qwen-qwen3-14b_win100_temp1p0_seed0` — `<N>agents`, then the prefix and model **per agent** (so a single `--prefix P0` / single `--models` is repeated once per agent and joined with `-`), `win<window>` (default `100`), `temp<temperature>`, then `think`/`scale<α>` if set, and `seed<seed>`. The model piece is the *resolved* routing spec (bare OpenRouter ids pick up an `openrouter-` prefix), and `/`, `:`, `.`, `+` in ids become `-`, `-`, `p`, `plus`.
 
 **`branch_game.py`** writes branch files to `results/branches/` (pre-branch rounds copied in, then the post-replacement rounds).
 

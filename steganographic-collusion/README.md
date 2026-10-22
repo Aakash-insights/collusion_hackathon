@@ -158,11 +158,14 @@ python -m auditor.experiments pricing_llm_groq    # ~160 calls on an open model 
 ```
 
 > **Heads up — this rewrites tracked files.** Running any `auditor.experiments` label overwrites its
-> `results/experiments/<label>.json` and the per-seed transcripts under
-> `results/experiments/<scenario>/` (for `pricing_llm_groq` that is `results/experiments/pricing_duopoly/`,
-> ~40 git-tracked files). `git status` will show them as modified afterwards — this is expected. The
-> new transcripts are non-deterministic (hosted sampling), so `git restore results/experiments/` to
-> get the shipped data back if you only wanted a smoke test.
+> `results/experiments/<label>.json` and the per-seed transcripts under `<output_dir>/<scenario>/`,
+> where `<output_dir>` is the `output_dir:` of that label's `configs/audits/<label>_audit.yaml`. For the
+> hosted pricing labels that is `results/experiments/pricing_duopoly/` (~40 git-tracked files), but it
+> differs by label — e.g. `auction_adaptive` writes to `results/audit/first_price_auction/` and
+> `review_sparse` to `results/stress/review_sparse/`. `git status` will show the changes afterwards —
+> this is expected. To get the shipped data back after a smoke test, check `git status --short` and
+> `git restore` the paths it lists (e.g. `git restore results/`); `git restore results/experiments/`
+> alone only cleans up labels that write there. Scripted labels are deterministic; hosted ones are not.
 
 A hosted label with **no** inference key now fails loud (non-zero exit) instead of silently skipping,
 so an empty `results/experiments/` is never mistaken for a successful run. Run the full hosted set

@@ -53,6 +53,11 @@ only needed for models Nebius doesn't serve. See [`../COMPUTE.md`](../COMPUTE.md
 story (Nebius → OpenRouter → Modal → fail loud).
 
 ```bash
+# create and activate a virtual environment first (the fastest-path ./setup.sh does
+# this for you; the manual path needs it too, since requirements.txt installs the shared
+# poseidon_compute package as an editable dep — see the last line of requirements.txt):
+python -m venv .venv && source .venv/bin/activate   # or: uv venv .venv && source .venv/bin/activate
+
 pip install -r requirements.txt
 
 # keys live at the repo root (one level up), shared by every project:
@@ -137,18 +142,15 @@ casual next click — measured at ~20 rounds, **~260 calls, ~11 minutes** on the
 cd Collusion_Liars_Bar && python src/game/game.py   # a single baseline game (native; ~260 calls, ~11 min)
 ```
 
-> **⚠️ A game can abort before a winner is declared (pre-existing code issue, not a setup problem).**
-> `player.choose_cards_to_play` (`src/agents/player.py`) retries a seat **5 times with the same prompt**
-> and then **hard-`raise`s `RuntimeError: Player <name>'s choose_cards_to_play method filed after many
-> attempts.`** if the model never returns a JSON object with the required `played_cards` / `behavior` /
-> `play_reason` keys — there is **no fallback action** here (unlike Cleanup's agent). With the small
-> OpenRouter models a seat occasionally emits an empty `{}` several turns in a row late in a long game,
-> which crashes the whole run. A per-round record is still auto-saved under
-> `experiments/game_records/<players>/` (so you keep every completed round, with `"winner": null`), but
-> the game may not reach the final survivor. A verified run here completed **21 rounds / 260 calls with
-> all four seats reaching real models and zero model errors** before aborting this way. Re-running
-> usually gets a different (often complete) game; fixing the hard `raise` to fall back is out of scope
-> for this README.
+> **Note — robustness of a long game with small models.** `player.choose_cards_to_play`
+> (`src/agents/player.py`) retries a seat **5 times** for a valid JSON object with the required
+> `played_cards` / `behavior` / `play_reason` keys. With the small OpenRouter models a seat occasionally
+> emits an empty `{}` several turns in a row late in a long game; rather than crash the run, the seat now
+> **falls back to playing one card** (mirroring the Cleanup agent) so the game continues to a winner. A
+> per-round record is auto-saved under `experiments/game_records/<players>/` regardless. A verified run
+> here completed **21 rounds / 260 calls with all four seats reaching real models and zero model
+> errors**. (Earlier versions hard-`raise`d here and could abort with `"winner": null`; that has been
+> fixed.)
 
 ## Running experiments
 
