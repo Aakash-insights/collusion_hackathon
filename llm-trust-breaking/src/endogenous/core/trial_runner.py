@@ -119,6 +119,36 @@ def _report_batch_failures(raw: Dict[str, Any], stage_name: str = "") -> None:
         )
 
 
+def _assert_decisions_parsed(
+    parsed: Dict[str, Dict[str, Any]], stage_name: str
+) -> None:
+    """
+    Fail loud when a stage's agent decisions come back empty / unparseable.
+
+    `_report_batch_failures` only catches requests that failed at the API level
+    (status == "error"). A JSON-incapable model (the real risk for Nebius-only users,
+    since the default model is a closed OpenAI id and `require_supported_model` lets open
+    models through with only a NOTE) instead returns HTTP 200 whose body does not parse
+    into the decision schema — every action normalises to None with `_parse_ok` False.
+    That used to be recorded silently as unusable data and the run "succeeded".
+
+    Here, if NO decision in the stage parsed, there is nothing for later stages to work
+    with, so abort with a clear, actionable error rather than proceeding.
+    """
+    if not parsed:
+        return
+    ok = sum(1 for d in parsed.values() if d.get("_parse_ok"))
+    if ok == 0:
+        label = f" in {stage_name}" if stage_name else ""
+        raise RuntimeError(
+            f"Every agent decision{label} parsed EMPTY ({len(parsed)} requests, 0 usable). "
+            "The model returned no readable decision — most likely it does not honour the "
+            "structured/JSON output this experiment relies on (see src/llm/capabilities.py). "
+            "Use a JSON-capable model (set LLM_MODEL/--model to an open model that supports "
+            "response_format/JSON) and re-run; do not trust an all-empty run."
+        )
+
+
 def _execute_parallel(parallel_client: Any, requests: List[Dict[str, Any]],
                       stage_name: str = "") -> Dict[str, Any]:
     """execute_parallel() plus failure reporting -- see _report_batch_failures."""
@@ -396,6 +426,7 @@ def _run_stage1(
             "reasoning":       parsed.get("reasoning", ""),
             "_parse_ok":       action is not None,
         }
+    _assert_decisions_parsed(results, "Stage 1")
     return results
 
 
@@ -471,6 +502,7 @@ def _run_stage2(
                 "_parse_ok":     action is not None,
                 "position":      pos,
             }
+        _assert_decisions_parsed(results, "Stage 2")
         return results
 
     else:
@@ -519,6 +551,7 @@ def _run_stage2(
                 "position":      pos,
                 "prior_seen":    [p["name"] for p in prior],
             }
+        _assert_decisions_parsed(results, "Stage 2")
         return results
 
 
@@ -582,6 +615,7 @@ def _run_stage3(
             "reasoning": parsed.get("reasoning", ""),
             "_parse_ok": action is not None,
         }
+    _assert_decisions_parsed(results, "Stage 3")
     return results
 
 
@@ -1260,6 +1294,7 @@ def run_all_trials_queued(
                     "reasoning":       parsed.get("reasoning", ""),
                     "_parse_ok":       action is not None,
                 }
+        _assert_decisions_parsed(stage1_parsed, "Stage 1")
 
         # ---- Stage 2 ----
         stage2_parsed: Dict[str, Dict[str, Any]] = {}
@@ -1364,6 +1399,8 @@ def run_all_trials_queued(
                         "prior_seen":    list(announcement_order[:pos]),
                     }
 
+        _assert_decisions_parsed(stage2_parsed, "Stage 2")
+
         # ---- Stage 3 ----
         print(f"  Stage 3: {n_trials * n_agents} action-selection requests...")
         s3_requests = []
@@ -1413,6 +1450,7 @@ def run_all_trials_queued(
                     "reasoning": parsed.get("reasoning", ""),
                     "_parse_ok": action is not None,
                 }
+        _assert_decisions_parsed(stage3_parsed, "Stage 3")
 
         # ---- Judge batch (LLM-as-judge, same model/client as agents) ----
         print(f"  Judge: {n_trials * n_agents} classification requests...")

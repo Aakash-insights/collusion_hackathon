@@ -7,7 +7,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
 
 
 @dataclass(frozen=True)

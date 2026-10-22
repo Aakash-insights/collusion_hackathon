@@ -51,7 +51,7 @@ from src.experiment.experiment import Experiment  # noqa: E402
 from src.prompts.prompts import GENERAL_PROMPT, GENERAL_PROMPT_NO_NOTES, P1, P2  # noqa: E402
 from src.prompts.prompts_models import create_pricing_response_model  # noqa: E402
 
-load_dotenv()
+load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
 
 PROMPTS = {"P1": P1, "P2": P2}
 FIRM_NAMES = ["Firm A", "Firm B", "Firm C", "Firm D", "Firm E", "Firm F", "Firm G", "Firm H"]

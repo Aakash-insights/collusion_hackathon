@@ -36,7 +36,7 @@ import terrarium.utils as _tu
 
 from poseidon_compute import llm_config, resolve_model
 
-load_dotenv()
+load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
 
 # Default models (used only when a config/CLI omits the model). A *provided* model that fails is never
 # silently swapped — that reroutes to Modal or fails loudly. Paper configs used gpt-4o-mini
@@ -71,28 +71,28 @@ def make_openrouter_client(llm_cfg: Dict[str, Any]):
 # Drop-in replacements for terrarium.utils helpers
 # --------------------------------------------------------------------------- #
 def get_client_instance(
-    llm_config: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
+    llm_cfg: Dict[str, Any], *, agent_name: Optional[str] = None, vllm_runtime: Any = None
 ):
-    if is_openrouter(llm_config):
-        return make_openrouter_client(llm_config)
-    return _tu.get_client_instance(llm_config, agent_name=agent_name, vllm_runtime=vllm_runtime)
+    if is_openrouter(llm_cfg):
+        return make_openrouter_client(llm_cfg)
+    return _tu.get_client_instance(llm_cfg, agent_name=agent_name, vllm_runtime=vllm_runtime)
 
 
-def get_model_name(provider: str, llm_config: Dict[str, Any]) -> str:
+def get_model_name(provider: str, llm_cfg: Dict[str, Any]) -> str:
     if str(provider or "").lower() == "openrouter":
-        return resolve_model(str(openrouter_block(llm_config).get("model") or DEFAULT_MODEL))
-    return _tu.get_model_name(provider, llm_config)
+        return resolve_model(str(openrouter_block(llm_cfg).get("model") or DEFAULT_MODEL))
+    return _tu.get_model_name(provider, llm_cfg)
 
 
-def get_generation_params(llm_config: Dict[str, Any]) -> Dict[str, Any]:
-    if is_openrouter(llm_config):
-        raw = openrouter_block(llm_config).get("params") or {}
+def get_generation_params(llm_cfg: Dict[str, Any]) -> Dict[str, Any]:
+    if is_openrouter(llm_cfg):
+        raw = openrouter_block(llm_cfg).get("params") or {}
         return {k: v for k, v in raw.items() if k != "model"} if isinstance(raw, dict) else {}
-    return _tu.get_generation_params(llm_config)
+    return _tu.get_generation_params(llm_cfg)
 
 
-def build_vllm_runtime(llm_config: Dict[str, Any]):
-    return _tu.build_vllm_runtime(llm_config)
+def build_vllm_runtime(llm_cfg: Dict[str, Any]):
+    return _tu.build_vllm_runtime(llm_cfg)
 
 
 # Terrarium names log directories after extract_model_info(); teach it about openrouter.

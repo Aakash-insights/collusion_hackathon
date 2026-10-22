@@ -28,11 +28,15 @@ from dotenv import load_dotenv
 
 from .llm import APIBaseLLM
 
-load_dotenv()
+load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
 
-from poseidon_compute import make_client, resolve_model
+from poseidon_compute import endpoint_kind, make_client, resolve_model
 
 DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct"  # paper default (experiments.sh / Dockerfile)
+
+# Fail fast instead of blocking the whole run on a single stuck request.
+CLIENT_TIMEOUT = 120.0  # seconds per request
+CLIENT_MAX_RETRIES = 2
 
 
 @dataclass(frozen=True)
@@ -70,7 +74,16 @@ def cost_note(n_calls: int, model_spec: str) -> str:
     # upgrades, and HF->OpenRouter casing) rather than the raw requested id, so the rate URL matches
     # the model that is actually billed.
     model = resolve_model(model)
-    return f"≈ {n_calls:,} model calls. Per-token rates: https://openrouter.ai/{model}"
+    # Cite the rates page for the endpoint the calls will ACTUALLY use (Nebius by default, OpenRouter
+    # when that's the configured key), not a hardcoded provider — otherwise the banner misleads.
+    kind = endpoint_kind()
+    if kind == "openrouter":
+        rates = f"https://openrouter.ai/{model}"
+    elif kind == "nebius":
+        rates = "Nebius AI Studio (https://studio.nebius.com)"
+    else:  # custom endpoint (e.g. a Modal-hosted model)
+        rates = "your configured endpoint"
+    return f"≈ {n_calls:,} model calls. Per-token rates: {rates}"
 
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
@@ -115,9 +128,21 @@ class OpenRouterLLM(APIBaseLLM):
         self.top_p = top_p
         self.is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
 
-        # Client built by the repo-root llm_config utility (compute.env selects provider +
-        # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_local.
-        self.client = make_client()
+        # Default provider ('openrouter' label) routes through the shared compute.env config
+        # (Nebius by default). The opt-in 'ollama' / 'custom' presets select a DIFFERENT endpoint,
+        # so honor their resolved base_url/key instead of silently rerouting to the shared endpoint.
+        # timeout / max_retries make a stuck request fail fast instead of blocking the whole run.
+        if self.provider == "openrouter":
+            self.client = make_client(timeout=CLIENT_TIMEOUT, max_retries=CLIENT_MAX_RETRIES)
+        else:
+            from openai import OpenAI
+
+            self.client = OpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key or "EMPTY",
+                timeout=CLIENT_TIMEOUT,
+                max_retries=CLIENT_MAX_RETRIES,
+            )
         print(f"[INFO] Initialized OpenRouterLLM ({self.provider}) with model_id: {self.model_id}")
         print(
             f"[INFO] Reasoning effort: {self.reasoning_display} | temperature: {temperature} | seed: {seed}"

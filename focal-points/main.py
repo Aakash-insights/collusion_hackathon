@@ -36,7 +36,7 @@ from src.utils.llm import LLM, load_model
 from src.utils.prompt import Level0
 from src.utils import iterate_data, load_bargaining_table_prompts, plot_block_frequencies
 
-load_dotenv()
+load_dotenv(override=False)  # don't let a stray local .env override the repo-root compute.env
 DEFAULT_MODEL = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 
 

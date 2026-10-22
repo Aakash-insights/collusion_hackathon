@@ -59,7 +59,8 @@ def require_supported_model(model: str) -> str:
         print(
             f"NOTE: '{model}' is not an OpenAI model. This project needs structured (JSON) output to "
             "read agent decisions; on Nebius/Modal use a model that supports response_format/JSON "
-            "(e.g. a Qwen or Llama variant that does), or decisions may parse as EMPTY. Proceeding."
+            "(e.g. a Qwen or Llama variant that does). If decisions come back EMPTY at runtime the "
+            "trial runner aborts with an error rather than recording unusable data. Proceeding."
         )
         return normalised
 

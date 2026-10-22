@@ -54,10 +54,18 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`requirements.txt` is the complete install (numerical stack, YAML, the OpenAI-compatible client used
-for hosted inference, and the local `distilgpt2` backend). `docs/requirements-extras.txt` is only the
-minimal numerical/test subset — prefer `requirements.txt` here. If you are on a CPU-only laptop,
-install the CPU build of torch first (see the note in `requirements.txt`).
+`requirements.txt` is the default install (numerical stack, YAML, and the OpenAI-compatible client
+used for hosted inference). It deliberately **excludes** torch/transformers so the common path (hosted
+OpenRouter + scripted configs) skips a ~5 GB wheel. Only the three local `distilgpt2` configs need
+those; install them as an optional extra when you want to run the `transformers` backend locally:
+
+```bash
+pip install -r requirements-local.txt
+```
+
+If you are on a CPU-only laptop, install the CPU build of torch first (see the note in
+`requirements-local.txt`). `docs/requirements-extras.txt` is a separate minimal numerical/test subset —
+prefer `requirements.txt` here.
 
 **Inference config.** Hosted model calls are configured once, centrally: copy the repo-root
 `compute.env.example` → `compute.env` (one level up from this folder; `cp ../compute.env.example
@@ -197,8 +205,9 @@ else — the 22 scripted configs and the `distilgpt2` ones — runs locally with
 ### Local open-weight experiments (`distilgpt2`)
 
 `configs/pricing_llm_open*.yaml` and `review_llm_open.yaml` run `distilgpt2` locally via
-`transformers`. Budget for it: torch is ~5 GB installed from PyPI (~0.8 GB with the CPU index, see
-`requirements.txt`), the weights are 350 MB, peak RAM ~1.2 GB, and generation is slow on CPU — about
+`transformers` (install `requirements-local.txt` first — see Setup). Budget for it: torch is ~5 GB
+installed from PyPI (~0.8 GB with the CPU index, see `requirements-local.txt`), the weights are 350 MB,
+peak RAM ~1.2 GB, and generation is slow on CPU — about
 7–8 s per turn on 8 cores, so the `pricing_llm_open` audit (20 seeds, config
 `configs/audits/pricing_llm_open_audit.yaml`) takes ~40 min and the calibration (50 seeds) ~3 h.
 `auditor.experiments` skips these labels with a message if `transformers` is not installed.

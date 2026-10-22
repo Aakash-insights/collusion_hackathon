@@ -8,15 +8,21 @@ from dotenv import load_dotenv
 # argument makes python-dotenv walk up the directory tree, so a .env sitting in a
 # parent directory would leak into this project's config.
 # settings.py -> config -> src -> <project root>
+# override=False so a stray local .env can never shadow the central compute.env
+# (which poseidon_compute owns) — compute.env / real environment wins.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_PROJECT_ROOT / '.env')
+load_dotenv(_PROJECT_ROOT / '.env', override=False)
 
 # ============================================================================
 # API CONFIGURATION - Loaded from .env file
 # ============================================================================
 
 # Route provider base_url / key / model through the repo-root shared LLM config.
-from poseidon_compute import api_key as _llm_api_key, resolve_model as _resolve_model
+from poseidon_compute import (
+    api_key as _llm_api_key,
+    config as _llm_config,
+    resolve_model as _resolve_model,
+)
 
 # Model / temperature defaults (used when no explicit model is passed). CLI `--model` and LLM_MODEL in the
 # repo-root compute.env both win over this (via resolve_model); a provided model that fails is never
@@ -27,7 +33,15 @@ TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
 # OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;
 # falls back to this project's own OPENROUTER_API_KEY .env entry).
-OPENROUTER_API_KEY = _llm_api_key() or os.getenv('OPENROUTER_API_KEY', '')
+# Use config()["has_key"] (non-raising) to decide whether a key exists BEFORE calling
+# api_key() (which RAISES when none is set). Without this guard the module would crash at
+# import time with poseidon_compute's error instead of this project's friendlier placeholder
+# message below — and the `or os.getenv(...)` fallback would be dead code (api_key() never
+# returns a falsy value; it raises first).
+if _llm_config()["has_key"]:
+    OPENROUTER_API_KEY = _llm_api_key()
+else:
+    OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 _PLACEHOLDER_KEY = 'your-openrouter-key-here'  # the value shipped in .env.example
 
 # Reasoning Model Configuration (for o1/o3/gpt-5 models)

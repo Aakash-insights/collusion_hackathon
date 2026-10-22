@@ -64,6 +64,7 @@ _OPENROUTER_ALIASES = {
     "mistralai/Ministral-8B-Instruct-2410": "mistralai/ministral-8b-2512",
 }
 _announced_or_aliases = set()
+_announced_forced = set()  # announce an LLM_MODEL override of a different requested id once per id
 
 
 def _find_root_env():
@@ -129,8 +130,10 @@ def api_key():
     _load()
     # Pick the key that matches the endpoint base_url() selected (see endpoint_kind()).
     if os.environ.get("LLM_BASE_URL"):
-        key = (os.environ.get("LLM_API_KEY") or os.environ.get("NEBIUS_API_KEY")
-               or os.environ.get("OPENROUTER_API_KEY"))
+        # Custom endpoint (e.g. a Modal-hosted model): use ONLY its own key. Do NOT fall back to the
+        # Nebius/OpenRouter keys — that would send your provider key as the bearer to a third-party
+        # endpoint. A keyless endpoint still needs a non-empty placeholder for the OpenAI client.
+        key = os.environ.get("LLM_API_KEY") or "EMPTY"
     elif os.environ.get("NEBIUS_API_KEY"):
         key = os.environ.get("NEBIUS_API_KEY")
     elif os.environ.get("OPENROUTER_API_KEY"):
@@ -154,6 +157,16 @@ def resolve_model(requested):
     (poseidon_compute.run). Ids are written in Nebius / Hugging Face casing throughout."""
     _load()
     forced = os.environ.get("LLM_MODEL")
+    if forced and forced != requested and requested not in _announced_forced:
+        print(
+            f"[llm_config] NOTE: LLM_MODEL='{forced}' overrides the requested model '{requested}'. "
+            f"LLM_MODEL forces ONE model for EVERY role — in multi-model experiments (e.g. trace-guard "
+            f"trusted vs untrusted, llm-agent-collusion(-2) rosters/judges/overseers) every role collapses "
+            f"to '{forced}', which invalidates the comparison. Unset LLM_MODEL and pass per-role models to "
+            f"run the intended design.",
+            flush=True,
+        )
+        _announced_forced.add(requested)
     model = forced if forced else requested
     upgraded = _RETIRED_MODEL_UPGRADES.get(model)
     if upgraded and upgraded != model:

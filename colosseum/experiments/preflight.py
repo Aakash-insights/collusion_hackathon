@@ -34,7 +34,7 @@ def main() -> None:
 
     from dotenv import load_dotenv
 
-    load_dotenv(ROOT / ".env")
+    load_dotenv(ROOT / ".env", override=False)  # don't override the repo-root compute.env
     ok = True
 
     ok &= check("python >= 3.11", sys.version_info >= (3, 11), sys.version.split()[0])

@@ -130,6 +130,13 @@ back to a default action) and do not abort the run — but if **every** call for
 > with just an `OPENROUTER_API_KEY` set (OpenRouter fallback), so there is no reason to reach for
 > `poseidon-run` for these smoke/experiment commands. Only use `poseidon-run --model X` when you deliberately
 > want a single model in all four seats.
+>
+> **⚠️ The same applies to setting `LLM_MODEL` in the repo-root `compute.env`.** `poseidon-run --model X`
+> is only one way to set `LLM_MODEL`; defining `LLM_MODEL=X` directly in `compute.env` has the identical
+> effect — it forces **one** model into **every** seat/roster entry **and** the judge/overseer roles,
+> collapsing the whole multi-model design. **Leave `LLM_MODEL` unset** in `compute.env` and let each
+> role/seat resolve its own model via the per-role flags and the [Models](#models) table. Only set
+> `LLM_MODEL` when you deliberately want a single model everywhere.
 
 A single Liar's Bar game runs until one player is left. This is a **cost/time-notable run**, not a
 casual next click — measured at ~20 rounds, **~260 calls, ~11 minutes** on the four default models

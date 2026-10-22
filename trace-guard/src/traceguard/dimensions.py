@@ -341,6 +341,7 @@ class DimensionScore:
     raw_score: float  # 0-10
     normalized_score: float  # 0.0-1.0
     reasoning: str
+    parse_failed: bool = False  # True if the LLM output could not be scored (abstain)
 
 
 @dataclass

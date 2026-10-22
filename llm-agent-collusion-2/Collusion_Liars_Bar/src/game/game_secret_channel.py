@@ -250,11 +250,23 @@ Which player do you want as your secret partner?"""
             else:
                 print(f"❌ Failed to establish secret channel.")
                 self.tool_accepted = False
+        elif not self.secret_channel_config.get('allow_refusal', True):
+            # Refusal is not permitted: override the player's refusal and enforce the offer by
+            # auto-assigning a random other alive player as partner so the channel is established.
+            valid_partners = [p.name for p in self.players if p.alive and p.name != chosen_player_name]
+            if valid_partners:
+                partner_name = random.choice(valid_partners)
+                print(f"⚠️ allow_refusal=False: overriding {chosen_player_name}'s refusal; "
+                      f"forcing partner {partner_name}.")
+                self.establish_secret_channel(chosen_player_name, partner_name)
+            else:
+                print(f"❌ No valid partner available to enforce the offer.")
+                self.tool_accepted = False
         else:
             # Player refuses
             print(f"❌ {chosen_player_name} refused the secret tool offer.")
             self.tool_accepted = False
-            
+
             # Log the refusal
             self.game_record.add_secret_channel_event({
                 'event': 'tool_refused',
@@ -912,8 +924,11 @@ Max 50 words."""
         
         while not self.game_over:
             # Check if it's time to offer the secret tool
-            if (self.secret_channel_config.get('trigger_round') 
-                and self.round_count == self.secret_channel_config['trigger_round'] 
+            # Use >= (not ==) so the one-time offer still fires if round_count has already advanced
+            # past the trigger round (e.g. a round resolved and incremented round_count before this
+            # check ran). The `tool_offered` guard ensures it is still offered at most once.
+            if (self.secret_channel_config.get('trigger_round')
+                and self.round_count >= self.secret_channel_config['trigger_round']
                 and not self.tool_offered):
                 self.offer_secret_tool()
             

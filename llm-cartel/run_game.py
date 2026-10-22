@@ -145,8 +145,22 @@ def default_name(args, prefixes, models, seed) -> str:
     return "_".join(parts)
 
 
-def ask_agent(provider: ChatProvider, prompt, seed, max_retries, fallback_price) -> dict:
-    """One agent decision with retries; never raises (the paper's harness falls back to 5.0)."""
+class AgentCallError(RuntimeError):
+    """An agent's decision could not be obtained after all retries. Abort the run.
+
+    We do NOT fall back to a price here: the old harness substituted the monopoly price
+    (env.upper_prices) on failure, which silently records a FAILED call as PERFECT
+    COLLUSION and corrupts the collusion metric. A failed round must fail loud, never be
+    scored as if the agent chose to collude.
+    """
+
+
+def ask_agent(provider: ChatProvider, prompt, seed, max_retries) -> dict:
+    """One agent decision with retries. Raises AgentCallError if every attempt fails.
+
+    Never substitutes a price on failure (that would record a failed call as a real,
+    collusive action). Transport-level fatal errors propagate as FatalProviderError.
+    """
     last_err, failures = None, []
     for attempt in range(max_retries + 1):
         try:
@@ -157,21 +171,16 @@ def ask_agent(provider: ChatProvider, prompt, seed, max_retries, fallback_price)
                 raise ValueError("could not parse a price")
             metrics.update({"success": True, "attempts": attempt + 1})
             return {"price": price, "thoughts": thoughts, "response": text, "metrics": metrics}
+        except FatalProviderError:
+            raise  # bad model/key/request: retrying can't help, abort immediately
         except Exception as e:  # noqa: BLE001
             last_err = e
             if attempt < max_retries:
                 time.sleep(min(2**attempt, 10))
-    return {
-        "price": fallback_price,
-        "thoughts": "",
-        "response": f"Error: failed after {max_retries + 1} attempts: {last_err}",
-        "metrics": {
-            "success": False,
-            "error": str(last_err),
-            "parse_failures": failures[-1:],
-            "model": provider.spec,
-        },
-    }
+    raise AgentCallError(
+        f"{provider.spec}: failed after {max_retries + 1} attempts: {last_err}"
+        + (f" (last unparseable response: {failures[-1][:200]!r})" if failures else "")
+    )
 
 
 def run_episode(args, seed: int, prefixes, model_specs) -> str:
@@ -237,18 +246,20 @@ def run_episode(args, seed: int, prefixes, model_specs) -> str:
     )
     t0 = time.time()
     for rnd in range(len(completed), args.rounds):
-        fallback = [float(x) for x in env.upper_prices]  # paper used 5.0; monopoly price is less disruptive
+        # NB: on an exhausted-retry failure ask_agent RAISES (AgentCallError / FatalProviderError)
+        # and the run aborts. We never substitute a price (e.g. the monopoly price) for a failed
+        # call — doing so would record a failed round as a real, maximally-collusive action.
         if args.sequential:
             results = [
-                ask_agent(p, pr, seed, args.max_retries, fb)
-                for p, pr, fb in zip(providers, prompts, fallback)
+                ask_agent(p, pr, seed, args.max_retries)
+                for p, pr in zip(providers, prompts)
             ]
         else:
             with ThreadPoolExecutor(max_workers=len(providers)) as ex:
                 results = list(
                     ex.map(
-                        lambda t: ask_agent(t[0], t[1], seed, args.max_retries, t[2]),
-                        zip(providers, prompts, fallback),
+                        lambda t: ask_agent(t[0], t[1], seed, args.max_retries),
+                        zip(providers, prompts),
                     )
                 )
         actions = [r["price"] for r in results]
@@ -305,7 +316,10 @@ def main() -> None:
     try:
         for seed in args.seeds:
             run_episode(args, seed, prefixes, model_specs)
-    except FatalProviderError as e:
+    except (FatalProviderError, AgentCallError) as e:
+        # Fail loud: a model call failed. Do NOT record a fallback price — a corrupted round
+        # must abort the run, never be scored as collusion. Resume (without --overwrite) will
+        # pick up from the last fully-successful round.
         sys.exit(f"\n❌ {e}")
 
 

@@ -38,6 +38,13 @@ model id works too. Keys and any overrides live only in the repo-root `compute.e
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal →
 fail loud).
 
+> **⚠️ Do NOT set `LLM_MODEL` in `compute.env`.** `LLM_MODEL` forces **one** model for **every**
+> agent/seat/role (every seller and buyer, plus any judge/overseer), overriding `--seller_models` /
+> `--buyer_models` and collapsing the multi-model design — in particular the cross-model experiment
+> (**2.1**) silently becomes a single-model run. Leave `LLM_MODEL` **unset** and select models per
+> role via the `--seller_models` / `--buyer_models` flags. (Note `poseidon-run --model X` sets
+> `LLM_MODEL=X` under the hood and has the same collapsing effect.)
+
 ## Quick start
 
 Cheapest smoke test (~30 calls):

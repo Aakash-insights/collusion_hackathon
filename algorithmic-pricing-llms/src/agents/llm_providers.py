@@ -131,15 +131,24 @@ class OpenAICompatibleProvider(Provider):
         # if no key is set. Don't re-check a provider-specific var here (that would wrongly block a
         # Nebius-only setup) and don't silently swap in a different credential source.
         self.api_key = api_key or os.getenv(p.key_env)  # diagnostics only; real key comes from llm_config
-        self.model_name = model or os.getenv("MODEL_NAME") or resolve_model(p.default_model)
+        # Route the explicit --model / MODEL_NAME through resolve_model too (not just the preset
+        # default), so the LLM_MODEL override, retired-pin upgrades and OpenRouter id-casing apply to it.
+        self.model_name = resolve_model(model or os.getenv("MODEL_NAME") or p.default_model)
         if not self.model_name:
             raise ValueError("MODEL_NAME must be set for provider 'openai-compatible'")
         self.supports_seed = p.supports_seed
         self.is_remote = "localhost" not in self.base_url and "127.0.0.1" not in self.base_url
 
-        # Client is built by the repo-root llm_config utility (compute.env selects provider +
-        # base_url + key). base_url/api_key resolved above are kept for diagnostics / is_remote.
-        self._client = make_client(async_=True)
+        # The default 'openrouter' preset routes through the shared compute.env config (Nebius by
+        # default). The opt-in presets (openai / google / mistral-compat / ollama / openai-compatible)
+        # name a DIFFERENT endpoint, so honor their resolved base_url/key instead of silently rerouting
+        # everything to the shared endpoint (which also makes is_remote above load-bearing again).
+        if preset == "openrouter":
+            self._client = make_client(async_=True)
+        else:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key or "EMPTY")
         self._json_mode = True  # drop response_format if the model rejects it
 
     async def complete(self, messages, temperature, seed):
@@ -201,11 +210,11 @@ def resolve_effective_model(model: Optional[str] = None) -> str:
     """The model id a run will actually use, via the same path as ``make_provider``.
 
     Mirrors ``OpenAICompatibleProvider.__init__``: an explicit ``--model`` / ``MODEL_NAME``
-    wins, otherwise the provider default is passed through ``resolve_model`` so ``LLM_MODEL``
-    overrides and OpenRouter id-translation are reflected. This keeps the pre-run cost banner
-    honest about the resolved model (no silent swap).
+    wins over the thesis default, and whichever id is chosen is passed through ``resolve_model``
+    so ``LLM_MODEL`` overrides, retired-pin upgrades and OpenRouter id-translation are reflected.
+    This keeps the pre-run cost banner honest about the resolved model (no silent swap).
     """
-    return model or os.getenv("MODEL_NAME") or resolve_model(THESIS_MODEL)
+    return resolve_model(model or os.getenv("MODEL_NAME") or THESIS_MODEL)
 
 
 def estimate_cost_note(n_calls: int, model: Optional[str] = None) -> str:
