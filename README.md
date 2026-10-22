@@ -7,6 +7,12 @@ requirements, see below. Each folder has its own README with a quick start; the 
 independent, so start with the question that interests you. The starter gives you a working harness,
 not results: the sprint questions are yours to answer.
 
+A [`literature/`](literature/) folder adds a reading list of about 230 papers tagged by sprint project, with a script to
+download the open-access PDFs. Collusion is defined in many different ways across economics, law and AI safety, so
+[`literature/definitions/`](literature/definitions/) collates the main definitions and compares them. It is worth
+deciding early which kind of collusion a project is studying, because that decides what can be measured and what
+counts as evidence.
+
 > **Compute & inference — configure once:** copy `compute.env.example` → `compute.env` and set
 > `NEBIUS_API_KEY` (and optionally `OPENROUTER_API_KEY`); every project uses it automatically (inference
 > defaults to **Nebius AI Studio**). **One entry point runs any experiment with a chosen model:**
@@ -66,9 +72,14 @@ directly with `from poseidon_compute import make_client, resolve_model` (no path
 
 [`util/`](util/) is not from a paper: it holds the shared compute and inference helpers used by every folder.
 
+[`literature/`](literature/) is not code: it holds the reading list, the PDF download script and, in
+[`literature/definitions/`](literature/definitions/), an analysis of how 139 papers define collusion.
+
 ## Which folder for which sprint project?
 
 The sprint questions are on the [sprint page](https://apartresearch.com/sprints/ai-collusion-research-sprint-2026-10-23-to-2026-10-25). This repo collects the code that was publicly available for the papers cited there, as starting points. Many cited papers have no public code, so not every paper or project has a folder of its own. We wanted to provide a way for anyone to take part in the sprint with a coding agent, such as Claude Code or Codex, and access to this repo. If you are new to AI safety research, you could have your coding agent read the projects and the code, suggest a project, and work through it with you. For papers without public code, a coding agent can likely get you started from scratch. You do not have to use any of the starter code, or even base your project on one of the papers cited in the sprint description, if you have an idea you want to explore.
+
+For further reading, [`literature/`](literature/) has about 230 papers tagged by sprint project, a script to download the open-access PDFs, and an analysis of how 139 papers define collusion.
 
 ### By project
 
