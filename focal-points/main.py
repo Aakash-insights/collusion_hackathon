@@ -5,7 +5,7 @@ Poses Schelling-style coordination problems (and the Amsterdam / Nottingham
 Bardsley tasks, and the bargaining table) to an LLM, samples several answers per
 prompt and computes a coordination index (how often two random answers agree).
 
-All model calls go through the shared inference config (Nebius by default, with
+All model calls go through the shared inference config (Nebius or OpenRouter, with
 OpenRouter as fallback for closed/unavailable models), set via the repo-root
 `compute.env`; the default model is the paper's default,
 meta-llama/Llama-3.3-70B-Instruct.
@@ -30,13 +30,11 @@ import time
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from dotenv import load_dotenv
 
 from src.utils.llm import LLM, load_model
 from src.utils.prompt import Level0
 from src.utils import iterate_data, load_bargaining_table_prompts, plot_block_frequencies
 
-load_dotenv()
 DEFAULT_MODEL = os.getenv("MODEL_NAME", "meta-llama/Llama-3.3-70B-Instruct")
 
 

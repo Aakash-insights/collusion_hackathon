@@ -31,10 +31,19 @@ Cleanup is a sequential social dilemma where agents must balance individual rewa
 
 ## Installation
 
+Dependencies are managed with `uv` from the experiment root (`llm-agent-collusion-2/`), not per
+subdirectory:
+
 ```bash
-pip install -r requirements.txt
+cd ../../          # the llm-agent-collusion-2/ root
+uv sync
+source .venv/bin/activate   # or prefix each command below with `uv run`
 ```
-**Note**: This project was designed to run on H100 GPUs for optimal performance with local LLMs.
+
+Then run the commands below from `Collusion_Cleanup/`.
+
+**Note**: The original study ran local LLMs on H100 GPUs; this version routes inference through the
+shared config (see the experiment-root README), so no GPU is required.
 
 ## Quick Start
 
@@ -97,7 +106,6 @@ cleanup_llm/
 │  └─ cleanup_final_score_evolution_multi.png # Generated plots
 ├─ runs/            # Experiment results and data
 │  └─ [various experimental runs with CSV and JSON data]
-├─ requirements.txt  # Python dependencies
 └─ README.md        # This file
 ```
 

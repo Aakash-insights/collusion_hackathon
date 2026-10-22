@@ -27,13 +27,17 @@ heterogeneous-group exploitation dynamics.
 
 > **Fastest path:** from the repo root, `./setup.sh llm-trust-breaking` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
 
-Requires Python 3.9+ (verified on 3.12). Create a virtual environment first, then install deps
-(installing with a bare `pip` can hit a mismatched interpreter):
+Requires Python 3.10+ (verified on 3.12). Dependencies (including the shared `poseidon_compute`
+package) are managed with [uv]; install them in one step:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
+
+This creates a `.venv/` in this directory. Prefix commands with `uv run` (e.g. `uv run python …`),
+or `source .venv/bin/activate` once and run them directly.
+
+[uv]: https://docs.astral.sh/uv/
 
 Inference is configured **once, centrally**, in the repo-root `compute.env` — not in this project.
 Copy it from the example and fill in your keys (see [`../COMPUTE.md`](../COMPUTE.md) for the full story):
@@ -42,7 +46,7 @@ Copy it from the example and fill in your keys (see [`../COMPUTE.md`](../COMPUTE
 # at the repo ROOT (one level up):
 cp ../compute.env.example ../compute.env
 # Edit ../compute.env:
-#   NEBIUS_API_KEY=...        # default inference (open models)
+#   NEBIUS_API_KEY=...        # a Nebius key (open models)
 #   OPENROUTER_API_KEY=...    # REQUIRED for the GPT / Claude example models (and other closed ids)
 ```
 
@@ -66,9 +70,9 @@ Any per-project overrides (temperature, reasoning effort, agent count) go in the
 
 ## Quick start
 
-> **Activate the venv first** (`source .venv/bin/activate`). `poseidon-run` launches the
-> `python …` command after `--` as a subprocess that resolves `python` from `PATH`, so without an
-> active venv it uses a system interpreter and fails with
+> **Activate the venv first** (`source .venv/bin/activate` after `uv sync`), or run everything under
+> `uv run`. `poseidon-run` launches the `python …` command after `--` as a subprocess that resolves
+> `python` from `PATH`, so without an active venv it uses a system interpreter and fails with
 > `ModuleNotFoundError: No module named 'poseidon_compute'`.
 
 Smoke test — ~10 API calls, under a minute. Confirms the key and the model work.
@@ -243,7 +247,7 @@ the model is not honoring `response_format`; pick a JSON-capable model.
 ### Generate trust-evolution plots
 
 ```bash
-python experiments/plot/plot_trust.py \
+uv run python experiments/plot/plot_trust.py \
   outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json
 ```
 
@@ -259,7 +263,7 @@ over 10 rounds).
 
 ```bash
 # Cross-experiment summary over everything under outputs/experiments/
-python experiments/analysis/endogenous_comprehensive_analysis.py
+uv run python experiments/analysis/endogenous_comprehensive_analysis.py
 ```
 
 The other scripts in `experiments/analysis/` were written against the result files of the original
@@ -269,7 +273,7 @@ are not present; edit the paths at the top of each one to point them at your own
 ### Human-readable transcripts
 
 ```bash
-python -m src.visualization.transcripts \
+uv run python -m src.visualization.transcripts \
   outputs/experiments/diners/5agents/openai_gpt-4o-mini_endogenous.json \
   --output-dir outputs/transcripts/diners/gpt-4o-mini/
 ```
@@ -363,7 +367,8 @@ Llama is the minority it gets exploited by GPT.
 llm-trust-breaking/
 ├── README.md                    # This file
 ├── methodology.png              # Visual protocol diagram
-├── requirements.txt
+├── pyproject.toml               # Dependencies (install with `uv sync`)
+├── uv.lock
 │
 ├── src/                         # Core library code
 │   ├── games/                   # 6 game implementations

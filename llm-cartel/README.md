@@ -24,11 +24,11 @@ The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-
 
 > **Fastest path:** from the repo root, `./setup.sh llm-cartel` sets this experiment up (deps + the shared `poseidon_compute` package) in one step; `./setup.sh` does all experiments. The manual steps below are equivalent.
 
-**Install** (< 1 min): `uv sync` (or `pip install -e .`) — this installs only the CPU harness (`run_game.py`, `branch_game.py`, `judges/api_judge.py`). The GPU `[gpu]` extra (vllm/torch/transformers) and `[steering]` extra are **not** needed for the CPU harness; install them only to run the original GPU scripts: `uv sync --extra gpu --extra steering`.
+**Install** (< 1 min): `uv sync` — this installs only the CPU harness (`run_game.py`, `branch_game.py`, `judges/api_judge.py`). The GPU `[gpu]` extra (vllm/torch/transformers) and `[steering]` extra are **not** needed for the CPU harness; install them only to run the original GPU scripts: `uv sync --extra gpu --extra steering`.
 
 **Inference config.** Configure inference once in the repo-root `compute.env` (copy it from `../compute.env.example`). That one file holds your keys for every project; routing is Nebius → OpenRouter → Modal. See [`../COMPUTE.md`](../COMPUTE.md).
 
-- `NEBIUS_API_KEY` — default inference key.
+- `NEBIUS_API_KEY` — a Nebius key (open models).
 - `OPENROUTER_API_KEY` — **effectively required here**: the recommended agent/judge models below are OpenRouter ids (and closed / Nebius-missing models route through OpenRouter).
 
 **You choose the agent model** (`--models` or `MODEL_NAME`); the script refuses to guess. Any overrides (e.g. `MODEL_NAME`, `LLM_BASE_URL`) go in the repo-root `compute.env`.

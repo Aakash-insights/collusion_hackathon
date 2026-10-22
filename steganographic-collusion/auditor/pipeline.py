@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence
@@ -67,6 +68,9 @@ class AuditPipeline:
     def run(self) -> AuditSummary:
         seeds = self.seed_manager.generate()
         scenario = self._scenario_data["scenario"]
+        # Tag the run id / output path with the config name so two audit configs that share a scenario
+        # (and output_dir) write to distinct transcript / manifest files instead of colliding.
+        config_tag = self._config_tag(scenario)
         covert_scheme = self._scenario_data.get("covert_scheme", "keyword")
         env_kwargs = {
             k: v
@@ -78,7 +82,7 @@ class AuditPipeline:
             if isinstance(v, Mapping)
         }
 
-        output_dir = self.config.output_dir / scenario
+        output_dir = self.config.output_dir / scenario / config_tag
         output_dir.mkdir(parents=True, exist_ok=True)
         log_dir = (self.config.log_dir or (self.config.output_dir / "logs"))
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -103,7 +107,7 @@ class AuditPipeline:
 
             payload_rate = float(getattr(env.config, "payload_bits_per_100_tokens", 0.0))
             agents = self._instantiate_agents(roles, blueprints, permutation, payload_rate)
-            run_id = f"{scenario}_audit_{index}"
+            run_id = f"{config_tag}_audit_{index}" if config_tag != scenario else f"{scenario}_audit_{index}"
             transcript_path = output_dir / f"{run_id}.jsonl"
             intervention_path = output_dir / f"{run_id}_interventions.jsonl"
             logger = JsonlLogger(transcript_path)
@@ -176,7 +180,7 @@ class AuditPipeline:
                 )
             )
 
-        manifest_path = log_dir / f"audit_manifest_{scenario}.json"
+        manifest_path = log_dir / f"audit_manifest_{config_tag}.json"
         write_manifest(manifest_path, scenario=scenario, runs=[
             {
                 **entry,
@@ -195,6 +199,14 @@ class AuditPipeline:
             context = DetectorContext(summary=summary, config=detector_cfg)
             summary.detectors.append(detector(context))
         return summary
+
+    def _config_tag(self, scenario: str) -> str:
+        """A filesystem-safe tag identifying THIS audit config, used to keep outputs from distinct
+        configs (which may share a scenario) in distinct files. Prefers the explicit `config_name`,
+        then the scenario_config filename stem, and finally the scenario itself."""
+        raw = getattr(self.config, "config_name", None) or Path(self.config.scenario_config).stem or scenario
+        tag = re.sub(r"[^0-9A-Za-z._-]+", "_", str(raw)).strip("_")
+        return tag or scenario
 
     @staticmethod
     def _load_scenario_config(path: Path) -> Mapping[str, object]:

@@ -8,15 +8,15 @@ This document records the exact steps required to rebuild all Task 7 artifacts f
 -	Hosted LLM configs (`configs/pricing_llm_gemini*.yaml`, `configs/pricing_llm_groq*.yaml`) include fixed `seed` fields and, where applicable, `min_request_interval` parameters so API jitter does not alter run order. The Groq-era `min_request_interval` throttle only affected wall-clock time and is no longer needed via OpenRouter.
 
 ## Required Tooling
--	Python >= 3.11 with `pip`.
+-	Python >= 3.11 with `uv`.
 -	Recommended optional tooling: `pytest` for smoke tests and `ruff` (if installed) for linting.
 -	GPU acceleration is not required; all sweeps run on CPU-only machines with ≥16 GB RAM. See `docs/prerequisites.md` for hardware details.
 
 ## Environment Setup
 ```bash
-python -m venv .venv
+uv sync                 # default deps (hosted inference + scripted configs)
+uv sync --extra local   # add torch/transformers for the local distilgpt2 backend
 source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
 ## Regeneration Pipeline

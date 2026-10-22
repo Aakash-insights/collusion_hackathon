@@ -51,7 +51,7 @@ from harness.io import (
     summarize,
 )
 from harness.providers import ChatProvider, FatalProviderError, cost_note
-from run_game import ask_agent
+from run_game import ask_agent, AgentCallError
 
 
 def parse_replacements(items):
@@ -206,12 +206,11 @@ def main() -> None:
     for k in range(args.rounds):
         rnd = branch_round + 1 + k
         ps = current_prompts()
-        fallback = [float(x) for x in env.upper_prices]
         with ThreadPoolExecutor(max_workers=n_agents) as ex:
             results = list(
                 ex.map(
-                    lambda t: ask_agent(t[0], t[1], seed, args.max_retries, t[2]),
-                    zip(providers, ps, fallback),
+                    lambda t: ask_agent(t[0], t[1], seed, args.max_retries),
+                    zip(providers, ps),
                 )
             )
         actions = [r["price"] for r in results]
@@ -276,5 +275,5 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except FatalProviderError as e:
+    except (FatalProviderError, AgentCallError) as e:
         sys.exit(f"\n❌ {e}")

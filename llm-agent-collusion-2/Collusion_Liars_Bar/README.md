@@ -21,13 +21,19 @@ This project implements "Liar's Bar," a bluffing card game where AI agents can f
 
 ### Prerequisites
 
-Install the required dependencies:
+Dependencies are managed with `uv` from the experiment root (`llm-agent-collusion-2/`), not this
+subdirectory:
 
 ```bash
-pip install -r requirements.txt
+cd ..          # the llm-agent-collusion-2/ root
+uv sync
+source .venv/bin/activate   # or prefix each command below with `uv run`
 ```
 
-**Note**: This project was designed to run on H100 GPUs for optimal performance with local LLMs.
+Then run the commands below from `Collusion_Liars_Bar/`.
+
+**Note**: The original study ran local LLMs on H100 GPUs; this version routes inference through the
+shared config (see the experiment-root README), so no GPU is required.
 
 ### Basic Usage
 

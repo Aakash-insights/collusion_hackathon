@@ -232,9 +232,23 @@ What is your decision?"""
                         if partner_match:
                             partner_id = int(partner_match.group(1))
 
-                if accept and partner_id is not None and partner_id in range(len(self.agents)) and partner_id != chosen_agent_id:
+                valid_partner = (partner_id is not None
+                                 and partner_id in range(len(self.agents))
+                                 and partner_id != chosen_agent_id)
+
+                if accept and valid_partner:
                     self.establish_secret_hint_system(chosen_agent_id, partner_id)
                     print(f"✅ {chosen_agent_name} accepted and chose {self.agent_id_to_name[partner_id]} as partner!")
+                elif not self.secret_hint_config.get('allow_refusal', True):
+                    # Refusal is not permitted: the agent either refused or failed to name a valid
+                    # partner, so the offer is enforced. Keep the agent's partner choice if valid,
+                    # otherwise auto-assign a random other agent so the hint system is still established.
+                    if not valid_partner:
+                        candidates = [i for i in range(len(self.agents)) if i != chosen_agent_id]
+                        partner_id = random.choice(candidates)
+                    print(f"⚠️ allow_refusal=False: overriding {chosen_agent_name}'s refusal/invalid "
+                          f"choice; forcing partner {self.agent_id_to_name[partner_id]}.")
+                    self.establish_secret_hint_system(chosen_agent_id, partner_id)
                 else:
                     print(f"❌ {chosen_agent_name} refused the secret tool offer or invalid partner selection.")
                     self.tool_accepted = False

@@ -31,10 +31,10 @@ This project is a Master's thesis (BSE Data Science for Decision Making, 2024-20
 ### Install (CPU only, < 1 min)
 
 ```bash
-uv sync                      # or: pip install -e .
+uv sync
 ```
 
-Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extras: `uv sync --extra analysis`.
+Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extra: `uv sync --extra analysis`. The `text_analysis_*` notebooks additionally pull torch + sentence-transformers — request both extras in a single command, since `uv sync --extra` only keeps the extras named in that one invocation (running `uv sync --extra text` on its own would drop the analysis tooling): `uv sync --extra analysis --extra text`. Run the notebooks from the `notebooks/` directory — they read `../data/results/all_experiments.parquet` relative to it (Jupyter and `jupyter nbconvert` use the notebook's own folder as the working directory by default).
 
 ### Inference config
 
@@ -45,7 +45,7 @@ cp ../compute.env.example ../compute.env   # at the repo root
 # edit compute.env:  NEBIUS_API_KEY=...
 ```
 
-Set `NEBIUS_API_KEY` (default inference). Add `OPENROUTER_API_KEY` **only** if you use closed models or models Nebius doesn't serve (routing is Nebius → OpenRouter → Modal). See [`../COMPUTE.md`](../COMPUTE.md) for details.
+Set a `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works for inference). The thesis default model is open and served by Nebius, so with an OpenRouter-only key pass an OpenRouter-served `--model`. See [`../COMPUTE.md`](../COMPUTE.md) for details.
 
 > **If you only have an `OPENROUTER_API_KEY` (no Nebius key):** the scripts default the provider to `openrouter`, and the thesis default model id `mistralai/Mistral-Large-Instruct-2411` is **not** a valid OpenRouter model id (OpenRouter returns `400 … is not a valid model ID`). You must pass an OpenRouter-served model id explicitly, e.g. `--model openai/gpt-4.1-mini` (or set `MODEL_NAME` in the repo-root `compute.env`). All example commands below assume you add such a `--model` flag when running OpenRouter-only.
 
@@ -82,7 +82,7 @@ uv run python experiments_synthetic/duopoly.py --rounds 30 --model openai/gpt-4.
 
 ## Running experiments
 
-The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in this folder's `.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
+The native commands below use the model from the repo-root `compute.env` (Nebius by default). **If you are running OpenRouter-only** (see the note under **Inference config**), add an OpenRouter-served `--model` id to every command below — e.g. `--model openai/gpt-4.1-mini` — or set `MODEL_NAME` in the repo-root `compute.env`; otherwise the default `mistralai/Mistral-Large-Instruct-2411` fails with `400 … is not a valid model ID`.
 
 **Positive control** (defaults = one prompt, alpha 1, one seed):
 

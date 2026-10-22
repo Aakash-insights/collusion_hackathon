@@ -53,7 +53,8 @@ def main() -> None:
     ap.add_argument(
         "--model",
         default=JUDGE_MODEL,
-        help="judge model id (default matches the paper's Qwen3-14B judge)",
+        help="judge model id (default: a non-reasoning instruct judge that works on the shared "
+        "endpoint; the paper's Qwen3-14B judge needs thinking OFF, which OpenRouter can't do)",
     )
     ap.add_argument("--field", default="thoughts", choices=["thoughts", "respones"])
     ap.add_argument("--every", type=int, default=1, help="score every N-th round (cost control)")

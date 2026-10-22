@@ -1,22 +1,18 @@
 """Configuration settings loaded from environment variables."""
 from __future__ import annotations
 import os
-from pathlib import Path
-from dotenv import load_dotenv
 
-# Load this project's own .env, by explicit path. Calling load_dotenv() with no
-# argument makes python-dotenv walk up the directory tree, so a .env sitting in a
-# parent directory would leak into this project's config.
-# settings.py -> config -> src -> <project root>
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(_PROJECT_ROOT / '.env')
 
 # ============================================================================
 # API CONFIGURATION - Loaded from .env file
 # ============================================================================
 
 # Route provider base_url / key / model through the repo-root shared LLM config.
-from poseidon_compute import api_key as _llm_api_key, resolve_model as _resolve_model
+from poseidon_compute import (
+    api_key as _llm_api_key,
+    config as _llm_config,
+    resolve_model as _resolve_model,
+)
 
 # Model / temperature defaults (used when no explicit model is passed). CLI `--model` and LLM_MODEL in the
 # repo-root compute.env both win over this (via resolve_model); a provided model that fails is never
@@ -25,9 +21,14 @@ from poseidon_compute import api_key as _llm_api_key, resolve_model as _resolve_
 MODEL = _resolve_model(os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o-mini'))
 TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
-# OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;
-# falls back to this project's own OPENROUTER_API_KEY .env entry).
-OPENROUTER_API_KEY = _llm_api_key() or os.getenv('OPENROUTER_API_KEY', '')
+# OpenRouter key: taken from the shared compute.env via llm_config, falling back to this project's own
+# OPENROUTER_API_KEY. llm_config.api_key() raises when no key is set, so check the non-raising
+# config()["has_key"] first and only call api_key() when a key exists; otherwise use this project's own
+# value and let the placeholder check below report a missing/placeholder key.
+if _llm_config()["has_key"]:
+    OPENROUTER_API_KEY = _llm_api_key()
+else:
+    OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
 _PLACEHOLDER_KEY = 'your-openrouter-key-here'  # the value shipped in .env.example
 
 # Reasoning Model Configuration (for o1/o3/gpt-5 models)

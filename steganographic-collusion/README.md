@@ -49,20 +49,30 @@ create an environment:
 
 ```bash
 cd steganographic-collusion
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
 
-`requirements.txt` is the complete install (numerical stack, YAML, the OpenAI-compatible client used
-for hosted inference, and the local `distilgpt2` backend). `docs/requirements-extras.txt` is only the
-minimal numerical/test subset — prefer `requirements.txt` here. If you are on a CPU-only laptop,
-install the CPU build of torch first (see the note in `requirements.txt`).
+`uv sync` is the default install (numerical stack, YAML, and the OpenAI-compatible client used for
+hosted inference, plus the shared `poseidon_compute` package as an editable path dep). It creates/uses
+a `.venv` in this folder. The default dependency set deliberately **excludes** torch/transformers so
+the common path (hosted OpenRouter + scripted configs) skips a ~5 GB wheel. Only the three local
+`distilgpt2` configs need those; install them via the optional `local` extra when you want to run the
+`transformers` backend locally:
+
+```bash
+uv sync --extra local
+```
+
+With uv, torch is resolved from PyPI (the default build is the ~5 GB CUDA wheel). If you are on a
+CPU-only Linux laptop and want the smaller (~0.8 GB) CPU build, point uv at the PyTorch CPU wheel
+index, e.g. `uv sync --extra local --index-strategy unsafe-best-match --extra-index-url https://download.pytorch.org/whl/cpu`
+(or configure `[tool.uv.sources]`/`[[tool.uv.index]]` for torch). `docs/requirements-extras.txt` is a
+separate minimal numerical/test subset — prefer `uv sync` here.
 
 **Inference config.** Hosted model calls are configured once, centrally: copy the repo-root
 `compute.env.example` → `compute.env` (one level up from this folder; `cp ../compute.env.example
-../compute.env`) and set `NEBIUS_API_KEY` (the open default). Models Nebius doesn't serve — including
-closed ones (GPT / Gemini / Claude) — route through the optional `OPENROUTER_API_KEY`. The hosted
+../compute.env`) and set a `NEBIUS_API_KEY` or `OPENROUTER_API_KEY` (either works). Models Nebius
+doesn't serve — including closed ones (GPT / Gemini / Claude) — need `OPENROUTER_API_KEY`. The hosted
 clients pick up `base_url` + key automatically from that shared config via `poseidon_compute`. See
 [`../COMPUTE.md`](../COMPUTE.md) for the full routing story (Nebius → OpenRouter → Modal → fail loud).
 The scripted configs and the `distilgpt2` paths run locally and need **no key**.
@@ -72,12 +82,12 @@ in this folder.
 
 ## Quick start
 
-The commands below (and everywhere in this README) call bare `python` / `scripts/*.py`, so activate
-the venv from **Setup** first — otherwise they run against the system interpreter and miss the
-installed dependencies:
+The commands below (and everywhere in this README) call bare `python` / `scripts/*.py`. Run them
+through uv — either prefix each with `uv run` (e.g. `uv run python -m auditor.experiments ...`), or
+activate the `.venv` that `uv sync` created once and then call `python` directly:
 
 ```bash
-source .venv/bin/activate     # from the steganographic-collusion/ directory
+source .venv/bin/activate     # from the steganographic-collusion/ directory, after `uv sync`
 ```
 
 Run the CI smoke script (compiles the `auditor` and `colludebench` modules with `compileall`, then
@@ -197,8 +207,9 @@ else — the 22 scripted configs and the `distilgpt2` ones — runs locally with
 ### Local open-weight experiments (`distilgpt2`)
 
 `configs/pricing_llm_open*.yaml` and `review_llm_open.yaml` run `distilgpt2` locally via
-`transformers`. Budget for it: torch is ~5 GB installed from PyPI (~0.8 GB with the CPU index, see
-`requirements.txt`), the weights are 350 MB, peak RAM ~1.2 GB, and generation is slow on CPU — about
+`transformers` (run `uv sync --extra local` first — see Setup). Budget for it: torch is ~5 GB
+installed from PyPI (~0.8 GB with the CPU wheel index, see Setup), the weights are 350 MB,
+peak RAM ~1.2 GB, and generation is slow on CPU — about
 7–8 s per turn on 8 cores, so the `pricing_llm_open` audit (20 seeds, config
 `configs/audits/pricing_llm_open_audit.yaml`) takes ~40 min and the calibration (50 seeds) ~3 h.
 `auditor.experiments` skips these labels with a message if `transformers` is not installed.

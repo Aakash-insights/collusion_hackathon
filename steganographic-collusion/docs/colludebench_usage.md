@@ -35,8 +35,8 @@ Add an `llm_agents` block to any scenario configuration to route specific roles 
 ```yaml
 llm_agents:
   firm_a:
-    backend: openai_chat
-    model: gpt-4o-mini
+    backend: openrouter
+    model: openai/gpt-4o-mini
     system_prompt: |
       You are Firm A in a pricing duel. Respond with reasoning and finish with `Price:<value>`.
     user_prompt_template: |

@@ -2,10 +2,11 @@
 Responses API collusion tester for OpenAI reasoning models.
 Uses reasoning models (o3, o4-mini, gpt-5.4, ...) with reasoning summaries exposed as 'thoughts'.
 
-Calls follow the shared inference config (poseidon_compute): Nebius by default,
+Calls follow the shared inference config (poseidon_compute): Nebius or OpenRouter,
 OpenRouter as fallback for closed models (NEBIUS_API_KEY / OPENROUTER_API_KEY in compute.env).
-OpenRouter exposes the same Responses API endpoint. Model names are OpenRouter ids
-(openai/gpt-5.4); a bare OpenAI name is prefixed automatically. Verified 2026-09-16 with
+OpenRouter exposes the same Responses API endpoint. Model ids are written in Nebius /
+Hugging Face casing (openai/gpt-5.4; poseidon_compute translates to OpenRouter casing when it
+routes there); a bare OpenAI name is prefixed automatically. Verified 2026-09-16 with
 openai/gpt-5.4: `reasoning.summary` comes back through OpenRouter and is stored as 'thoughts'.
 
 Reasoning summary options for --reasoning_summary:
@@ -48,7 +49,7 @@ args = parser.parse_args()
 
 from poseidon_compute import llm_config
 if not llm_config.api_key():
-    raise ValueError("No API key found. Set OPENROUTER_API_KEY or NEBIUS_API_KEY in compute.env (or .env).")
+    raise ValueError("No API key found. Set NEBIUS_API_KEY (or OPENROUTER_API_KEY) in compute.env.")
 client = llm_config.make_client()  # follows compute.env (OpenRouter / Nebius)
 
 # OpenRouter ids are provider-qualified; accept the paper's bare OpenAI names too.

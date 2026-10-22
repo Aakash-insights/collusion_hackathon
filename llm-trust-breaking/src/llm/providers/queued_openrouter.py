@@ -40,11 +40,14 @@ class QueuedOpenRouterClient:
         self.api_key = api_key
         if base_url is None:
             # follow the central compute.env provider (OpenRouter/Nebius); fall back to OpenRouter
+            # only when the shared config module is genuinely unavailable. A real failure inside
+            # base_url() (e.g. misconfiguration) must surface, not be masked by the fallback.
             try:
                 from poseidon_compute import llm_config
-                base_url = llm_config.base_url().rstrip("/") + "/chat/completions"
-            except Exception:
+            except ImportError:
                 base_url = "https://openrouter.ai/api/v1/chat/completions"
+            else:
+                base_url = llm_config.base_url().rstrip("/") + "/chat/completions"
         self.base_url = base_url
         self.max_workers = max_workers
         self.timeout = timeout
