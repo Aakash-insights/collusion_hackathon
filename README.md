@@ -64,6 +64,73 @@ directly with `from poseidon_compute import make_client, resolve_model` (no path
 | [`steganographic-collusion/`](steganographic-collusion/) | *Audit the Whisper*, ColludeBench-v0 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments |
 | [`trace-guard/`](trace-guard/) | TraceGuard (Apart x Redwood AI Control hackathon) | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector. **Requires Docker**; smoke test ~10 min |
 
+## Which folder for which sprint project?
+
+The sprint questions are on the [sprint page](https://apartresearch.com/sprints/ai-collusion-research-sprint-2026-10-23-to-2026-10-25). This repo collects the code that was publicly available for the papers cited there, as starting points. Many cited papers have no public code, so not every paper or project has a folder of its own.
+
+Project numbers below follow the sprint page. Some text in this repo, including parts of the sections further down and some config file names (e.g. Colosseum's `hackathon_1_1_*.yaml`), uses an earlier numbering; see the table at the end of this section.
+
+### By project
+
+| Sprint project | Starter folders |
+|---|---|
+| **1.1** Which variables are necessary for collusion to emerge in markets? | [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/), [`llm-cartel/`](llm-cartel/) |
+| **1.2** Once collusion has formed, is it robust to replacing some of the participants? | [`llm-cartel/`](llm-cartel/), [`focal-points/`](focal-points/) |
+| **1.3** Can we improve on existing collusion detection methods? | [`llm-agent-collusion/`](llm-agent-collusion/), [`focal-points/`](focal-points/) |
+| **1.4** Can we use information-theoretic approaches to detect collusion in multi-agent games? | [`llm-agent-collusion/`](llm-agent-collusion/) as an environment. There is no code for the information-theoretic method itself ([Bonjour et al. 2022](https://proceedings.mlr.press/v180/bonjour22a.html)); the closest is the mutual-information detectors in [`steganographic-collusion/`](steganographic-collusion/). |
+| **1.5** Which single restriction removes the most collusion at the least cost? | [`llm-agent-collusion/`](llm-agent-collusion/) |
+| **2.1** Which kinds of tasks lead to collusion? | [`colosseum/`](colosseum/) |
+| **2.2** Does combining what agents say with what they do beat either alone? | [`llm-trust-breaking/`](llm-trust-breaking/), [`trace-guard/`](trace-guard/) |
+| **2.3** What should count as convincing evidence of collusion? | [`colosseum/`](colosseum/), [`steganographic-collusion/`](steganographic-collusion/) |
+| **3.1** Beyond colluding directly via text, can actions, tools or side channels be the conduit for collusion? | [`colosseum/`](colosseum/), [`collusive-llm-agents/`](collusive-llm-agents/) |
+| **3.2** Can we disrupt collusion through introducing trusted agents? | [`llm-agent-collusion-2/`](llm-agent-collusion-2/) |
+| **3.3** Can agents identify their peers? | [`llm-trust-breaking/`](llm-trust-breaking/), [`focal-points/`](focal-points/) |
+| **3.4** What does a coalition do when it learns it is being watched? | [`llm-agent-collusion/`](llm-agent-collusion/) |
+
+### By folder
+
+| Folder | Source paper | Original repository | Sprint projects |
+|---|---|---|---|
+| [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/) | Romero, Sauer & Peist 2025, extending [Fish et al. 2024](https://arxiv.org/abs/2404.00806) | [luciasauer/algorithmic_pricing_llms](https://github.com/luciasauer/algorithmic_pricing_llms) | 1.1 |
+| [`llm-cartel/`](llm-cartel/) | [Riemer et al. 2026](https://openreview.net/pdf?id=Vhi9tHbKTa) (ICML position paper) | [mattriemer/LLMCartel](https://github.com/mattriemer/LLMCartel) | 1.1, 1.2 |
+| [`focal-points/`](focal-points/) | [Aharon et al. 2026](https://arxiv.org/abs/2601.22184) | [EmanueleLM/focal-points](https://github.com/EmanueleLM/focal-points) | 1.2, 1.3, 3.3 |
+| [`llm-agent-collusion/`](llm-agent-collusion/) | [Agrawal et al. 2025](https://arxiv.org/abs/2507.01413) | [andyjliu/llm-agent-collusion](https://github.com/andyjliu/llm-agent-collusion) | 1.3, 1.4, 1.5, 3.4 |
+| [`colosseum/`](colosseum/) | [Nakamura et al. 2026](https://arxiv.org/abs/2602.15198) | [umass-ai-safety/colosseum](https://github.com/umass-ai-safety/colosseum) | 2.1, 2.3, 3.1 |
+| [`llm-trust-breaking/`](llm-trust-breaking/) | [Shi et al. 2026](https://arxiv.org/abs/2607.05132) | [Jerick-1380/LLM-Trust-Breaking](https://github.com/Jerick-1380/LLM-Trust-Breaking) | 2.2, 3.3 |
+| [`collusive-llm-agents/`](collusive-llm-agents/) | [Lin et al. 2024](https://arxiv.org/abs/2410.00031) | [smojha/collusive-llm-agents](https://github.com/smojha/collusive-llm-agents) | 3.1 |
+| [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | [Zeng & Rudzicz 2026](https://arxiv.org/abs/2605.27593), *Voluntary Collusion with Secret Tools* | [AgentSafety2025/LLM-Agent-collusion](https://github.com/AgentSafety2025/LLM-Agent-collusion) | 3.2 |
+| [`steganographic-collusion/`](steganographic-collusion/) | [Tailor 2025](https://arxiv.org/abs/2510.04303), *Audit the Whisper*, building on [Mathew et al. 2024](https://arxiv.org/abs/2410.03768) | [Ostailor/Steganographic_Collusion](https://github.com/Ostailor/Steganographic_Collusion) | 2.3 |
+| [`trace-guard/`](trace-guard/) | [Nguyen et al. 2026](https://arxiv.org/abs/2604.03968), *TraceGuard* | [linhkid/TraceGuard](https://github.com/linhkid/TraceGuard) | 2.2 |
+
+[`util/`](util/) is not from a paper: it holds the shared compute and inference helpers used by every folder.
+
+### Papers cited on the sprint page without code here
+
+Keppo et al. 2026, Eschenbaum et al. 2022, Xu et al. 2026, Rose et al. 2026, Rippin et al. 2026, Bonjour et al. 2022, Collina et al. 2025, Bracale Syrnikov et al. 2026, Dhanda 2026, Q. Liu et al. 2026, Tomašev et al. 2026, Radev et al. 2026, Arike et al. 2026, Berger et al. 2025, Tian 2026, Dietrich 2026, Kale et al. 2025, Najt et al. 2026 and Jiralerspong et al. 2026. Links are on the sprint page under each project.
+
+### Earlier project numbering
+
+<details>
+<summary>Old number → sprint-page number</summary>
+
+| Earlier number | Sprint-page number |
+|---|---|
+| 1.1 | 2.1 |
+| 1.2 | 1.1 |
+| 1.3 | 3.1 |
+| 1.4 | 1.2 |
+| 2.1 | 1.3 |
+| 2.2 | probably 2.2 (used only for `llm-agent-collusion`, which the sprint page does not list under 2.2) |
+| 2.3 | 2.2 |
+| 2.4 | 2.3 |
+| 3.1 | 3.2 |
+| 3.2 | 3.3 |
+| 3.3 | 1.5 |
+| 3.4 | 3.4 |
+
+1.4 on the sprint page had no number in the earlier scheme.
+</details>
+
 ## The projects in more detail
 
 ### 1. [`algorithmic-pricing-llms/`](algorithmic-pricing-llms/)
