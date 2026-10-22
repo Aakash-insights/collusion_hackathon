@@ -175,7 +175,7 @@ competitive behavior.
 ## Analysis
 
 ```bash
-python src/continuous_double_auction/evaluation/plot.py --results-dir data
+uv run python src/continuous_double_auction/evaluation/plot.py --results-dir data
 ```
 
 The default `--results-dir` is already `data`, so it reproduces the paper's figures from

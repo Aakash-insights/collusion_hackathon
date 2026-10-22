@@ -87,15 +87,16 @@ Cleanup's optional `--roster large` maps the same way (`llama-3.1-70b` kept; `ll
 `mistral-small-24b`, `qwen2.5-72b` as substitutes). Sampling parameters and output caps are the ones
 the local client used; see each game's `llm_client.py`.
 
-> **⚠️ OpenRouter-only setups: one `small`-roster model id is not served by OpenRouter.** The
-> `MODEL_MAP` ids in `llm_client.py` are Nebius ids and are sent to the provider unchanged. If you have
-> only an `OPENROUTER_API_KEY` (no Nebius key), the `ministral-8b` seat's id
-> (`mistralai/Ministral-8B-Instruct-2410`) returns **HTTP 400 "is not a valid model ID"** — OpenRouter
-> serves it as `mistralai/ministral-8b-2512` instead. The run does **not** crash: that seat's calls are
-> swallowed and the agent falls back to a default action, so three of the four seats use a real model
-> and one does not. With a Nebius key this seat works as written. To make all four seats run on
-> OpenRouter, update that `MODEL_MAP` entry to an OpenRouter-served id (e.g. `mistralai/ministral-8b-2512`).
-> (The `large` roster has not been verified against OpenRouter and may have the same gap.)
+> **OpenRouter-only setups: the `small` roster now works as-is — no `MODEL_MAP` edit needed.** The
+> `MODEL_MAP` ids in `llm_client.py` are Nebius / Hugging-Face-cased ids. On an OpenRouter-only setup
+> (an `OPENROUTER_API_KEY`, no Nebius key) the shared `poseidon_compute.resolve_model` now translates
+> each id to its OpenRouter casing before the call, including an explicit same-lineage snapshot upgrade
+> of the `ministral-8b` seat's id `mistralai/Ministral-8B-Instruct-2410` →
+> `mistralai/ministral-8b-2512` (announced with a one-time `[llm_config] NOTE:` line). **Verified:** all
+> four `small` seats return HTTP 200 on OpenRouter with zero `is not a valid model ID` errors — no
+> fallback-to-default, no edit required. (Earlier versions of this README warned that the `ministral-8b`
+> seat 400'd and silently fell back on OpenRouter; that is no longer the case with the current
+> `poseidon_compute`.) The `large` roster has not been verified against OpenRouter.
 
 **Hardware:** any laptop. The original H100 requirement is gone with the local weights.
 
@@ -129,12 +130,25 @@ back to a default action) and do not abort the run — but if **every** call for
 > want a single model in all four seats.
 
 A single Liar's Bar game runs until one player is left. This is a **cost/time-notable run**, not a
-casual next click — measured at 20 rounds, **~260 calls, ~11 minutes** on the four default models
+casual next click — measured at ~20 rounds, **~260 calls, ~11 minutes** on the four default models
 (still only cents; the models are small), so run it once you've confirmed the smoke test works:
 
 ```bash
 cd Collusion_Liars_Bar && python src/game/game.py   # a single baseline game (native; ~260 calls, ~11 min)
 ```
+
+> **⚠️ A game can abort before a winner is declared (pre-existing code issue, not a setup problem).**
+> `player.choose_cards_to_play` (`src/agents/player.py`) retries a seat **5 times with the same prompt**
+> and then **hard-`raise`s `RuntimeError: Player <name>'s choose_cards_to_play method filed after many
+> attempts.`** if the model never returns a JSON object with the required `played_cards` / `behavior` /
+> `play_reason` keys — there is **no fallback action** here (unlike Cleanup's agent). With the small
+> OpenRouter models a seat occasionally emits an empty `{}` several turns in a row late in a long game,
+> which crashes the whole run. A per-round record is still auto-saved under
+> `experiments/game_records/<players>/` (so you keep every completed round, with `"winner": null`), but
+> the game may not reach the final survivor. A verified run here completed **21 rounds / 260 calls with
+> all four seats reaching real models and zero model errors** before aborting this way. Re-running
+> usually gets a different (often complete) game; fixing the hard `raise` to fall back is out of scope
+> for this README.
 
 ## Running experiments
 

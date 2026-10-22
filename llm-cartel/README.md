@@ -62,6 +62,8 @@ A short smoke run will almost always print `positive control: FAIL` — that is 
 uv run python run_game.py --models qwen/qwen3-14b
 ```
 
+> **Reaching a PASS depends on the model, and is slow with the only paper-faithful option.** A PASS needs the market to settle *between* Nash and the monopoly price (gain > 0.5); gain is capped at 1.0 at the monopoly price, so an agent that overshoots it scores a **negative** gain. The reasoning model `qwen/qwen3-14b` reasons about the demand curve and lands near monopoly, but bills thinking tokens and takes ~1-2 min per call (a 300-round duopoly = 600 calls = many hours). The fast iteration model `openai/gpt-4.1-mini` *does* coordinate on a matching price under an explicit-collusion prompt (`--prefix PC`) — you can watch both agents converge to the same price within a few rounds — but it tends to overshoot the monopoly price, so that coordination shows up as a *negative* gain and still prints FAIL even though collusion clearly formed. To confirm the harness end-to-end quickly, watch for price convergence under `--prefix PC` rather than insisting on a PASS; for an actual PASS, budget the hours for `qwen/qwen3-14b` (or a comparable reasoning model) over the full 300 rounds.
+
 **How to launch.** The native commands (`uv run python run_game.py ...`) work as-is with just an `OPENROUTER_API_KEY` set — they route automatically. You can equivalently wrap any of them in the repo's one entry point to pin the model and let it route (see [`../COMPUTE.md`](../COMPUTE.md)):
 
 ```bash

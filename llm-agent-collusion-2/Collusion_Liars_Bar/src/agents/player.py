@@ -155,7 +155,21 @@ class Player:
             except Exception as e:
                 # Only record errors without modifying retry requests
                 print(f"Try {attempt+1} failed: {str(e)}")
-        raise RuntimeError(f"Player {self.name} 's choose_cards_to_play method filed after many attempts.")
+        # Graceful fallback after repeated unparseable/invalid LLM responses: play a single card rather
+        # than hard-raising, which would abort the whole game before a winner (small models occasionally
+        # emit empty/invalid JSON several turns in a row). Mirrors the Cleanup agent's default-action
+        # behavior so one bad seat-response doesn't crash a long game.
+        if self.hand:
+            print(f"Player {self.name}'s choose_cards_to_play failed after 5 attempts; "
+                  f"defaulting to playing one card.")
+            default_card = self.hand.pop(0)
+            result = {
+                "played_cards": [default_card],
+                "behavior": "",
+                "play_reason": "fallback: no valid LLM response after repeated attempts",
+            }
+            return result, ""
+        raise RuntimeError(f"Player {self.name}'s choose_cards_to_play failed after many attempts and has no cards to fall back on.")
 
     def decide_challenge(self,
                         round_base_info: str,

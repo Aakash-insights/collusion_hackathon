@@ -57,6 +57,11 @@ effort, agent count). The local `.env` does **not** hold API keys.
 
 ## Quick start
 
+> **Activate the venv first** (`source .venv/bin/activate`). `poseidon-run` launches the
+> `python …` command after `--` as a subprocess that resolves `python` from `PATH`, so without an
+> active venv it uses a system interpreter and fails with
+> `ModuleNotFoundError: No module named 'poseidon_compute'`.
+
 Smoke test — ~10 API calls, under a minute. Confirms the key and the model work.
 
 ```bash

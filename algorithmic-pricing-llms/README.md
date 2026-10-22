@@ -128,7 +128,7 @@ poseidon-run --model <model id> -- uv run python experiments_synthetic/duopoly.p
 
 ## Outputs
 
-Each run is a folder under `experiments_synthetic/experiments_runs/` named after its settings (e.g. `duopoly_setting_P1_mem10_seed2`), containing:
+Each run is a folder under `experiments_synthetic/experiments_runs/<n>_agents/`, named `<timestamp>_<settings>` (e.g. `2_agents/1792625342_duopoly_setting_P1_mem100_seed0`), containing:
 
 - `metadata.json` — all settings + the run summary
 - `results.json` — every answer
