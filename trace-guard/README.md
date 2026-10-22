@@ -25,18 +25,18 @@ In the Collusion Research Sprint this is the AI-control monitor baseline: a **si
 | Prerequisite | Size / time |
 | --- | --- |
 | Python >= 3.12 | — (`control-arena` >= 14.2.0 requires 3.12+) |
-| `uv pip install -e .` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
+| `uv sync` (inspect-ai + control-arena) | ~1 GB, ~1–2 min |
 | **Docker** running | BashArena builds several images on the first run (~15–20 GB, some minutes) |
 | `OPENROUTER_API_KEY` | in the repo-root `compute.env` (see `../COMPUTE.md`) — **required**: the default models are closed GPT-4o |
 
-**Install:** first create the virtual environment, then install into it:
+**Install:** create the virtual environment, then install the locked dependency set into it:
 
 ```bash
-uv venv              # creates .venv (uv-managed; skip if ./setup.sh already made one)
-uv pip install -e .  # pulls in inspect-ai + control-arena
+uv venv              # creates .venv on Python 3.12 (uv-managed; skip if ./setup.sh already made one)
+uv sync              # installs the pinned set from uv.lock (inspect-ai + control-arena)
 ```
 
-`uv pip install -e .` needs an existing environment — on a fresh checkout, running it alone fails with `error: No virtual environment found`, so run `uv venv` first (or just use `./setup.sh trace-guard`, which does both). Use `uv`, not plain `pip`: `poseidon-compute` is resolved from the local `../util` path via `[tool.uv.sources]` in `pyproject.toml`, so a bare `pip install -e .` can't find it (and the `.venv` here is uv-managed and has no `pip`). Activate the env (`source .venv/bin/activate`) before the bare-`python` commands below, or prefix them with `uv run`. The repo-root `./setup.sh trace-guard` does all of this for you.
+Use `uv sync`, **not** `uv pip install -e .`: `uv pip install` ignores `uv.lock` and re-resolves from `pyproject.toml`, which pulls a too-new `openai` (3.x) whose timeout handling breaks inspect-ai 0.3.159 — every model call then fails with `TypeError: unsupported operand type(s) for +: 'float' and 'Timeout'` (both the preflight and the eval fail). `uv sync` installs the validated versions recorded in `uv.lock` (e.g. `openai==2.29.0`), which work. `uv sync` creates the `.venv` itself if missing, so the `uv venv` step is optional. Use `uv`, not plain `pip`: `poseidon-compute` is resolved from the local `../util` path via `[tool.uv.sources]` in `pyproject.toml`, so a bare `pip install -e .` can't find it (and the `.venv` here is uv-managed and has no `pip`). Activate the env (`source .venv/bin/activate`) before the bare-`python` commands below, or prefix them with `uv run`. The repo-root `./setup.sh trace-guard` does all of this for you.
 
 **Inference config.** Keys live once in the **repo-root** `compute.env` (one level up from this folder; copy it from `../compute.env.example`):
 

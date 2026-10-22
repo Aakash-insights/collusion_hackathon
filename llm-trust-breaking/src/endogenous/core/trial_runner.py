@@ -714,7 +714,10 @@ def _build_judge_request(
         supports_structured=supports_structured,
         llm_client=llm_client,
     )
-    req["max_tokens"] = 200
+    # The judge model (openai/gpt-5-mini) is a reasoning model: a 200-token budget is entirely consumed
+    # by reasoning tokens, leaving message content empty (content=None), which crashes the JSON parse and
+    # aborts the whole run. Give it enough headroom to emit the classification JSON after reasoning.
+    req["max_tokens"] = 2000
     return req
 
 

@@ -21,7 +21,7 @@ dependencies = [
     "numpy>=1.24",
     "scikit-learn>=1.3",
     "python-dotenv>=1.0",
-    "openai>=1.0",  # required by inspect-ai's openrouter/ provider; do not rely on control-arena pulling it in
+    "openai>=2,<3",  # inspect-ai 0.3.159 needs openai 2.x; openai 3.x breaks its timeout handling ("unsupported operand +: float and Timeout"). Pin <3 so even `uv pip install` (which ignores uv.lock) can't resolve the broken 3.x.
 ]
 
 [project.optional-dependencies]

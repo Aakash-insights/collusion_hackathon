@@ -279,6 +279,6 @@ Budget for it: the 5-sample smoke test takes ~10 minutes; the full experiment 6�
 and stops at the first one missing, before anything expensive starts.
 
 ```bash
-cd trace-guard && uv pip install -e .     # inference set centrally in repo-root compute.env (OPENROUTER_API_KEY — defaults are closed GPT-4o; see COMPUTE.md)
+cd trace-guard && uv sync     # uv sync (not `uv pip install`): it uses uv.lock's pinned deps; inference set centrally in repo-root compute.env (OPENROUTER_API_KEY — defaults are closed GPT-4o; see COMPUTE.md)
 bash scripts/quickstart.sh             # checks prereqs (Docker, key, model access), builds BashArena images on first run, then a 5-sample smoke test (~10 min)
 ```
