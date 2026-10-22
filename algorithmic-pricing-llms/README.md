@@ -34,7 +34,7 @@ This project is a Master's thesis (BSE Data Science for Decision Making, 2024-20
 uv sync
 ```
 
-Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extras: `uv sync --extra analysis` (add `--extra text` for the `text_analysis_*` notebooks, which pull torch + sentence-transformers). Run the notebooks from the `notebooks/` directory — they read `../data/results/all_experiments.parquet` relative to it (Jupyter and `jupyter nbconvert` use the notebook's own folder as the working directory by default).
+Requires Python 3.11+ and [uv](https://github.com/astral-sh/uv). For the analysis notebooks, also install the analysis extra: `uv sync --extra analysis`. The `text_analysis_*` notebooks additionally pull torch + sentence-transformers — request both extras in a single command, since `uv sync --extra` only keeps the extras named in that one invocation (running `uv sync --extra text` on its own would drop the analysis tooling): `uv sync --extra analysis --extra text`. Run the notebooks from the `notebooks/` directory — they read `../data/results/all_experiments.parquet` relative to it (Jupyter and `jupyter nbconvert` use the notebook's own folder as the working directory by default).
 
 ### Inference config
 

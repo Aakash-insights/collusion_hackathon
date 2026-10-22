@@ -119,5 +119,10 @@ this copy and are available in the [upstream repository](https://github.com/Eman
 - Extra batch entry points: `bash experiments.sh` runs experiment batches;
   `src/bargaining_table/bargaining_table.py` (and `.sh`) generate bargaining-table results;
   `src/plotting/plot_bargaining_table_averages.py` plots their averages.
+- Exploratory notebook `src/bargaining_table/bargaining_agent.ipynb` steps through a single
+  bargaining agent interactively. Jupyter isn't in the base install, so run it with the `dev`
+  extra: `uv sync --extra dev` then
+  `uv run jupyter nbconvert --to notebook --execute --inplace src/bargaining_table/bargaining_agent.ipynb`
+  (or open it in `uv run jupyter lab`).
 - `pyproject.toml` / `uv.lock` are the `uv` dependency set (the install path for all local use); `requirements.txt` is kept **only** for the optional `Dockerfile` (containerized GPU repro, which pins CUDA-indexed torch);
   `Dockerfile` provides a containerized environment.

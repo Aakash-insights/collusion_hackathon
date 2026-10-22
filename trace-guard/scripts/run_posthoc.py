@@ -27,6 +27,14 @@ from dotenv import load_dotenv
 # from the current directory, which is not where the key is meant to live.
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
+# Let the repo-root compute.env (provider keys: NEBIUS_API_KEY / OPENROUTER_API_KEY, plus
+# optional LLM_MODEL) drive inspect-ai. The provider is inferred from which key is set; this
+# points inspect-ai's openai provider at that endpoint and rewrites model strings to
+# openai/<model>. Without this, scoring can't authenticate against compute.env. See
+# scripts/_provider_shim.py (run_eval.py wires it the same way).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _provider_shim
+
 from inspect_ai.log import read_eval_log
 from inspect_ai.agent import AgentState
 from inspect_ai.model import ChatMessage
@@ -313,6 +321,11 @@ def main():
 
     # Resolve model: CLI arg > INSPECT_EVAL_MODEL env var > default.
     model = args.model or os.environ.get("INSPECT_EVAL_MODEL", "openrouter/openai/gpt-4o-mini")
+
+    # Point inspect-ai at the compute.env endpoint (raises loudly if no key is set) and rewrite the
+    # model string to openai/<model> for it — same two-step run_eval.py does before scoring.
+    _provider_shim.apply()
+    model = _provider_shim.map_model(model)
 
     asyncio.run(run_posthoc(log_files, monitors, args.output_dir, args.all_monitors, model=model))
 
