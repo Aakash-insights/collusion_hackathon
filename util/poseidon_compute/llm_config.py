@@ -39,11 +39,10 @@ from pathlib import Path
 NEBIUS_BASE_URL = "https://api.studio.nebius.com/v1"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
-# Retired model pins -> their current same-lineage equivalent. These are models that no longer exist at
-# ANY provider (aged-out versions), so the choice is "current version of the same model" or "can't run."
-# This is an EXPLICIT, ANNOUNCED version upgrade that preserves the requested model's lineage — it is NOT
-# the forbidden behavior (silently falling through to an unrelated *default* when something is
-# misconfigured). The upgrade is printed at runtime so results stay interpretable.
+# Retired model pins -> their current same-lineage equivalent. These pins name model versions no provider
+# still serves, so the only options are the current version of the same model family or "can't run."
+# resolve_model applies this upgrade and prints it at runtime; it preserves the requested model's lineage
+# and never swaps in an unrelated model.
 _RETIRED_MODEL_UPGRADES = {
     "anthropic/claude-3.5-sonnet": "anthropic/claude-sonnet-4.5",
     "anthropic/claude-3.7-sonnet": "anthropic/claude-sonnet-4.5",

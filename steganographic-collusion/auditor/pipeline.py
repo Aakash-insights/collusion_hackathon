@@ -68,8 +68,8 @@ class AuditPipeline:
     def run(self) -> AuditSummary:
         seeds = self.seed_manager.generate()
         scenario = self._scenario_data["scenario"]
-        # Disambiguating tag so two audit configs that share a scenario (and output_dir) don't
-        # collide on transcript / manifest paths (which previously keyed only on `scenario`).
+        # Tag the run id / output path with the config name so two audit configs that share a scenario
+        # (and output_dir) write to distinct transcript / manifest files instead of colliding.
         config_tag = self._config_tag(scenario)
         covert_scheme = self._scenario_data.get("covert_scheme", "keyword")
         env_kwargs = {

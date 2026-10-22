@@ -108,9 +108,9 @@ class OpenRouterLLM(APIBaseLLM):
         self.base_url = os.getenv("LLM_BASE_URL") if self.provider == "custom" else preset.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'custom'")
-        # Auth is handled by make_client() below (shared compute.env, Nebius by default); it fails loudly
-        # if no key is set. Don't re-check a provider-specific var here (that would wrongly block a
-        # Nebius-only setup) and don't silently swap in a different credential source.
+        # The client authenticates with the key from the shared compute.env (via make_client() /
+        # llm_config, Nebius by default), which fails loudly if none is set. This field is only a
+        # diagnostic hint for the preset; it is not what authenticates the client.
         self.api_key = os.getenv(preset.key_env)  # diagnostics only; real key comes from llm_config
 
         effort = reasoning.strip().lower() if reasoning else None

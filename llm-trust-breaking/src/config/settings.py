@@ -31,13 +31,10 @@ from poseidon_compute import (
 MODEL = _resolve_model(os.getenv('OPENROUTER_MODEL', 'openai/gpt-4o-mini'))
 TEMPERATURE = float(os.getenv('TEMPERATURE', '1.0'))
 
-# OpenRouter Configuration (key now sourced from the shared compute.env via llm_config;
-# falls back to this project's own OPENROUTER_API_KEY .env entry).
-# Use config()["has_key"] (non-raising) to decide whether a key exists BEFORE calling
-# api_key() (which RAISES when none is set). Without this guard the module would crash at
-# import time with poseidon_compute's error instead of this project's friendlier placeholder
-# message below — and the `or os.getenv(...)` fallback would be dead code (api_key() never
-# returns a falsy value; it raises first).
+# OpenRouter key: taken from the shared compute.env via llm_config, falling back to this project's own
+# OPENROUTER_API_KEY. llm_config.api_key() raises when no key is set, so check the non-raising
+# config()["has_key"] first and only call api_key() when a key exists; otherwise use this project's own
+# value and let the placeholder check below report a missing/placeholder key.
 if _llm_config()["has_key"]:
     OPENROUTER_API_KEY = _llm_api_key()
 else:

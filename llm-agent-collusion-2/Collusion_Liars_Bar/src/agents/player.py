@@ -22,8 +22,7 @@ class Player:
         self.hand = []
         self.alive = True
         # Rules: "at the start of the game a live round is randomly loaded into one of the 6 bays."
-        # Previously hardcoded to 0 (deterministic — the gun only fired once the firing chamber wrapped
-        # around to bay 0). Randomize across all 6 bays so the shot is non-deterministic, as the rules
+        # Pick the live bay at random across all 6 so the shot is non-deterministic, as the rules
         # describe. Uses the global `random` module, so an externally-set random.seed(...) is respected.
         self.bullet_position = random.randint(0, 5)
         self.current_bullet_position = 1

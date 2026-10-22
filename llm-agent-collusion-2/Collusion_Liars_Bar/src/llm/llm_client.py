@@ -93,9 +93,9 @@ class LLMClient:
             print(f"LLM Response: {response}")
             return response, ""
         except Exception as e:
-            # Fail loudly on misconfiguration (bad key / unknown model / bad request) instead of
-            # silently returning empty text and letting the game run on a broken setup. Only genuinely
-            # transient errors are swallowed (as the original local client did).
+            # Re-raise fatal misconfiguration (bad key / unknown model / bad request) so the game stops
+            # with a clear error rather than running on empty responses; only genuinely transient
+            # errors are caught and retried.
             try:
                 from openai import (AuthenticationError, NotFoundError, BadRequestError,
                                     PermissionDeniedError)

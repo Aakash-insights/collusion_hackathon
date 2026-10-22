@@ -962,8 +962,8 @@ class CollusionAnalysis:
                             # If that fails, access as property (PanelOLS)
                             print(results.summary)
                     else:
-                        # Not a statsmodels/PanelOLS result (e.g. a plain DataFrame) — it has no
-                        # .summary(); print it directly instead of crashing on a missing method.
+                        # A plain DataFrame (not a statsmodels/PanelOLS result) has no .summary(),
+                        # so print it directly.
                         print(results)
 
         # Print key statistics

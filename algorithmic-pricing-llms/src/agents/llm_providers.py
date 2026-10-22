@@ -127,9 +127,9 @@ class OpenAICompatibleProvider(Provider):
         self.base_url = base_url or os.getenv("LLM_BASE_URL") or p.base_url
         if not self.base_url:
             raise ValueError("LLM_BASE_URL must be set for provider 'openai-compatible'")
-        # Auth is handled by make_client() below (shared compute.env, Nebius by default); it fails loudly
-        # if no key is set. Don't re-check a provider-specific var here (that would wrongly block a
-        # Nebius-only setup) and don't silently swap in a different credential source.
+        # The client authenticates with the key from the shared compute.env (via make_client() /
+        # llm_config, Nebius by default), which fails loudly if none is set. This field is only a
+        # diagnostic hint for the preset; it is not what authenticates the client.
         self.api_key = api_key or os.getenv(p.key_env)  # diagnostics only; real key comes from llm_config
         # Route the explicit --model / MODEL_NAME through resolve_model too (not just the preset
         # default), so the LLM_MODEL override, retired-pin upgrades and OpenRouter id-casing apply to it.
