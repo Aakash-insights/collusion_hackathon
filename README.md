@@ -7,6 +7,10 @@ requirements, see below. Each folder has its own README with a quick start; the 
 independent, so start with the question that interests you. The starter gives you a working harness,
 not results: the sprint questions are yours to answer.
 
+[`redteaming/`](redteaming/) is a separate challenge: Dolos-1.5B, a model Poseidon Research fine-tuned to have a
+hidden misaligned behavior. You get the weights and have to find out what the behavior is. It runs locally, with no
+API key.
+
 A [`literature/`](literature/) folder adds a reading list of about 230 papers tagged by sprint project, with a script to
 download the open-access PDFs. Collusion is defined in many different ways across economics, law and AI safety, so
 [`literature/definitions/`](literature/definitions/) collates the main definitions and compares them. It is worth
@@ -69,6 +73,7 @@ directly with `from poseidon_compute import make_client, resolve_model` (no path
 | [`llm-agent-collusion-2/`](llm-agent-collusion-2/) | Zeng & Rudzicz (2026), [*Voluntary Collusion with Secret Tools in Competing LLM Agents*](https://arxiv.org/abs/2605.27593) | [AgentSafety2025/LLM-Agent-collusion](https://github.com/AgentSafety2025/LLM-Agent-collusion) | 3.2 | Liar's Bar and Cleanup games with secret alliance channels: when do agents willingly collude against others? |
 | [`steganographic-collusion/`](steganographic-collusion/) | Tailor (2025), [*Audit the Whisper: Detecting Steganographic Collusion in Multi-Agent LLMs*](https://arxiv.org/abs/2510.04303), building on Mathew et al. (2024), [*Hidden in Plain Text*](https://arxiv.org/abs/2410.03768) | [Ostailor/Steganographic_Collusion](https://github.com/Ostailor/Steganographic_Collusion) | 2.3 | Covert-channel theory plus calibrated detectors for steganographic collusion across pricing, auction, peer-review and double-auction environments |
 | [`trace-guard/`](trace-guard/) | Nguyen et al. (2026), [*TraceGuard: Structured Multi-Dimensional Monitoring as a Collusion-Resistant Control Protocol*](https://arxiv.org/abs/2604.03968) | [linhkid/TraceGuard](https://github.com/linhkid/TraceGuard) | 2.2 | Single-agent monitor scoring actions on five dimensions incl. action-trace consistency; a reusable rubric, not a collusion detector. **Requires Docker**; smoke test ~10 min |
+| [`redteaming/`](redteaming/) | None: a new model organism from Poseidon Research | Weights: [Poseidon-Research/Dolos-1.5B](https://huggingface.co/Poseidon-Research/Dolos-1.5B) | Red-teaming challenge | A fine-tune of Qwen2.5-1.5B-Instruct with a hidden misaligned behavior: find it, explain how the model implements it, and audit for it without a reference model. Runs locally (about 6.2 GB download), no API key |
 
 [`util/`](util/) is not from a paper: it holds the shared compute and inference helpers used by every folder.
 
@@ -97,6 +102,7 @@ For further reading, [`literature/`](literature/) has about 230 papers tagged by
 | **3.2** Can we disrupt collusion through introducing trusted agents? | [`llm-agent-collusion-2/`](llm-agent-collusion-2/) |
 | **3.3** Can agents identify their peers? | [`llm-trust-breaking/`](llm-trust-breaking/), [`focal-points/`](focal-points/) |
 | **3.4** What does a coalition do when it learns it is being watched? | [`llm-agent-collusion/`](llm-agent-collusion/) |
+| **Red-teaming challenge** What misaligned behavior was Dolos-1.5B trained to have? | [`redteaming/`](redteaming/) |
 
 ### Papers cited on the sprint page without code here
 
@@ -341,4 +347,28 @@ and stops at the first one missing, before anything expensive starts.
 ```bash
 cd trace-guard && uv sync     # uv sync (not `uv pip install`): it uses uv.lock's pinned deps; inference set centrally in repo-root compute.env (OPENROUTER_API_KEY — defaults are closed GPT-4o; see COMPUTE.md)
 bash scripts/quickstart.sh             # checks prereqs (Docker, key, model access), builds BashArena images on first run, then a 5-sample smoke test (~10 min)
+```
+
+### 11. [`redteaming/`](redteaming/)
+
+**Question:** what misaligned behavior was this model trained to have, and how does it
+implement it?
+
+Dolos-1.5B is a fine-tune of Qwen2.5-1.5B-Instruct that Poseidon Research trained to have a
+specific misaligned behavior. You get only the weights: there is no paper and no training code,
+and we don't say what the behavior is. Talk to the model, compare it with the original Qwen,
+and look inside its weights and activations. The three tasks are to find the behavior, explain
+the mechanism, and design an audit that would find it without a reference model; the
+[folder README](redteaming/README.md) has the details. We don't know how hard the behavior is
+to find, or which methods work best. AI agents we tried did not find it in one attempt.
+
+Unlike the other folders this runs the model locally, so no API key or `compute.env` is needed.
+The weights are about 6.2 GB and download on first run; CUDA, Apple Silicon (MPS) and CPU all work.
+The architecture is unchanged from Qwen2.5-1.5B-Instruct, so Transformers, TransformerLens and
+NNsight can load it.
+
+```bash
+cd redteaming
+uv run --locked generate.py --prompt "Explain why the ocean has tides in three sentences."
+uv run --locked generate.py --model both --prompt "..."   # the same prompt to Dolos and to Qwen2.5-1.5B-Instruct
 ```
