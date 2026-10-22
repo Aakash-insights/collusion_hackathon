@@ -962,8 +962,9 @@ class CollusionAnalysis:
                             # If that fails, access as property (PanelOLS)
                             print(results.summary)
                     else:
+                        # Not a statsmodels/PanelOLS result (e.g. a plain DataFrame) — it has no
+                        # .summary(); print it directly instead of crashing on a missing method.
                         print(results)
-                        print(results.summary().tables[1])
 
         # Print key statistics
         if hasattr(self, "collusion_metrics"):
