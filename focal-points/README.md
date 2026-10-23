@@ -17,11 +17,11 @@ the focal point is.
 In the Collusion Research Sprint this is the cheap *benign* control — agents converging on the
 same answer **without** any communication or agreement. Use it as:
 
-- **Replacement (1.4):** the convention-recovery baseline when a participant is replaced — does a
+- **Replacement (1.2):** the convention-recovery baseline when a participant is replaced — does a
   "newcomer" model land on the same focal point?
-- **Detector calibration (2.1):** the negative example for detectors — the `results/` counts are
+- **Detector calibration (1.3):** the negative example for detectors — the `results/` counts are
   agreement-without-communication, which a collusion detector should score low.
-- **Swap detection (3.2):** the cheap convention task for swap detection — alternate two models over
+- **Swap detection (3.3):** the cheap convention task for swap detection — alternate two models over
   a sequence of prompts and check whether the distribution shift is detectable.
 
 ## Setup

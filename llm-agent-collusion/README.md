@@ -8,8 +8,9 @@ Five LLM sellers and six LLM buyers trade one lot per hour in a continuous doubl
 auction; the paper asks whether the sellers coordinate to keep prices high and what
 (communication, oversight, pressure, model mix) makes that more or less likely.
 
-Collusion Research Sprint projects **2.1** (detecting coordination: same-model vs
-cross-model sellers × communication on/off), **3.3** (which restriction removes the most
+Collusion Research Sprint projects **1.3** (detecting coordination: same-model vs
+cross-model sellers × communication on/off), **1.4** (information-theoretic detection; this
+repo supplies the environment, not the method), **1.5** (which restriction removes the most
 collusion at the least cost), and **3.4** (what a coalition does when it is only partially
 watched). The defaults are the brief's cheap starting point (**3 sellers, 3 buyers, 15
 rounds, 1 seed = 90 calls**); the brief's manipulated variables are command-line flags.

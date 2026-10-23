@@ -14,3 +14,6 @@ __pycache__/
 
 # central hackathon compute config (keys)
 compute.env
+
+# papers downloaded by literature/fetch_papers.py
+literature/pdfs/

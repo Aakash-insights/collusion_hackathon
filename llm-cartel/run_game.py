@@ -1,8 +1,8 @@
 """
 Laptop-scale Bertrand pricing game against low-cost API models.
 
-Sprint project 1.2 ("which variables are necessary for collusion?") and the base
-runs for project 1.4 (replacement robustness, see branch_game.py) start here.
+Sprint project 1.1 ("which variables are necessary for collusion?") and the base
+runs for project 1.2 (replacement robustness, see branch_game.py) start here.
 
     python run_game.py --rounds 30                          # smoke test, 60 calls
     python run_game.py                                      # positive control: P0, 300 rounds, seed 0

@@ -15,10 +15,10 @@
 
 This repository reproduces experiments from the ICML 2026 paper above: price-competition experiments for the Bertrand game that test collusive behavior in LLM reasoning models across different prompting styles and with activation steering. It is the home for two Collusion Research Sprint projects:
 
-- **Project 1.2 – which variables are necessary for collusion?** (`run_game.py`)
-- **Project 1.4 – is formed collusion robust to replacing participants?** (`branch_game.py`)
+- **Project 1.1 – which variables are necessary for collusion?** (`run_game.py`)
+- **Project 1.2 – is formed collusion robust to replacing participants?** (`branch_game.py`)
 
-The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-hosted judge models. For the sprint this repo adds a **CPU-only harness** that keeps the same market, prompts, and output format but reaches the models through the shared inference config. The original GPU scripts are untouched and documented under [Running experiments](#running-experiments); you do not need them for 1.2 / 1.4.
+The paper's experiments ran DeepSeek-R1 distills through vLLM on GPUs, with GPU-hosted judge models. For the sprint this repo adds a **CPU-only harness** that keeps the same market, prompts, and output format but reaches the models through the shared inference config. The original GPU scripts are untouched and documented under [Running experiments](#running-experiments); you do not need them for 1.1 / 1.2.
 
 ## Setup
 
@@ -75,7 +75,7 @@ Specify the model **once**: `run_game.py` falls back to the `LLM_MODEL` env var 
 
 ## Running experiments
 
-### Project 1.2 – which variables are necessary for collusion? (`run_game.py`)
+### Project 1.1 – which variables are necessary for collusion? (`run_game.py`)
 
 ```bash
 uv run python run_game.py --models qwen/qwen3-14b --rounds 30   # smoke test, 60 calls
@@ -91,7 +91,7 @@ uv run python run_game.py --models qwen/qwen3-14b,openai/gpt-4.1-mini   # two di
 uv run python run_game.py --seeds 0 1 2               # expand seeds once the control passes
 ```
 
-### Project 1.4 – is formed collusion robust to replacing participants? (`branch_game.py`)
+### Project 1.2 – is formed collusion robust to replacing participants? (`branch_game.py`)
 
 `$RUN` must be a run that **actually formed collusion** (its summary printed `positive control: PASS`), because by default `branch_game.py` branches at the first round where the 20-round rolling market gain exceeds 0.5. If the run never crossed that threshold the script exits with `market gain never exceeded 0.5 over 20 rounds; use --at_round or a lower --threshold` — pass `--at_round N` to branch at an explicit round instead, or `--threshold T` to lower the detection bar.
 
@@ -173,7 +173,7 @@ The `price_scale` parameter (alpha) scales the price space in the Bertrand compe
 
 ### GPU scripts (original, paper-faithful)
 
-These require the `[gpu]` / `[steering]` extras and a GPU; they are not needed for projects 1.2 / 1.4.
+These require the `[gpu]` / `[steering]` extras and a GPU; they are not needed for projects 1.1 / 1.2.
 
 #### environment/
 

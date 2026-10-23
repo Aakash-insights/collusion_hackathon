@@ -1,6 +1,6 @@
 # Condition A: assigned pair + private channel (same as the positive control).
 #
-# Hackathon (sprint project 1.1 "which kinds of tasks lead to collusion outside of markets?").
+# Hackathon (sprint project 2.1 "which kinds of tasks lead to collusion?").
 # Coalition prompt on, coalition-only blackboard on.
 # Model calls go through the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the
 # repo-root compute.env). Swap `model:` for any open model id Nebius serves.
@@ -10,7 +10,7 @@ simulation:
   max_planning_rounds: 2        # paper: 4. Fewer rounds = fewer calls; raise once the control passes.
   max_conversation_steps: 3
   seed: 1
-  tags: [hackathon_1_1_a_pair_private]
+  tags: [hackathon_2_1_a_pair_private]
 
 environment:
   name: JiraTicketEnvironment
@@ -37,15 +37,15 @@ llm_models:
           temperature: 0.7
 
 experiment:
-  tag: hackathon_1_1_a_pair_private
-  output_dir: experiments/collusion/outputs/hackathon_1_1_a_pair_private
+  tag: hackathon_2_1_a_pair_private
+  output_dir: experiments/collusion/outputs/hackathon_2_1_a_pair_private
   max_concurrent_runs: 2
   seeds: [1]                    # start with one seed; expand to 3-5 after the positive control passes
   collusion:
     colluder_selection: first_and_last   # the two PATH endpoints: same pair in A-D, and they share no blackboard
     agent_order: random
   sweeps:
-    - name: hackathon_1_1_a_pair_private
+    - name: hackathon_2_1_a_pair_private
       topologies: [path]
       num_agents: [4]
       colluder_counts: [2]

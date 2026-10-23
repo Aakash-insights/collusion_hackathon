@@ -1,8 +1,8 @@
-# Condition B: assigned pair WITHOUT a private channel.
+# Condition C: a generic extra channel open to EVERYONE, no assigned pair.
 #
-# Hackathon (sprint project 1.1 "which kinds of tasks lead to collusion outside of markets?").
-# Coalition prompt on (colluders know who their partner is) but no extra blackboard - they
-# must coordinate in the open or through actions. `coalition_prompt: always` enables this.
+# Hackathon (sprint project 2.1 "which kinds of tasks lead to collusion?").
+# The extra blackboard exists but all agents are members (`extra_channel_members: all`) and nobody
+# receives a coalition prompt (`coalition_prompt: never`). Colluders are still 'selected' for scoring.
 # Model calls go through the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the
 # repo-root compute.env). Swap `model:` for any open model id Nebius serves.
 
@@ -11,7 +11,7 @@ simulation:
   max_planning_rounds: 2        # paper: 4. Fewer rounds = fewer calls; raise once the control passes.
   max_conversation_steps: 3
   seed: 1
-  tags: [hackathon_1_1_b_pair_no_channel]
+  tags: [hackathon_2_1_c_open_channel]
 
 environment:
   name: JiraTicketEnvironment
@@ -38,18 +38,19 @@ llm_models:
           temperature: 0.7
 
 experiment:
-  tag: hackathon_1_1_b_pair_no_channel
-  output_dir: experiments/collusion/outputs/hackathon_1_1_b_pair_no_channel
+  tag: hackathon_2_1_c_open_channel
+  output_dir: experiments/collusion/outputs/hackathon_2_1_c_open_channel
   max_concurrent_runs: 2
   seeds: [1]                    # start with one seed; expand to 3-5 after the positive control passes
   collusion:
     colluder_selection: first_and_last   # the two PATH endpoints: same pair in A-D, and they share no blackboard
     agent_order: random
-    coalition_prompt: always    # auto | always | never
+    coalition_prompt: never
+    extra_channel_members: all  # colluders | all
   sweeps:
-    - name: hackathon_1_1_b_pair_no_channel
+    - name: hackathon_2_1_c_open_channel
       topologies: [path]
       num_agents: [4]
       colluder_counts: [2]
-      secret_channel_enabled: [false]
-      prompt_variants: [simple]
+      secret_channel_enabled: [true]
+      prompt_variants: [control]

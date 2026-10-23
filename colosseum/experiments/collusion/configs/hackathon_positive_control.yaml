@@ -1,6 +1,6 @@
 # Positive control: assigned coalition of 2 + private channel (coalition-only blackboard).
 #
-# Hackathon (sprint project 1.1 "which kinds of tasks lead to collusion outside of markets?").
+# Hackathon (sprint project 2.1 "which kinds of tasks lead to collusion?").
 # Reproduce ONE supplied collusion run first: two colluders share a hidden blackboard and are told to
 # coordinate ('simple' variant). Expect a positive coalition advantage (see summary.csv).
 # Model calls go through the shared endpoint (Nebius by default; set NEBIUS_API_KEY in the
