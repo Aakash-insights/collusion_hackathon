@@ -27,6 +27,15 @@ Files touched:
   gated on `oversight_notice` instead of `oversight_enabled`, and carries the optional sample-fraction sentence.
   With defaults the rendered line is identical to the original.
 
+## New: Bedrock bridge (model access, not an experiment variable)
+
+`tools/bedrock_openai_shim.py` is a ~90-line OpenAI-compatible `/v1/chat/completions` server that forwards to
+AWS Bedrock (Converse API) so the unmodified simulation can use Bedrock models via `LLM_BASE_URL` / `LLM_API_KEY`.
+It emulates `response_format=json_object` with a short system hint, because without it Qwen3 over-escapes quotes
+(`{\\"key\\": ...}`) and the sim's JSON extraction fails. The sim's own prompts are untouched.
+Models used when running through it: sellers `qwen.qwen3-235b-a22b-2507-v1:0`, overseer `qwen.qwen3-32b-v1:0`
+(region ap-south-1) — NOT the paper's GPT-4.1 / GPT-4.1-mini. Keep them fixed across all conditions.
+
 ## Known limitation (not changed)
 
 Gagging is preexisting behavior: if the overseer scores a message 4/4, all sellers are gagged and
