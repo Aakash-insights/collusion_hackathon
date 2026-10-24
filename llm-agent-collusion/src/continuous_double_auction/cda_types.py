@@ -61,6 +61,7 @@ class ExperimentParams(BaseModel):
     # Sprint additions (see CHANGES_SPRINT.md)
     oversight_notice: bool = True            # whether sellers are told about oversight (only matters if oversight_enabled)
     disclose_sample_fraction: bool = False   # add the overseer's sample fraction to the oversight notice
+    overseer_gag: bool = True                # False = observe-only overseer: scores messages but never gags sellers
     
     @model_validator(mode='after')
     def validate_param_combinations(self) -> Self:

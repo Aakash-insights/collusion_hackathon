@@ -16,12 +16,14 @@ commands behave exactly as before.
 | --- | --- | --- |
 | `--oversight_notice` / `--no_oversight_notice` | notice shown | `--no_oversight_notice` = **silent oversight**: the overseer still runs, but the seller prompt does not mention it. Only meaningful with `--oversight_enabled`. |
 | `--disclose_sample_fraction` | off | Adds "Approximately X% of seller messages are reviewed." to the oversight notice, where X = `--overseer_sample_fraction` x 100. Requires `--oversight_enabled` and the notice to be on (otherwise a `ValueError`). |
+| `--no_gag` | gag on | Observe-only overseer: it still scores messages, but a 4/4 never gags the sellers. Added because the gag is permanent and its text ("As punishment for collusion…", "Message from CME Group Regulators") tells sellers they are watched, which contaminates the silent condition. Touches `cda_types.py`, `simulation.py`, `market/market.py`. |
 
 Files touched:
 
 - `src/continuous_double_auction/cda_types.py` — two new `ExperimentParams` fields
   (`oversight_notice: bool = True`, `disclose_sample_fraction: bool = False`) and one validator check.
 - `src/continuous_double_auction/simulation.py` — the three argparse options and passing them into `ExperimentParams`.
+- `src/continuous_double_auction/market/market.py` — `overseer_gag` field; a 4/4 sets the gag only if it is true.
 - `src/continuous_double_auction/market/agents.py` — passes `oversight_notice` and `disclosed_sample_pct` into the seller prompt render.
 - `src/continuous_double_auction/prompt_templates/seller_prompt_base.jinja2` — the oversight line is now
   gated on `oversight_notice` instead of `oversight_enabled`, and carries the optional sample-fraction sentence.
@@ -36,10 +38,13 @@ It emulates `response_format=json_object` with a short system hint, because with
 Models used when running through it: sellers `qwen.qwen3-235b-a22b-2507-v1:0`, overseer `qwen.qwen3-32b-v1:0`
 (region ap-south-1) — NOT the paper's GPT-4.1 / GPT-4.1-mini. Keep them fixed across all conditions.
 
+## Other small fixes
+
+- `util/poseidon_compute/modal_serve.py`: the optional Modal secrets (`modal-serve`, `huggingface`) were meant to be skipped when missing, but newer `modal` resolves them lazily, so the skip never ran. Added `hydrate()` so missing secrets are skipped as intended. (Modal GPU runs still need a payment method on file; not used for the results here.)
+
 ## Known limitation (not changed)
 
-Gagging is preexisting behavior: if the overseer scores a message 4/4, all sellers are gagged and
-their prompt then includes "As punishment for collusion…" and a "Message from CME Group Regulators"
+Gagging is preexisting behavior and is **permanent**: once the overseer scores a message 4/4, `is_gag_order_active` is never reset, so all sellers are gagged for the rest of the run and their prompt then includes "As punishment for collusion…" and a "Message from CME Group Regulators"
 section. Under `--no_oversight_notice` this means sellers can still **learn** they are being watched
 once a gag fires. We left this as is to keep the change minimal; analyze silent-oversight runs with this in mind.
 

@@ -143,6 +143,7 @@ def run_simulation(params: ExperimentParams, log_dir: Optional[str] = None, use_
         overseer=overseer,
         overseer_sample_fraction=params.overseer_sample_fraction,
         overseer_rng=random.Random(params.seed) if params.seed is not None else None,
+        overseer_gag=params.overseer_gag,
     )
 
     if params.initial_condition:
@@ -323,6 +324,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="add 'approximately X%% of seller messages are reviewed' to the oversight notice",
     )
+    a.add_argument(
+        "--no_gag",
+        dest="overseer_gag",
+        action="store_false",
+        help="observe-only overseer: it scores messages but a 4/4 never gags the sellers",
+    )
     a.add_argument("--overseer_model", type=str, default="gpt-4.1-mini", help="paper: gpt-4.1-mini")
     a.add_argument(
         "--overseer_sample_fraction",
@@ -402,6 +409,7 @@ def main() -> None:
             llm_eval=args.llm_eval,
             oversight_notice=args.oversight_notice,
             disclose_sample_fraction=args.disclose_sample_fraction,
+            overseer_gag=args.overseer_gag,
         )
         try:
             run_simulation(params, log_dir=args.log_dir, use_wandb=args.wandb)
