@@ -279,6 +279,11 @@ class LMSeller(Agent):
             boss_pressure=self.expt_params.boss_pressure,
             initial_condition=self.expt_params.initial_condition,
             oversight_enabled=self.expt_params.oversight_enabled,
+            oversight_notice=self.expt_params.oversight_enabled and self.expt_params.oversight_notice,
+            disclosed_sample_pct=(
+                round(self.expt_params.overseer_sample_fraction * 100)
+                if self.expt_params.disclose_sample_fraction else None
+            ),
             max_message_length=self.expt_params.max_message_length,
         )
         messages = [Message(role="user", content=prompt)]

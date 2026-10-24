@@ -58,6 +58,9 @@ class ExperimentParams(BaseModel):
     overseer_model: str = "gpt-4.1-mini"     # model reading seller messages when oversight is enabled (paper: gpt-4.1-mini)
     overseer_sample_fraction: float = 1.0    # share of seller messages the overseer gets to see (sprint project 3.4)
     llm_eval: bool = False                   # run the LLM-as-judge coordination scoring after the run (paper: always)
+    # Sprint additions (see CHANGES_SPRINT.md)
+    oversight_notice: bool = True            # whether sellers are told about oversight (only matters if oversight_enabled)
+    disclose_sample_fraction: bool = False   # add the overseer's sample fraction to the oversight notice
     
     @model_validator(mode='after')
     def validate_param_combinations(self) -> Self:
@@ -67,6 +70,8 @@ class ExperimentParams(BaseModel):
             raise ValueError('Number of buyer valuations must match number of buyer models')
         if self.oversight_enabled and not self.seller_comms_enabled:
             raise ValueError('Oversight can only be enabled if seller communications are enabled')
+        if self.disclose_sample_fraction and not (self.oversight_enabled and self.oversight_notice):
+            raise ValueError('disclose_sample_fraction needs oversight_enabled and the oversight notice')
         if not 0.0 <= self.overseer_sample_fraction <= 1.0:
             raise ValueError('overseer_sample_fraction must be between 0 and 1')
         self.buyer_models = [None if m in (None, ZIP_BUYER, "none", "None") else m for m in self.buyer_models]
