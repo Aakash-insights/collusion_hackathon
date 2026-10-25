@@ -95,6 +95,9 @@ class OpenRouterClient(ModelWrapper):
         self.model_name = resolve_model(model_name)
         self.client = make_client(timeout=120)
         self.is_remote = "localhost" not in str(self.client.base_url) and "127.0.0.1" not in str(self.client.base_url)
+        # Opt-in: e.g. LLM_REASONING_EFFORT=none disables thinking for local reasoning models (qwen3 on Ollama)
+        if os.environ.get("LLM_REASONING_EFFORT"):
+            self.additional_params.setdefault("reasoning_effort", os.environ["LLM_REASONING_EFFORT"])
 
     def generate(self, messages: List[Message]) -> Optional[str]:
         params = dict(self.additional_params)
@@ -127,7 +130,11 @@ class OpenRouterClient(ModelWrapper):
                 if attempt == self.max_retries - 1:
                     logger.error(f"Failed after {self.max_retries} attempts: {e}")
                     return None
-                self._exponential_backoff(attempt)
+                # Opt-in: e.g. LLM_RATE_LIMIT_WAIT=30 waits out per-minute rate limits (429) instead of failing
+                if getattr(e, "status_code", None) == 429 and os.environ.get("LLM_RATE_LIMIT_WAIT"):
+                    time.sleep(float(os.environ["LLM_RATE_LIMIT_WAIT"]))
+                else:
+                    self._exponential_backoff(attempt)
         return None
 
 

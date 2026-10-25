@@ -351,7 +351,18 @@ context (`qwen3-14b-16k` = `qwen3:14b` + `num_ctx 16384`).
 9. `--no_oversight_notice` hides only the oversight notice; the gag message still mentions
    regulators, so a silent overseer that gags is not silent.
 
-## Code changes used (local, not part of this folder)
+## Code changes used
+
+All code changes are now on the `sprint-merged` branch and documented in `../CHANGES_SPRINT.md`.
+
+**Run provenance.** Every run in this folder was made **before** the queue-snapshot fix (commit `75d3e9d`,
+"Give agents a snapshot of the order queues, not the live lists"). Without it, agents that answered first could
+change the ask/bid queue that slower agents in the same round saw. This may explain moments where a seller
+reasoned that a rival's ask was "absent" (e.g. section 6's apparent ladder-following). Rerun with the fix
+before drawing fine-grained conclusions. Also newly available: `--no_gag` (observe-only overseer), which fixes
+the silent-overseer contamination noted in section 7.
+
+Changes made for these runs:
 
 - `simulation.py`: new flag `--initial_seller_ask_center` (default 97.5 = unchanged behaviour).
 - `prompt_templates/seller_prompt_no_trade_pressure.jinja2`: base seller prompt minus line 13.
@@ -364,8 +375,10 @@ context (`qwen3-14b-16k` = `qwen3:14b` + `num_ctx 16384`).
 - `simulation.py`: new flag `--initial_buyer_bid_center` (default 82.5 = unchanged behaviour).
 - `evaluation/metrics.py`: `competitive_equilibrium` accounts for excluded traders (see Caveat 7);
   `evaluation/evaluate.py`: `price_range_norm` defaults to 1.0 when competitive = cartel price.
-- `--no_oversight_notice` / `--disclose_sample_fraction`: merged from the repo's
-  `feature/oversight-notice-flags` branch (commit `a7a879e`), not written here.
+- `--no_oversight_notice` / `--disclose_sample_fraction`: from the `feature/oversight-notice-flags` branch
+  (commit `a7a879e`), not written here. `--initial_seller_ask_center` / `--initial_buyer_bid_center` were
+  written independently on both branches with the same names and defaults; the merged branch keeps that
+  branch's version (commit `e3a7d74`).
 - `resources/model_wrappers.py`: opt-in `LLM_REASONING_EFFORT` (sent as `reasoning_effort`, used for
   local Qwen3) and `LLM_RATE_LIMIT_WAIT` (wait N s on HTTP 429 instead of exponential backoff —
   OpenRouter limits new accounts to 20 req/min per model). Both do nothing unless set.

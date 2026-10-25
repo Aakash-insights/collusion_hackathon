@@ -19,6 +19,7 @@ MODEL_ALIASES: Dict[str, str] = {
 SUPPORTED_MODELS = list(MODEL_ALIASES)  # aliases; see resolve_model()
 DEFAULT_MODEL = "gpt-4.1"
 ZIP_BUYER = "zip"  # rule-based buyer, no model call
+LADDER_SELLER = "ladder"  # scripted price-leader seller, no model call
 
 Model = str
 

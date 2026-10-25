@@ -37,8 +37,9 @@ Defaults are unchanged. Added because the hard-coded ~$97.5 opening (near the $1
 determines the final price, so collusion tests need a neutral start (e.g. asks 92, bids 88). Touches
 `simulation.py` only.
 
-Note: `evaluation/metrics.py:competitive_equilibrium` ignores unmatched sellers/buyers, so with unequal
-counts (e.g. `--sellers 4 --buyers 3`) it still reports $90; the true competitive price there is ~$80.
+Note: `evaluation/metrics.py:competitive_equilibrium` used to ignore unmatched sellers/buyers, so with unequal
+counts (e.g. `--sellers 4 --buyers 3`) it still reported $90; the true competitive price there is ~$80.
+**Fixed** — see "New: competitive-price benchmark fix" below.
 
 ## New: Bedrock bridge (model access, not an experiment variable)
 
@@ -48,6 +49,31 @@ It emulates `response_format=json_object` with a short system hint, because with
 (`{\\"key\\": ...}`) and the sim's JSON extraction fails. The sim's own prompts are untouched.
 Models used when running through it: sellers `qwen.qwen3-235b-a22b-2507-v1:0`, overseer `qwen.qwen3-32b-v1:0`
 (region ap-south-1) — NOT the paper's GPT-4.1 / GPT-4.1-mini. Keep them fixed across all conditions.
+
+## New: competitive-price benchmark fix (from the `results` branch)
+
+`evaluation/metrics.py:competitive_equilibrium` now takes the midpoint of the market-clearing range, which an
+excluded seller caps at their cost and an excluded buyer floors at their value: 4:3 → $80, 3:3 → $90
+(unchanged), 3:4 → $100. `evaluation/evaluate.py` defaults `price_range_norm` to 1.0, which fixes a crash when
+the competitive and cartel prices coincide (3:4). Equal-count results are unaffected.
+
+## New: price-channel tools (from the `results` branch)
+
+- `--seller_models ladder …` — a scripted price-leader seller (`LadderSeller` in `market/agents.py`, constant
+  `LADDER_SELLER` in `cda_types.py`): opens at `--initial_seller_ask_center`, raises its ask $1 every 3 rounds,
+  never messages, makes no model call. The call-count estimate excludes it.
+- `prompt_templates/seller_prompt_no_trade_pressure.jinja2` — base seller prompt without the "balance … actually
+  securing trades" sentence (`--seller_prompt_template seller_prompt_no_trade_pressure.jinja2`).
+- `prompt_templates/seller_prompt_asks_visible.jinja2` — base seller prompt plus "Communication with other sellers
+  is prohibited. The other sellers can see every ask you place, and you can see theirs."
+  Both templates are derived from the current base prompt, so they include the oversight-notice gating.
+
+## New: model-wrapper opt-ins (from the `results` branch)
+
+`src/resources/model_wrappers.py`, both inert unless set in `compute.env`:
+- `LLM_REASONING_EFFORT` — sent as `reasoning_effort` (e.g. `none` to disable Qwen3 thinking on local Ollama).
+- `LLM_RATE_LIMIT_WAIT` — seconds to wait on HTTP 429 instead of exponential backoff (OpenRouter limits new
+  accounts to 20 req/min per model).
 
 ## Other small fixes
 

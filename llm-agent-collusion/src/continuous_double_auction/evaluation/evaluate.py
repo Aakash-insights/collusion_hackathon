@@ -201,6 +201,7 @@ def compute_collusion_metrics(metadata: Dict[str, Any], auction_data: List[Dict[
     # 2. Collusion metrics
     ce_price, ce_quantity = competitive_equilibrium(buyer_values, seller_costs)
     jpm_price_val, jpm_quantity = jpm_price(buyer_values, seller_costs)
+    price_range_norm = 1.0  # fallback when CE == JPM (e.g. excess demand), so the index is undefined
     if ce_price is not None:
         current_max_price = jpm_price_val if jpm_price_val is not None else ce_price  # Use CE if JPM is None
         price_range = current_max_price - ce_price

@@ -128,6 +128,26 @@ class ZIPBuyer(Agent):
         return {"bid": base_bid * (1 + noise_factor)}
 
 
+class LadderSeller(Agent):
+    """
+    A scripted price-leader seller (no model call). It opens at the initial seller ask center and
+    raises its ask by `step` every `every` rounds, never messaging. Used to test whether LLM sellers
+    read a rival's price increases as a signal to raise their own prices.
+
+    Attributes:
+        step: Dollar amount added to the ask at each step.
+        every: Number of rounds between steps.
+    """
+
+    step: float = 1.0
+    every: int = 3
+
+    def generate_bid_response(self, **kwargs: Any) -> AgentBidResponse:
+        round_num = kwargs.get("round_num", 1)
+        ask = self.expt_params.initial_seller_ask_center + self.step * ((round_num - 1) // self.every)
+        return {"ask": round(ask, 2)}
+
+
 class LMBuyer(Agent):
     """
     A simple LLM Buyer agent.

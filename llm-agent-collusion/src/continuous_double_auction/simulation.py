@@ -35,6 +35,7 @@ from tqdm import tqdm
 from src.continuous_double_auction.cda_types import (
     DEFAULT_MODEL,
     MODEL_ALIASES,
+    LADDER_SELLER,
     ZIP_BUYER,
     ExperimentParams,
     resolve_model,
@@ -45,7 +46,7 @@ from src.continuous_double_auction.identities import (
     get_random_buyer_company_names,
     get_random_seller_company_names,
 )
-from src.continuous_double_auction.market.agents import LMBuyer, LMSeller, MessageOverseer, ZIPBuyer
+from src.continuous_double_auction.market.agents import LadderSeller, LMBuyer, LMSeller, MessageOverseer, ZIPBuyer
 from src.continuous_double_auction.market.market import Market
 from src.continuous_double_auction.util.logging_util import ExperimentLogger
 from src.continuous_double_auction.util.misc import get_client, initialize_market
@@ -114,7 +115,14 @@ def run_simulation(params: ExperimentParams, log_dir: Optional[str] = None, use_
             )
 
     sellers = [
-        LMSeller(
+        LadderSeller(
+            id=f"Seller {seller_names[i]}",
+            company=seller_companies[i],
+            valuation=params.seller_valuations[i],
+            expt_params=params,
+        )
+        if params.seller_models[i] == LADDER_SELLER
+        else LMSeller(
             id=f"Seller {seller_names[i]}",
             company=seller_companies[i],
             valuation=params.seller_valuations[i],
@@ -128,7 +136,7 @@ def run_simulation(params: ExperimentParams, log_dir: Optional[str] = None, use_
     logger.metadata["buyer_ids"] = [buyer.id for buyer in buyers]
     logger.metadata["seller_ids"] = [seller.id for seller in sellers]
     logger.metadata["resolved_models"] = {
-        "sellers": [effective_model(m) for m in params.seller_models],
+        "sellers": [m if m == LADDER_SELLER else effective_model(m) for m in params.seller_models],
         "buyers": [effective_model(m) if m else ZIP_BUYER for m in params.buyer_models],
         "overseer": effective_model(params.overseer_model) if params.oversight_enabled else None,
     }
@@ -289,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         nargs="+",
         default=[DEFAULT_MODEL],
-        help=f"one for all sellers or one per seller. Aliases: {', '.join(MODEL_ALIASES)}",
+        help=f"one for all sellers or one per seller; 'ladder' = scripted price leader (no model call). Aliases: {', '.join(MODEL_ALIASES)}",
     )
     m.add_argument(
         "--buyer_models",
@@ -368,15 +376,16 @@ def main() -> None:
         sys.exit("❌ --oversight_enabled requires --seller_comms_enabled")
 
     n_lm_buyers = sum(1 for b in buyer_models if b not in (ZIP_BUYER, "none", "None"))
-    calls_per_run = args.rounds * (args.sellers + n_lm_buyers)
+    n_lm_sellers = sum(1 for s in seller_models if s != LADDER_SELLER)
+    calls_per_run = args.rounds * (n_lm_sellers + n_lm_buyers)
     if args.oversight_enabled:
         calls_per_run += args.rounds
     if args.llm_eval:
         calls_per_run += args.rounds * args.sellers
     n_calls = calls_per_run * len(args.seeds)
-    models = sorted({effective_model(m) for m in seller_models + [b for b in buyer_models if b not in (ZIP_BUYER,)]})
+    models = sorted({effective_model(m) for m in [s for s in seller_models if s != LADDER_SELLER] + [b for b in buyer_models if b not in (ZIP_BUYER,)]})
     print(
-        f"{len(args.seeds)} run(s) × {args.rounds} rounds × ({args.sellers} sellers + {n_lm_buyers} LLM buyers"
+        f"{len(args.seeds)} run(s) × {args.rounds} rounds × ({n_lm_sellers} LLM sellers + {n_lm_buyers} LLM buyers"
         f"{' + overseer' if args.oversight_enabled else ''}{' + judge' if args.llm_eval else ''}) "
         f"≈ {n_calls:,} model calls via OpenRouter.\n"
         "Rates: " + " · ".join(f"https://openrouter.ai/{m}" for m in models)

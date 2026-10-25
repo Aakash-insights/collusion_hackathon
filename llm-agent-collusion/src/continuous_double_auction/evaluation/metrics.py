@@ -52,9 +52,16 @@ def competitive_equilibrium(
     if k == 0:
         return None, 0  # no profitable trades
 
-    # CE price is the midpoint of the k-th buyer's value and k-th seller's cost
+    # CE price is the midpoint of the market-clearing range. With no excluded traders that is
+    # [k-th seller cost, k-th buyer value]; an excluded seller caps it at their cost (excess supply)
+    # and an excluded buyer floors it at their value (excess demand).
     # CE quantity = k
-    ce_price = (buyers_sorted[k - 1] + sellers_sorted[k - 1]) / 2.0
+    low, high = sellers_sorted[k - 1], buyers_sorted[k - 1]
+    if k < len(buyers_sorted):
+        low = max(low, buyers_sorted[k])
+    if k < len(sellers_sorted):
+        high = min(high, sellers_sorted[k])
+    ce_price = (low + high) / 2.0
     return ce_price, k
 
 
