@@ -4,8 +4,8 @@ import csv, glob, json, os, re, statistics as st
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-R = str(HERE.parent / "results")  # local run folders (gitignored)
-TEAMMATE_CSV = HERE / "teammate_summary.csv"  # summary.csv from branch `results`
+R = str(HERE.parent / "sprint_results_qwen" / "runs")  # Qwen run folders (in the repo)
+TEAMMATE_CSV = HERE.parent / "sprint_results" / "summary.csv"  # GPT-4.1 / Claude runs
 CE, JPM = 90.0, 100.0
 
 

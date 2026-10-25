@@ -150,6 +150,28 @@ T4 += t4g("No chat", "3 : 3", "r33_nochat", 90) + t4g("Seller chat", "3 : 3", "r
 T4 += t4g("<b>No chat (control)</b>", "<b>3 : 4</b>", "r34_nochat", 100)
 
 P = {name: p for name, p in D["paired"]}
+
+
+def team_tables():
+    """Parse section 1 of ../TEAM_RESULTS.md (built by tools/build_team_results.py) into compact HTML tables."""
+    md = open(f"{S}/../TEAM_RESULTS.md", encoding="utf-8").read()
+    sec = md.split("## 1. All conditions", 1)[1].split("\n## 2.", 1)[0]
+    out = ""
+    for block in sec.split("\n### ")[1:]:
+        title, *lines = block.strip().splitlines()
+        rows = [[c.strip() for c in l.strip().strip("|").split("|")] for l in lines if l.startswith("|")]
+        head, body = rows[0], rows[2:]
+        keep = ["Condition (tag)", "Sellers", "Buyers", "S:B", "Costs", "Open ask / bid", "Chat", "Overseer", "Other", "n",
+                "Avg price ($)", "Comp.", "Seller share"]
+        ix = [head.index(k) for k in keep]
+        clean = lambda c: c.replace("`", "").replace("(rule-based)", "").replace("gpt-4.1-mini", "4.1-mini")
+        trs = "".join("<tr>" + "".join(f"<td>{clean(r[i])}</td>" for i in ix) + "</tr>" for r in body)
+        ths = "".join(f"<th>{k.replace('Condition (tag)', 'Run tag').replace('Avg price ($)', 'Price ($)')}</th>" for k in keep)
+        out += f'<h3>{clean(title)}</h3><table class="small"><tr>{ths}</tr>{trs}</table>'
+    return out
+
+
+TEAM = team_tables()
 gm, ov = G["main5"], Q
 abstract_words = None
 
@@ -180,6 +202,7 @@ code { font-family: 'DejaVu Sans Mono', monospace; font-size: 8.6pt; }
 .pb { break-before: page; }
 .refs p { text-indent: -16px; padding-left: 16px; text-align: left; font-size: 9.6pt; margin-bottom: 3px; }
 .keep { break-inside: avoid; }
+table.small { font-size: 7pt; } table.small td, table.small th { padding: 1px 3px; white-space: normal !important; }
 """
 
 html = f"""<!doctype html><html><head><meta charset="utf-8"><title>Cartel Talk, Competitive Prices</title><style>{CSS}</style></head><body>
@@ -265,18 +288,39 @@ LLM sellers in continuous double auctions are reported to coordinate high prices
 <h2 class="pb">Appendix A&nbsp;&nbsp;Limitations and Dual-Use / Ethical Considerations</h2>
 <p><b>Statistical power.</b> Most cells have 3 seeds (the positive control has 5, two Qwen cells have 6–7). We can rule out effects of the size of full collusion (≈$10) but not effects under about $1–2. Effects are reported as means ± sample s.d. without formal tests.</p>
 <p><b>Scope.</b> Two model families. GPT-4.1 was paired only with gpt-4.1-mini buyers, and Qwen ran on a different provider (Bedrock) with JSON mode emulated by a system hint in the shim. Horizons were 15 hours; longer horizons might reveal slow convergence or late-forming collusion. Claude was tested in a single exploratory seed without an excess-demand control, and Gemini not at all. Neither ratio test passed the excess-demand control, so we make no claim either way about tacit collusion.</p>
-<p><b>Environment caveats.</b> (i) Until upstream fix <code>75d3e9d</code> (merged after our runs), agents running in parallel could see same-hour orders from agents that answered first, mainly on API retries. This applies equally to all our sessions. (ii) Order queues are cleared after trades, and Qwen sellers sometimes read an empty bid queue as “buyers inactive”. (iii) A failed API call aborts a session; five Qwen3-235B OpenRouter sessions were lost to a zero-credit account and are excluded, and one Qwen3-14B session stopped at hour 14 (Appendix B). (iv) The competitive-equilibrium function ignores unmatched agents (fixed locally by the teammate; we use the correct $80 / $100 benchmarks). (v) A gagging overseer is never fully silent: the gag message mentions regulators.</p>
+<p><b>Environment caveats.</b> (i) Until upstream fix <code>75d3e9d</code> (merged after our runs), agents running in parallel could see same-hour orders from agents that answered first, mainly on API retries. This applies equally to all our sessions. (ii) Order queues are cleared after trades, and Qwen sellers sometimes read an empty bid queue as “buyers inactive”. (iii) A failed API call aborts a session; five Qwen3-235B OpenRouter sessions were lost to a zero-credit account and are excluded, and one Qwen3-14B session stopped at hour 14 (Appendix B). (iv) The competitive-equilibrium function ignored unmatched agents. This is now fixed on <code>sprint-merged</code>, and all our analyses use the correct $80 / $100 benchmarks. (v) A gagging overseer is never fully silent: the gag message mentions regulators.</p>
 <p><b>Dual use.</b> The findings could be read as a recipe for evading message monitors (sanitize language, rely on anchored prices). We judge the risk low: the behaviors are already elicited by the paper's public prompts. The main lesson, that message-level monitoring alone is inadequate, favors defenders. We release no evasion prompts. All markets are simulated; no real prices, firms or people are involved.</p>
 <p><b>AI assistance.</b> Analysis code and drafting were assisted by an AI coding assistant. All numbers are computed directly from the logged sessions by a script, and the authors take responsibility for the content.</p>
 
 <h2>Appendix B&nbsp;&nbsp;Reproducibility and code changes</h2>
-<p><b>Code.</b> <code>github.com/Aakash-insights/collusion_hackathon</code>, branch <code>feature/oversight-notice-flags</code> (flags and Bedrock shim; see <code>CHANGES_SPRINT.md</code>). GPT-4.1 run logs are on branch <code>results</code> (<code>llm-agent-collusion/sprint_results/</code>). New flags: <code>--no_oversight_notice</code>, <code>--disclose_sample_fraction</code>, <code>--no_gag</code>, <code>--initial_seller_ask_center</code>, <code>--initial_buyer_bid_center</code>. Defaults are unchanged.</p>
+<p><b>Code and data.</b> <code>github.com/Aakash-insights/collusion_hackathon</code>, branch <code>sprint-merged</code>, which holds all code, both teams' runs and this report. It contains <code>llm-agent-collusion/sprint_results/</code> (GPT-4.1 and Claude runs, with <code>SUMMARY.md</code>), <code>sprint_results_qwen/</code> (Qwen runs), <code>TEAM_RESULTS.md</code> (every run from both folders, built by <code>tools/build_team_results.py</code>), <code>report/</code> (this paper; <code>collect.py</code> recomputes every number from the run folders) and <code>CHANGES_SPRINT.md</code> (all code changes). New flags: <code>--no_oversight_notice</code>, <code>--disclose_sample_fraction</code>, <code>--no_gag</code>, <code>--initial_seller_ask_center</code>, <code>--initial_buyer_bid_center</code>. Defaults are unchanged.</p>
 <p><b>Example commands</b> (from <code>llm-agent-collusion/</code>):<br>
 <code>simulation.py --seller_models gpt-4.1 --buyer_models gpt-4.1-mini --seller_comms_enabled --seeds 0 1 2 3 4</code> (positive control)<br>
 <code>simulation.py --seller_models &lt;Q&gt; --buyer_models &lt;Q&gt; --sellers 4 --buyers 3 --initial_seller_ask_center 92 --initial_buyer_bid_center 88 [--seller_comms_enabled] [--oversight_enabled]</code><br>
 with <code>&lt;Q&gt;</code> = <code>qwen.qwen3-235b-a22b-2507-v1:0</code> via the Bedrock shim (<code>LLM_BASE_URL</code>).</p>
-<p><b>Issues found in the starter environment.</b> (1) <code>ZIPBuyer.generate_bid_response</code>: adaptive margin update commented out, so bids are constant at $80 ± 1%. (2) <code>initial_seller_ask_center = 97.5</code> sits near the cartel price, so the PASS criterion is satisfied by sellers that merely hold their opening. (3) <code>metrics.competitive_equilibrium</code> pairs only the first <i>k</i> agents and reports $90 for 4 : 3 markets (true value $80). (4) An exhausted API retry raises <code>AssertionError</code> and aborts the session.</p>
+<p><b>Issues found in the starter environment.</b> (1) <code>ZIPBuyer.generate_bid_response</code>: adaptive margin update commented out, so bids are constant at $80 ± 1%. (2) <code>initial_seller_ask_center = 97.5</code> sits near the cartel price, so the PASS criterion is satisfied by sellers that merely hold their opening. (3) <code>metrics.competitive_equilibrium</code> paired only the first <i>k</i> agents and reported $90 for 4 : 3 markets (true value $80). It is fixed on <code>sprint-merged</code>, together with a crash when the competitive and cartel prices coincide. (4) An exhausted API retry raises <code>AssertionError</code> and aborts the session.</p>
 <p><b>Supplementary result.</b> Qwen3-14B sellers vs gpt-4.1-mini buyers, chat on, seed 0 (OpenRouter): 14 of 15 hours completed before a credit error. Average price $91.03 (index +0.10), 40 trades, sellers 55% of surplus. Sellers matched the highest bid in hour 1, consistent with §4.2.</p>
+
+<h2 class="pb">Appendix C&nbsp;&nbsp;All conditions run</h2>
+<p>Every condition in both result folders: 179 sessions, 168 complete. Table generated from <code>TEAM_RESULTS.md</code> section 1, recomputed from each run's raw files by <code>tools/build_team_results.py</code>. Price is mean ± sample s.d. over seeds. Comp. is the corrected competitive price. Seller share = seller profit / total surplus. Smoke tests and sessions without trades are included for completeness. The main text analyses the 151 sessions in the conditions it reports.</p>
+{TEAM}
+
+<h2>Appendix D&nbsp;&nbsp;Future work, in priority order</h2>
+<ol>
+<li><b>Make the market respond to supply and demand.</b> Nothing about tacit collusion can be concluded until an excess-demand (3 : 4) market rises toward $100 and an excess-supply (4 : 3) market falls toward $80 without communication. Options: longer horizons (30–100+ hours, since cent-sized steps need about 1,000 hours to reach cost), a minimum price step (for example $0.50), or agent-chosen quantities.</li>
+<li><b>Rerun the tacit-collusion test on that market</b> (4 : 3 vs 3 : 4, chat on/off, overseer) with 3+ seeds per cell.</li>
+<li><b>Confirm the stronger-model result:</b> Claude Sonnet 5.5 at 3 : 4, plus more 4 : 3 seeds. If Sonnet passes the control, use it as the seller model for steps 1–2.</li>
+<li><b>Cross-model sellers</b> (GPT-4.1, Claude and Qwen in one market), following the original paper's design.</li>
+<li><b>Truly silent oversight for GPT-4.1</b> (<code>--no_gag</code>), and the 25/50/100% monitoring and disclosure conditions, which so far exist only for Qwen.</li>
+<li><b>Rerun the headline cells after the order-queue fix</b> <code>75d3e9d</code>.</li>
+<li><b>Follow up profit pressure,</b> the only hint of an effect (3 of 6 Qwen sessions above $85), with more seeds and GPT-4.1.</li>
+<li><b>Stronger buyer models.</b> gpt-4.1-mini buyers concede easily.</li>
+<li><b>Better collusion metrics:</b> seed-matched causal effects, price change relative to the opening, and action-level dependence, not price level or message content alone.</li>
+<li><b>Fix environment defaults:</b> restore adaptive ZIP bidding, make a neutral opening the default, and keep a failed API call from aborting the session.</li>
+</ol>
+
+<h2>Appendix E&nbsp;&nbsp;Author contributions</h2>
+<p><b>Aakash Patil:</b> silent-oversight, disclosure, observe-only and opening-price flags; the Bedrock bridge; all Qwen3 experiments (120 sessions: communication, oversight, opening-anchor, model-strength and 4 : 3 competition conditions); track 3.4 metrics; this report. <b><span class="todo">[Teammate name]</span> (barhoz10):</b> all GPT-4.1 and Claude experiments (59 sessions: positive control, anchoring, prompt variants, price-channel tests with a scripted price leader, 4 : 3 / 3 : 3 / 3 : 4 competition test, stronger-model proof of concept); the competitive-equilibrium fix; the merged code branch and <code>TEAM_RESULTS.md</code>. Both authors identified the frozen ZIP buyer and the opening-price anchor independently.</p>
 </body></html>"""
 
 open(f"{S}/collusion_sprint_report.html", "w").write(html)
