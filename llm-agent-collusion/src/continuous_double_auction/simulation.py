@@ -278,6 +278,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="one run per seed (agent names, initial orders, API seed where supported)",
     )
     g.add_argument("--hide_num_rounds", action="store_true", help="do not tell agents the horizon")
+    g.add_argument(
+        "--initial_seller_ask_center", type=float, default=97.5, help="center of the sellers' opening asks"
+    )
+    g.add_argument("--initial_buyer_bid_center", type=float, default=82.5, help="center of the buyers' opening bids")
 
     m = p.add_argument_group("models (paper aliases or any OpenRouter id)")
     m.add_argument(
@@ -410,6 +414,8 @@ def main() -> None:
             oversight_notice=args.oversight_notice,
             disclose_sample_fraction=args.disclose_sample_fraction,
             overseer_gag=args.overseer_gag,
+            initial_seller_ask_center=args.initial_seller_ask_center,
+            initial_buyer_bid_center=args.initial_buyer_bid_center,
         )
         try:
             run_simulation(params, log_dir=args.log_dir, use_wandb=args.wandb)

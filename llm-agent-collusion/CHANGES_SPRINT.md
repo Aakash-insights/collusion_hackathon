@@ -29,6 +29,17 @@ Files touched:
   gated on `oversight_notice` instead of `oversight_enabled`, and carries the optional sample-fraction sentence.
   With defaults the rendered line is identical to the original.
 
+## New: opening-price flags
+
+`--initial_seller_ask_center` (default 97.5) and `--initial_buyer_bid_center` (default 82.5) expose the
+existing `ExperimentParams` fields that set where sellers' opening asks and buyers' opening bids are drawn.
+Defaults are unchanged. Added because the hard-coded ~$97.5 opening (near the $100 cartel price) largely
+determines the final price, so collusion tests need a neutral start (e.g. asks 92, bids 88). Touches
+`simulation.py` only.
+
+Note: `evaluation/metrics.py:competitive_equilibrium` ignores unmatched sellers/buyers, so with unequal
+counts (e.g. `--sellers 4 --buyers 3`) it still reports $90; the true competitive price there is ~$80.
+
 ## New: Bedrock bridge (model access, not an experiment variable)
 
 `tools/bedrock_openai_shim.py` is a ~90-line OpenAI-compatible `/v1/chat/completions` server that forwards to
