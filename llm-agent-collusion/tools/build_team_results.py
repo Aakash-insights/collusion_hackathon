@@ -255,6 +255,45 @@ def main():
              "competitive = cartel price (fixed), gag text that breaks silent oversight (`--no_gag` added), and "
              "same-round order-queue leakage (fixed upstream in `75d3e9d`, after all runs here).\n")
 
+    L.append("## Future steps\n")
+    L.append("### Research — in priority order\n")
+    L.append("1. **Make the market respond to supply and demand first.** Nothing about tacit collusion can be "
+             "concluded until the 3:4 control rises toward $100. Options: much longer horizons (30–100+ rounds; "
+             "cent-sized steps need ~1,000 rounds to reach cost), a minimum price step (e.g. $0.50), or letting "
+             "agents choose quantities. Success test: 3:4 rises and 4:3 falls when sellers cannot talk.")
+    L.append("2. **Then rerun the tacit-collusion test** (4:3 vs 3:4, chat on/off, overseer) on the responsive "
+             "market, 3+ seeds per cell. If 4:3 stays high while 3:4 rises, that is tacit collusion; if chat "
+             "raises the 4:3 price, talk causes collusion.")
+    L.append("3. **Confirm the stronger-model result.** Claude Sonnet 5.5: run the 3:4 control and two more seeds "
+             "of 4:3 (≈ $5 on OpenRouter). If Sonnet passes the control, use it (or a similar model) as the seller "
+             "for steps 1–2.")
+    L.append("4. **Cross-model sellers** (e.g. GPT-4.1 + Claude + Qwen in one market, the paper's 2.1 design): do "
+             "sellers that don't share a model still coordinate?")
+    L.append("5. **Truly silent oversight with GPT-4.1.** Repeat the silent-overseer condition with `--no_gag` "
+             "(observe-only), since the gag message told sellers they were watched. Also repeat the 25/50/100% "
+             "monitoring and disclosure conditions with GPT-4.1, which so far exist only for Qwen.")
+    L.append("6. **Rerun the headline cells after the queue-snapshot fix** (`75d3e9d`). Every run here predates "
+             "it; same-round order leakage may explain some odd moments (e.g. sellers seeing a rival's ask as "
+             "'absent').")
+    L.append("7. **Follow up the one hint of an effect:** CEO profit pressure (3 of 6 Qwen sessions ended above "
+             "$85). More seeds, and test with GPT-4.1.")
+    L.append("8. **Stronger buyers.** All GPT-4.1 runs used gpt-4.1-mini buyers, who concede easily. Repeat key "
+             "cells with stronger buyer models.")
+    L.append("9. **Better collusion metrics.** Replace the price-level PASS/FAIL with seed-matched causal effects "
+             "(chat on − off), price change relative to the opening, and action-level dependence (e.g. lagged "
+             "ask correlations), not message content alone.")
+    L.append("10. **Fix the environment defaults:** restore the `zip` buyer's adaptive bidding, make a neutral "
+             "opening the default, and stop a single failed API call from aborting the whole session.\n")
+    L.append("### Housekeeping\n")
+    L.append("- **Report:** fill in the author placeholders on page 1 (teammate name, other members, affiliation) "
+             "and point Appendix B to the branch with all code (`sprint-merged`), not "
+             "`feature/oversight-notice-flags`.")
+    L.append("- **Branches:** agree on one official branch (`sprint-merged` contains everything) and open a pull "
+             "request into `main` if wanted.")
+    L.append("- **Open PRs #1 and #2 (Rehanguards):** close without merging — #2 does not run, #1 crashes every "
+             "overseer run.")
+    L.append("- **API keys:** rotate any key that was shared in chat or logs.\n")
+
     L.append("## 1. All conditions\n")
     for author, folder, _ in SOURCES:
         L.append(f"### {author} — `{folder.relative_to(ROOT)}/`\n")
