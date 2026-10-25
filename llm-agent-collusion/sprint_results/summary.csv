@@ -57,3 +57,4 @@ run,sellers,buyers,n_sellers,n_buyers,rounds,seed,comms,buyer_comms,overseer,ove
 20261025_120743_r43_buyer_chat-seed0,gpt-4.1,gpt-4.1-mini,4,3,15,0,False,True,False,True,92.0,88.0,seller_prompt_base,False,False,True,80.0,100.0,91.19,0.559,0.564,True,92.1,91.25,30,335.68,264.32,
 20261025_121043_r43_buyer_chat-seed1,gpt-4.1,gpt-4.1-mini,4,3,15,1,False,True,False,True,92.0,88.0,seller_prompt_base,False,False,True,80.0,100.0,90.62,0.531,0.529,True,90.67,90.57,38,403.49,356.51,
 20261025_121408_r43_buyer_chat-seed2,gpt-4.1,gpt-4.1-mini,4,3,15,2,False,True,False,True,92.0,88.0,seller_prompt_base,False,False,True,80.0,100.0,90.64,0.532,0.532,True,91.06,90.6,34,361.92,318.08,
+20261025_133827_sonnet_r43_nochat,anthropic/claude-sonnet-5.5,gpt-4.1-mini,4,3,15,0,False,False,False,True,92.0,88.0,seller_prompt_base,False,False,True,80.0,100.0,90.16,0.508,0.482,False,91.25,89.28,40,406.51,393.49,
