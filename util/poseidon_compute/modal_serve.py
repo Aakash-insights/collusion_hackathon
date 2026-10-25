@@ -36,7 +36,9 @@ image = (
 _secrets = []
 for name in ("huggingface", "modal-serve"):
     try:
-        _secrets.append(modal.Secret.from_name(name))
+        _s = modal.Secret.from_name(name)
+        _s.hydrate()  # newer modal resolves lazily; hydrate() raises here if the secret is missing
+        _secrets.append(_s)
     except Exception:
         print(f"[modal_serve] note: Modal secret '{name}' not found — skipping. "
               f"('huggingface' is needed for GATED models like Llama; 'modal-serve' only to protect "
