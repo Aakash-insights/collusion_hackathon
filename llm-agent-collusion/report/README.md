@@ -13,7 +13,7 @@
 
 ## Editing
 
-1. Change text in `build.py` (authors and affiliation are the `todo` placeholders near the top of the HTML).
+1. Change text in `build.py`.
 2. Rebuild the HTML and PDF from this folder:
 
 ```bash
